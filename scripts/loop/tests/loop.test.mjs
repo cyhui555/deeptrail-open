@@ -7,6 +7,7 @@ import test from "node:test";
 import { resolveGatewayConfig } from "../config.mjs";
 import { LoopGatewayError } from "../errors.mjs";
 import { sha256 } from "../fs-safe.mjs";
+import { evaluateCohort, validateManifestShape } from "../l2-cohort.mjs";
 import { acquireWriteLock, quarantineStaleWriteLock } from "../lock.mjs";
 import { assertAllowedLoopAnyArgs, sanitizedEnvironment } from "../runtime.mjs";
 import { detectUnexpectedProcessError, stableRunIdentity } from "../shadow.mjs";
@@ -267,6 +268,51 @@ test("L2 只生成确定性 Proposal 且所有写权限保持关闭", () => {
   );
 });
 
+test("L2 Cohort 按 Work Item 计数并允许固定门槛内的一次失败", () => {
+  const registrations = Array.from({ length: 10 }, (_, index) =>
+    cohortRegistration(index + 1, index === 0 ? "failed" : "verified"));
+  const report = evaluateCohort(registrations);
+  assert.equal(report.workItemCount, 10);
+  assert.equal(report.metrics.firstVerificationSuccessRate, 0.9);
+  assert.equal(report.metrics.idempotentReuseSuccessRate, 1);
+  assert.equal(report.metrics.closureRate, 1);
+  assert.equal(report.metrics.boundaryViolationRate, 0);
+  assert.equal(report.metrics.lastConsecutivePasses, 9);
+  assert.equal(report.cohortReady, true);
+});
+
+test("L2 Cohort 拒绝放宽门槛，边界违规会阻止晋级", () => {
+  assert.throws(
+    () => validateManifestShape(cohortManifest({ firstVerificationSuccessRate: 0.8 })),
+    (error) => error instanceof LoopGatewayError && error.code === "L2_COHORT_THRESHOLD_DRIFT"
+  );
+  const registrations = Array.from({ length: 10 }, (_, index) =>
+    cohortRegistration(index + 1, "verified", index === 9));
+  const report = evaluateCohort(registrations);
+  assert.equal(report.metrics.boundaryViolationRate, 0.1);
+  assert.equal(report.metrics.lastConsecutivePasses, 0);
+  assert.equal(report.cohortReady, false);
+});
+
+test("L2 Cohort 新 Evidence 必须引用上一版 main 已登记的样本", () => {
+  const previous = cohortManifest();
+  previous.evidence = [];
+  const next = structuredClone(previous);
+  next.registrations.push({
+    sequence: 2,
+    workItem: ["docs", "issues", "bug-next.md"].join("/"),
+    profiles: ["docs"]
+  });
+  next.evidence.push({
+    registrationSequence: 2,
+    runs: [{ profile: "docs", runId: `run-${"b".repeat(24)}` }]
+  });
+  assert.throws(
+    () => validateManifestShape(next, previous),
+    (error) => error instanceof LoopGatewayError && error.code === "L2_COHORT_NOT_PREREGISTERED"
+  );
+});
+
 async function fakeConfig(name) {
   const root = await temporary(name);
   const repoRoot = path.join(root, "repo");
@@ -287,4 +333,61 @@ async function fakeConfig(name) {
 
 async function temporary(name) {
   return await mkdtemp(path.join(os.tmpdir(), `deeptrail-loop-${name}-`));
+}
+
+function cohortRegistration(sequence, status, boundaryViolation = false) {
+  const profile = "docs";
+  return {
+    sequence,
+    workItem: `docs/issues/task-sample-${sequence}.md`,
+    profiles: [profile],
+    profileResults: [{
+      profile,
+      runId: `run-${sequence.toString(16).padStart(24, "0")}`,
+      firstStatus: status,
+      firstReused: false,
+      repeatedStatus: status,
+      repeatedReused: true,
+      closureOk: true,
+      boundaryViolation
+    }]
+  };
+}
+
+function cohortManifest(firstThresholds = {}) {
+  return {
+    schemaVersion: 1,
+    cohortId: "l2-test",
+    repository: "cyhui555/deeptrail-open",
+    baseRevision: "a".repeat(40),
+    targetWorkItems: 10,
+    thresholds: {
+      firstVerificationSuccessRate: 0.9,
+      idempotentReuseSuccessRate: 1,
+      closureRate: 1,
+      boundaryViolationRate: 0,
+      lastConsecutivePasses: 5,
+      ...firstThresholds
+    },
+    selectionPolicy: {
+      unit: "work-item",
+      initialTranche: "all-active-non-coordinator-work-items-at-base-revision",
+      futureRegistration: "append-on-protected-main-before-first-shadow",
+      evidenceBinding: "append-after-registration-is-on-main",
+      failureRetention: "never-remove-reorder-or-replace"
+    },
+    exclusions: [{
+      workItem: "docs/issues/task-loop-003-l1-phase2-to-l2.md",
+      reason: "cohort-coordinator-cannot-score-itself"
+    }],
+    registrations: [{
+      sequence: 1,
+      workItem: ["docs", "issues", "task-sample-1.md"].join("/"),
+      profiles: ["docs"]
+    }],
+    evidence: [{
+      registrationSequence: 1,
+      runs: [{ profile: "docs", runId: `run-${"a".repeat(24)}` }]
+    }]
+  };
 }
