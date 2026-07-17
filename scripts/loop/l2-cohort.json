@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "cohortId": "l2-public-20260717",
+  "repository": "cyhui555/deeptrail-open",
+  "baseRevision": "9f67fe3b42d7f2fac024442a354c9cecbdd50870",
+  "targetWorkItems": 10,
+  "thresholds": {
+    "firstVerificationSuccessRate": 0.9,
+    "idempotentReuseSuccessRate": 1,
+    "closureRate": 1,
+    "boundaryViolationRate": 0,
+    "lastConsecutivePasses": 5
+  },
+  "selectionPolicy": {
+    "unit": "work-item",
+    "initialTranche": "all-active-non-coordinator-work-items-at-base-revision",
+    "futureRegistration": "append-on-protected-main-before-first-shadow",
+    "evidenceBinding": "append-after-registration-is-on-main",
+    "failureRetention": "never-remove-reorder-or-replace"
+  },
+  "exclusions": [
+    {
+      "workItem": "docs/issues/task-loop-003-l1-phase2-to-l2.md",
+      "reason": "cohort-coordinator-cannot-score-itself"
+    }
+  ],
+  "registrations": [
+    {
+      "sequence": 1,
+      "workItem": "docs/issues/task-gov-001-rapid-iteration-direct-main.md",
+      "profiles": [
+        "docs"
+      ]
+    },
+    {
+      "sequence": 2,
+      "workItem": "docs/issues/bug-20260717-001-optimize-watchdog-race.md",
+      "profiles": [
+        "quality-server",
+        "smoke"
+      ]
+    },
+    {
+      "sequence": 3,
+      "workItem": "docs/issues/bug-20260717-002-ai-json-parse-fallback-success.md",
+      "profiles": [
+        "quality-server",
+        "quality-web",
+        "smoke"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "registrationSequence": 1,
+      "runs": [
+        {
+          "profile": "docs",
+          "runId": "run-035c5c2a1e2649d8f865eabe"
+        }
+      ]
+    },
+    {
+      "registrationSequence": 2,
+      "runs": [
+        {
+          "profile": "quality-server",
+          "runId": "run-c544e75b053efb6e9d8c7a48"
+        },
+        {
+          "profile": "smoke",
+          "runId": "run-9e959d04c478f18b33368d53"
+        }
+      ]
+    },
+    {
+      "registrationSequence": 3,
+      "runs": [
+        {
+          "profile": "quality-server",
+          "runId": "run-f219c77ba5baa58c9165db1a"
+        },
+        {
+          "profile": "quality-web",
+          "runId": "run-e37c3498b573d3a64dece13f"
+        },
+        {
+          "profile": "smoke",
+          "runId": "run-93a399300d59d085996aa3c3"
+        }
+      ]
+    }
+  ]
+}

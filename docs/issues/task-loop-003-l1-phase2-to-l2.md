@@ -64,4 +64,4 @@
 
 ## 下一项唯一动作
 
-工程所有者已明确选择 GitHub Free 公开仓库。确认仓库名与独立 Reviewer 后，用 `pnpm security:public-prepare` 生成单根脱敏主仓并保留原私有审计档案；首次 CI 全绿后启用 PR、五项 Required Checks、对话解决、管理员守规与禁止 force-push/删除，再关闭 `TASK-GOV-001`。
+GitHub Free 脱敏公开主仓、五项 Required Checks、对话解决、管理员守规与禁止 force-push/删除均已落地。下一步由唯一人工所有者审核 `github-actions[bot]` 创建且锁定 SHA 的治理 PR并关闭 `TASK-GOV-001`；该账号级分离不等价于第二位人员审计，随后再完成两个 Bug 的发布复验和其余 7 项预登记真实样本。
