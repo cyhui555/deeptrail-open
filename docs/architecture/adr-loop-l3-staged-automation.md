@@ -22,10 +22,10 @@ L3 按不可越级的权限阶段推进：
 
 ## L3A 不变量
 
-- Policy 默认关闭；activation 必须绑定受保护主干 Revision、严格 L2 Receipt 和人工批准身份。
+- Policy 默认关闭；activation 必须绑定最终批准 Head、其 main 合入 Revision、稳定 L2 Cohort 摘要和可远程核验的所有者 Review。
 - ChangePlan 字段精确，Patch 与计划同目录且 Hash 固定；路径、文件类型、增删行和运行预算不可静默放宽。
 - Mutation Root 位于仓库、Loop Home 与 Backup Root 之外；规范源工作树在前后均保持同一 Commit、Tree 和状态。
-- Worker 不能修改 `scripts/loop/`、`.github/`、部署、数据库迁移、依赖清单、ADR、Requirement、Secret 或生产配置。
+- Worker 不能修改 `scripts/`、工程治理文档、`.github/`、部署、数据库迁移、依赖清单、Secret 或生产配置；Profile 使用空 Home/AppData、离线依赖和禁用 lifecycle scripts。
 - Stage 与 Publish 分离；失败不删除 Worktree、远程分支或 PR，不伪造 Receipt。
 
 ## 结果

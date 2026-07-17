@@ -25,7 +25,7 @@
 
 - 建立默认禁用的 Policy 和严格 ChangePlan Schema。
 - 固定允许 Profile、目录白名单、禁区、Patch/文件/行数/输出/时长预算。
-- 将批准 Revision、严格 Cohort Receipt 与人工审批绑定到 activation。
+- 将最终批准 Head、main 合入 Revision、稳定 Cohort 摘要与可远程核验的所有者 Review 绑定到 activation。
 
 ### P2：隔离执行
 
@@ -62,6 +62,6 @@
 - [x] 复现严格 Cohort 失败并定位五份 schema v1 Receipt。
 - [x] 五份当前文件与既有 Backup SHA-256 全部一致。
 - [x] 登记 GitHub #33、#34 和受保护短期分支。
-- [ ] 实现 Receipt 证明链并恢复严格 Cohort。
-- [ ] 实现 L3A Policy、Plan、Worktree 与事务回执。
+- [x] 实现 Receipt 证明链；确认公开严格 Cohort 48/48 v2、10/10 Work Items 通过。
+- [x] 实现默认关闭的 L3A Policy、Plan、隔离凭据 Runtime、Worktree 与事务回执；Loop 测试 23/23。
 - [ ] 完成本地 G2、远程 PR 与首个试点 G3。

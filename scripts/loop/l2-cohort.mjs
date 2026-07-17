@@ -6,7 +6,7 @@ import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { requireArtifact } from "./artifacts.mjs";
-import { canonicalJson } from "./canonical.mjs";
+import { canonicalJson, canonicalSha256 } from "./canonical.mjs";
 import { resolveGatewayConfig } from "./config.mjs";
 import { LoopGatewayError, formatError } from "./errors.mjs";
 import { recoverLoop } from "./operations.mjs";
@@ -262,6 +262,24 @@ export async function verifyRuntimeCohort(config, manifest) {
   };
 }
 
+/** L3 只绑定稳定的 Cohort 事实；诊断 Receipt 数量和 Audit 追加不会令准入摘要漂移。 */
+export function cohortAdmissionDigest(report) {
+  assert(report?.cohortReady === true, "L2_COHORT_NOT_READY", "L2 Cohort 未达到 L3 准入门槛");
+  return canonicalSha256({
+    schemaVersion: report.schemaVersion,
+    cohortId: report.cohortId,
+    repository: report.repository,
+    baseRevision: report.baseRevision,
+    workItemCount: report.workItemCount,
+    profileRunCount: report.profileRunCount,
+    targetWorkItems: report.targetWorkItems,
+    targetMet: report.targetMet,
+    thresholdsMet: report.thresholdsMet,
+    metrics: report.metrics,
+    entries: report.entries
+  });
+}
+
 async function verifyProfileRun(config, manifest, registration, run, shadowReceipts) {
   const matching = shadowReceipts.filter((receipt) => receipt.result.runId === run.runId);
   const first = matching.filter((receipt) => receipt.result.reused === false);
@@ -418,7 +436,7 @@ function assert(condition, code, message) {
   if (!condition) throw new LoopGatewayError(code, message);
 }
 
-async function loadManifest() {
+export async function loadL2CohortManifest() {
   return JSON.parse(await readFile(manifestFile, "utf8"));
 }
 
@@ -427,7 +445,7 @@ async function main() {
   const allowed = new Set(["--static", "--strict"]);
   assert([...args].every((argument) => allowed.has(argument)),
     "L2_COHORT_ARGUMENT_DENIED", "只允许 --static 与 --strict 参数");
-  const manifest = await loadManifest();
+  const manifest = await loadL2CohortManifest();
   const repoRoot = (await gitRequired(process.cwd(), ["rev-parse", "--show-toplevel"],
     "定位 Git 根目录")).trim();
   const staticResult = await verifyStaticCohort(manifest, repoRoot);

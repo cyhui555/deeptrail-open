@@ -1,13 +1,13 @@
 # BUG-20260718-001：历史 v1 Receipt 阻断严格 Cohort
 
-- 状态：In Progress / G1
+- 状态：本地修复完成 / G2，等待受保护 PR
 - 优先级：P0
 - GitHub：[#33](https://github.com/cyhui555/deeptrail-open/issues/33)
-- 关联：`REQ-LOOP-002`、`TASK-LOOP-004`
+- 关联 Requirement：`REQ-LOOP-002`、`TASK-LOOP-004`
 
-## 失败证据与原因
+## 目标
 
-长期 Loop Home 的 `loop:doctor` 通过，但 `pnpm loop:cohort:l2:strict` 以 `RECEIPT_TAMPERED` 失败。39 份 Receipt 中五份由 Receipt v2 引入前的 schema v1 Gateway 生成，没有 `integritySha256`；它们与 Backup `backup-20260716194349-ceed4e4c9841` 的逐文件 SHA-256 全部一致，属于兼容缺口而非已观测到的运行后漂移。
+旧手册误把公开仓指向历史私有 Loop Home，令 `pnpm loop:cohort:l2:strict` 以 `RECEIPT_TAMPERED` 失败。该 Home 的 39 份 Receipt 中五份由 v2 前的 schema v1 Gateway 生成，没有 `integritySha256`；它们与 Backup `backup-20260716194349-ceed4e4c9841` 逐文件一致，属于兼容缺口。正式公开 Home `deeptrail-open-loop` 始终只有 v2 Receipt，严格 Cohort 未真实回退。
 
 ## 范围与不变量
 
@@ -17,9 +17,9 @@
 
 ## 验收
 
-- [ ] 五份已证明 v1 通过，`unattestedLegacy=0`。
-- [ ] 未登记 v1、当前文件漂移、Backup 漂移和 v2 篡改均由测试覆盖并失败。
-- [ ] `loop:test`、真实 Runtime 集成、Doctor 和严格 Cohort 通过。
+- [x] 历史 Home：34 份 v2 + 五份已证明 v1，`unattestedLegacy=0`。
+- [x] 未登记 v1、当前文件漂移、Backup 漂移和 v2 篡改均由测试覆盖并失败。
+- [x] `loop:test` 23/23、真实 Runtime 集成 1/1；公开 Home Doctor 与严格 Cohort 48/48 v2、10 Work Items / 17 Profiles 全部通过。
 - [ ] 修复经受保护 PR 合入，不直推主干。
 
 ## 回滚

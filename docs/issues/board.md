@@ -4,8 +4,8 @@
 
 ## Verification
 
-- `BUG-20260718-001`：五份 Receipt v2 前置 schema v1 文件阻断严格 Cohort；已由既有 Backup 逐文件 Hash 证明，正在实现不改写原证据的受限兼容，见[活动 Work Item](bug-20260718-001-legacy-receipt-v1-integrity.md)与 [GitHub #33](https://github.com/cyhui555/deeptrail-open/issues/33)。
-- `TASK-LOOP-004`：正在建立 L3A 隔离 Worktree、固定 Patch/Profile、Commit 与 Draft PR 闭环；自动审批、合并和部署继续阻断，见[活动 Work Item](task-loop-004-l3a-controlled-execution.md)、[执行计划](../plans/task-loop-004-l3a-exec-plan.md)与 [GitHub #34](https://github.com/cyhui555/deeptrail-open/issues/34)。
+- `BUG-20260718-001`：历史 Home 的五份 v1 Receipt 已由固定 Backup 证明并通过受限兼容；正式公开 Home 严格 Cohort 48/48 v2 为绿，等待受保护 PR，见[活动 Work Item](bug-20260718-001-legacy-receipt-v1-integrity.md)与 [GitHub #33](https://github.com/cyhui555/deeptrail-open/issues/33)。
+- `TASK-LOOP-004`：L3A 默认关闭策略、隔离凭据 Runtime/Worktree、固定 Patch/Profile、Commit 与机器人 Draft PR 引擎已通过 23/23 Loop 测试；自动审批、合并和部署继续阻断，见[活动 Work Item](task-loop-004-l3a-controlled-execution.md)、[执行计划](../plans/task-loop-004-l3a-exec-plan.md)与 [GitHub #34](https://github.com/cyhui555/deeptrail-open/issues/34)。
 - `BUG-20260717-006`：身份贡献器、不可变发布及健康后故障注入自动恢复均通过，见[活动 Work Item](bug-20260717-006-release-identity-recovery.md)。
 - `TASK-RELEASE-003`：目标机 117/117 固定回归、Release 身份与恢复演练通过，见[活动 Work Item](task-release-003-target-release-validation.md)。
 - `TASK-OPS-002`：零付费、无生产密钥且固定回归阶段断网的目标机回归已固化，见[活动 Work Item](task-ops-002-no-cost-target-regressions.md)。

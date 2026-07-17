@@ -25,4 +25,4 @@ Loop Gateway 已从历史可验证的 L1 Phase 1 提升到持续 CI 守护的 L1
 
 ## 后续
 
-2026-07-18 复核发现五份 Receipt v2 引入前的 schema v1 文件会被当前严格校验器统一判为篡改。原文件与既有不可变 Backup 的 SHA-256 一致；修复与 L3A 隔离 Draft PR 试点分别由 GitHub #33、#34 继续推进。
+2026-07-18 因旧手册误用了私有历史 Home，复核发现其中五份 v2 前 schema v1 文件会被当前严格校验器判为篡改；原文件与既有不可变 Backup 的 SHA-256 一致。正式公开 Home 始终仅含 v2、Cohort 未回退；历史兼容修复与 L3A 隔离 Draft PR 试点分别由 GitHub #33、#34 推进。

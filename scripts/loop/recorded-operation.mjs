@@ -91,7 +91,7 @@ export async function runRecordedOperation(config, definition) {
     }
     await transaction.checkpoint("recovery_required", {
       failedAfter: transaction.status,
-      recovery: applied?.recovery ?? {},
+      recovery: applied?.recovery ?? error?.details?.recovery ?? {},
       error: error instanceof Error ? error.message : String(error)
     }).catch(() => {});
     throw error;

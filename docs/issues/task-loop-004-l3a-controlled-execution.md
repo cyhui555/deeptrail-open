@@ -2,7 +2,7 @@
 
 - 状态：In Progress / G1
 - 优先级：P0
-- Requirement：`REQ-LOOP-003`
+- 关联 Requirement：`REQ-LOOP-003`
 - GitHub：[#34](https://github.com/cyhui555/deeptrail-open/issues/34)
 - ExecPlan：[L3A 执行计划](../plans/task-loop-004-l3a-exec-plan.md)
 - ADR：[L3 分阶段权限模型](../architecture/adr-loop-l3-staged-automation.md)
@@ -20,9 +20,9 @@
 
 ## 验收
 
-- [ ] `BUG-20260718-001` 关闭且 L2 严格 Cohort 为绿。
-- [ ] 权限策略默认全关，只有绑定主干 Revision、L2 Receipt 和人工批准后才启用 L3A。
-- [ ] 路径逃逸、Symlink、二进制、超预算、基线漂移、脏源树和非 Draft PR 全部失败关闭。
+- [x] `BUG-20260718-001` 本地修复完成，正式公开 L2 严格 Cohort 为绿。
+- [x] 权限策略默认全关；activation 双重绑定最终批准 Head、main 合入 Revision、稳定 L2 摘要与所有者 Review。
+- [x] 路径逃逸、治理目录、Symlink、二进制、超预算、基线漂移、脏源树、凭据目录继承和非 Draft PR 全部失败关闭。
 - [ ] 免费、无业务数据的试点完成隔离 Patch、固定 Profile、Commit 与 Draft PR。
 - [ ] 自动审批、合并和部署仍为 false；后续 L3B/L3C 另行准入。
 

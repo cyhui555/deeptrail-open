@@ -6,10 +6,12 @@ import {
   backupLoop,
   clearStaleLockRecovery,
   initializeLoop,
+  preflightL3Loop,
   doctorLoop,
   finalizeFailedRecovery,
   recoverLoop,
   restoreLoop,
+  runL3DraftLoop,
   resumePostcheckRecovery,
   statusLoop,
   syncSkillsRecorded
@@ -41,6 +43,12 @@ async function main() {
   } else if (args[0] === "receipts" && args[1] === "verify" && args.length === 2) {
     await verifyRuntime(config);
     result = summarizeReceiptIntegrity(await verifyReceiptSet(config));
+  } else if (args[0] === "l3" && args[1] === "preflight") {
+    const flags = parseFlags(args.slice(2), new Set(["--plan"]));
+    result = await preflightL3Loop(config, requireFlag(flags, "--plan"));
+  } else if (args[0] === "l3" && args[1] === "run-draft") {
+    const flags = parseFlags(args.slice(2), new Set(["--plan"]));
+    result = await runL3DraftLoop(config, requireFlag(flags, "--plan"));
   } else if (args[0] === "backup" && args.length === 1) {
     result = await backupLoop(config);
   } else if (args[0] === "restore") {
@@ -60,7 +68,7 @@ async function main() {
   } else {
     throw new LoopGatewayError(
       "USAGE",
-      "用法：loop <init|doctor|status|receipts verify|backup|restore --backup <id> --target <path>|recover [--finalize-failed|--resume-postcheck|--clear-stale-lock <id>]|skills sync|skills verify|shadow --work-item <path> [--profile docs|gateway]>"
+      "用法：loop <init|doctor|status|receipts verify|l3 preflight --plan <file>|l3 run-draft --plan <file>|backup|restore --backup <id> --target <path>|recover [--finalize-failed|--resume-postcheck|--clear-stale-lock <id>]|skills sync|skills verify|shadow --work-item <path> [--profile docs|gateway]>"
     );
   }
 
@@ -79,6 +87,12 @@ function parseFlags(args, allowed) {
     result.set(flag, value);
   }
   return result;
+}
+
+function requireFlag(flags, name) {
+  const value = flags.get(name);
+  if (!value) throw new LoopGatewayError("USAGE", `缺少必需参数：${name}`);
+  return value;
 }
 
 main().catch((error) => {

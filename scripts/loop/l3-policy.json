@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "stage": "preflight-disabled",
+  "repository": "cyhui555/deeptrail-open",
+  "baseBranch": "main",
+  "sourceBranchPrefix": "agent/l3/",
+  "targetBranchPrefix": "automation/l3/",
+  "activation": {
+    "enabled": false,
+    "approvedRevision": null,
+    "mergedRevision": null,
+    "l2CohortDigest": null,
+    "humanApprover": null,
+    "approvalUrl": null
+  },
+  "budgets": {
+    "maxPatchBytes": 262144,
+    "maxChangedFiles": 10,
+    "maxAddedLines": 500,
+    "maxDeletedLines": 250,
+    "maxProfileSeconds": 900,
+    "maxOutputBytes": 4194304
+  },
+  "allowedProfiles": [
+    "docs",
+    "gateway",
+    "quality-light",
+    "quality-server",
+    "quality-web",
+    "smoke"
+  ],
+  "allowedPathRoots": [
+    "apps/",
+    "docs/",
+    "evals/",
+    "tests/"
+  ],
+  "deniedPathPatterns": [
+    "^scripts(?:/|$)",
+    "^docs/(?:architecture|archive|issues|memory|operations|plans|process|requirements|verification)(?:/|$)",
+    "^docs/(?:board|backlog)\\.md$",
+    "^infra(?:/|$)",
+    "^database/migration(?:s)?(?:/|$)",
+    "^\\.github(?:/|$)",
+    "^AGENTS\\.md$",
+    "(?:^|/)\\.env(?:\\.|$)",
+    "(?:^|/)(?:uploads?|data|logs?|playwright-report|test-results)(?:/|$)",
+    "(?:^|/)package\\.json$",
+    "^pnpm-lock\\.yaml$",
+    "(?:^|/)pom\\.xml$"
+  ],
+  "permissions": {
+    "isolatedWorktreeMutation": false,
+    "localCommit": false,
+    "remoteBranchPush": false,
+    "draftPullRequest": false,
+    "autoApprove": false,
+    "autoMerge": false,
+    "autoDeploy": false
+  },
+  "failurePolicy": {
+    "preserveWorktree": true,
+    "forcePush": false,
+    "deleteRemoteBranch": false,
+    "closePullRequest": false
+  }
+}
