@@ -1,8 +1,8 @@
 # 当前项目状态
 
 - 最后核对：2026-07-17
-- 当前阶段：旅迹 v0.2.0 已发布到目标环境；Loop Engineering L1 Phase 2 本地 G2 通过，GitHub Free 公开安全基线与四类最终 Profile 已完成本地验证
-- 当前检查门：等待确认全新脱敏公开仓库名与独立 Reviewer；随后建立受保护主干并跑远程 CI，`BUG-20260717-001/002` 仍待不可变发布与目标环境复验
+- 当前阶段：旅迹 v0.2.0 已发布到目标环境；Loop Engineering L1 Phase 2 本地 G2 通过，脱敏公开主仓、五项远程 CI 与 `main` 保护已落地
+- 当前检查门：等待真实独立 Reviewer 完成首个受保护 PR；随后关闭直推例外，`BUG-20260717-001/002` 仍待不可变发布与目标环境复验，并需积累 10 个新 Work Item
 - 活动工作项：`BUG-20260717-001`、`BUG-20260717-002`、`TASK-GOV-001`
 - 最近完成：`TASK-WORKSPACE-001`、`TASK-LOOP-002`、`TASK-LOOP-001`
 
@@ -37,7 +37,7 @@
 
 ## 最后验证
 
-- LoopAny：Gateway 12/12、真实 Runtime 集成 1/1、四阶段恢复、隔离 Backup/Restore、Doctor 与 Recovery 通过；最终 `quality-light/server/web/smoke` Run 分别为 `run-9b115da9558fcf60ad1a86d7`、`run-f36b7d343123da21a00e91b4`、`run-a99a4fbb422e41b74b57b1c3`、`run-c56fa78646fe884d24837d28`，均首次通过且重复零命令复用。
+- LoopAny：四类最终 Profile 均首次通过且重复零命令复用；公开 `main@9f67fe3` 的 CI run `29570035123` 五项必需检查全绿，保护规则已由 API 读回，独立 Review 尚待完成。
 - `pnpm test:e2e` 封板全量：119 条中 118 通过、1 条件跳过、0 失败；覆盖本轮新增地图、PDF、离线与 UI 回归。
 - `tests/e2e` 中 `waitForTimeout`、`force`、`networkidle` 均为 0，仅保留 3 个真实业务顺序选择器。
 - `pnpm perf:check`：11/11 路由通过；首页 `113.3 / 145 kB`，现场执行 `128.5 / 160 kB`，完整路线 `111.6 / 150 kB`。
@@ -56,4 +56,4 @@
 
 ## 下一项唯一动作
 
-工程所有者确认全新脱敏公开仓库名和独立 Reviewer 后建立受保护主干并验证远程 CI，再进入两个 Bug 的不可变发布复验。
+由真实独立 Reviewer 审核首个受保护 PR并关闭 `TASK-GOV-001`，再进入两个 Bug 的不可变发布复验和 10 项新样本观察。
