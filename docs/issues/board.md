@@ -4,14 +4,14 @@
 
 ## Verification
 
-- `BUG-20260717-006`：目标机实证 Release 身份为空且失败发布未自动恢复，正在修复身份贡献器与原 Release 自动拉回，见[活动 Work Item](bug-20260717-006-release-identity-recovery.md)。
+- `BUG-20260717-006`：身份贡献器与失败发布自动恢复经 PR #28 合并，第 8 项 `quality-light/quality-server` Shadow 首跑、复用已完成，待目标机重新发布，见[活动 Work Item](bug-20260717-006-release-identity-recovery.md)。
 - `TASK-CI-001`：PR #23 已经唯一人工审批、五项 Required Checks 合并并完成 `quality-light` Shadow 首跑/复用，见[活动 Work Item](task-ci-001-node24-actions-runtime.md)与 [GitHub #18](https://github.com/cyhui555/deeptrail-open/issues/18)。
 - `BUG-20260717-003`：AMap Production E2E 配置修复及第 5 项 `quality-web/smoke` Shadow 首跑、复用已完成，见[活动 Work Item](bug-20260717-003-amap-e2e-build-config.md)。
 - `BUG-20260717-004`：PDF 主路径静态地图隔离及第 6 项 `quality-web/smoke` Shadow 首跑、复用已完成，见[活动 Work Item](bug-20260717-004-pdf-static-map-e2e-isolation.md)。
 - `BUG-20260717-005`：真实 Development PWA Profile 及第 7 项 `quality-web/smoke` Shadow 首跑、复用已完成，见[活动 Work Item](bug-20260717-005-dev-pwa-e2e-profile.md)。
 - `BUG-20260717-001`：修复已直接合入 `main@6495d3e`，待部署和目标环境复验，见[活动 Work Item](bug-20260717-001-optimize-watchdog-race.md)与 [GitHub #21](https://github.com/cyhui555/deeptrail/issues/21)。
 - `BUG-20260717-002`：AI 非法 JSON 失败关闭与前端安全降级已完成本地 G2，待目标环境复验，见[活动 Work Item](bug-20260717-002-ai-json-parse-fallback-success.md)与 [GitHub #24](https://github.com/cyhui555/deeptrail/issues/24)。
-- `TASK-LOOP-003`：PR #22–#26 已实证单维护者受保护合并与 Full E2E 修复；公开 Cohort Evidence 当前 7/10，两个既有 Bug 仍待发布复验，见[活动 Work Item](task-loop-003-l1-phase2-to-l2.md)、[执行计划](../plans/task-loop-003-l1-phase2-exec-plan.md)与[准入报告](../verification/task-loop-003-m4-l2-admission.md)。
+- `TASK-LOOP-003`：PR #22–#28 已实证受保护合并、Full E2E 与发布恢复修复；公开 Cohort Evidence 当前 8/10，目标机发布及最后 2 项仍待完成，见[活动 Work Item](task-loop-003-l1-phase2-to-l2.md)、[执行计划](../plans/task-loop-003-l1-phase2-exec-plan.md)与[准入报告](../verification/task-loop-003-m4-l2-admission.md)。
 
 ## Closed
 

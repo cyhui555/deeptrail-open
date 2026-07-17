@@ -1,9 +1,9 @@
 # 当前项目状态
 
-- 最后核对：2026-07-17
+- 最后核对：2026-07-18
 - 当前阶段：旅迹 v0.2.0 已发布到目标环境；Loop Engineering L1 Phase 2 本地 G2 通过，脱敏公开主仓、五项远程 CI 与 `main` 保护已落地
-- 当前检查门：PR #22–#26 已完成受保护合并、Full E2E 修复及第 4–7 项 Shadow；公开 Cohort Evidence 当前 7/10，两个既有 Bug 仍待不可变发布与目标环境复验
-- 活动工作项：`BUG-20260717-001`、`BUG-20260717-002`、`BUG-20260717-003`、`BUG-20260717-004`、`BUG-20260717-005`、`TASK-CI-001`
+- 当前检查门：PR #22–#28 已完成受保护合并、Full E2E、发布恢复修复及第 4–8 项 Shadow；公开 Cohort Evidence 当前 8/10，目标环境仍待重新发布与复验
+- 活动工作项：`BUG-20260717-001`、`BUG-20260717-002`、`BUG-20260717-003`、`BUG-20260717-004`、`BUG-20260717-005`、`BUG-20260717-006`、`TASK-CI-001`
 - 最近完成：`TASK-GOV-001`、`TASK-WORKSPACE-001`、`TASK-LOOP-002`、`TASK-LOOP-001`
 
 ## 当前事实
@@ -52,8 +52,8 @@
 - v0.2.0 release 门禁：部署脚本静态失败用例、PowerShell 语法、Compose YAML、lint、typecheck、Server verify、Server E2E 37/37、生产构建、11/11 路由预算和 smoke 11/11 通过；硬导航 hydration 前输入重置竞态已由控件就绪门禁消除。
 - 目标环境：外部登录/健康 200、管理员认证与注册关闭通过、Chromium 登录/后台/退出零页面错误，升级前备份校验、数据库检查、容器重启恢复和端口最小暴露通过；HTTP 下 Service Worker 不激活。
 - 生产 AI 修复：目标机补齐 LongCat 配置并强制重建容器后，已认证状态 available、生产容器 Provider 探针 HTTP 200/`choices`，Chromium 不可用提示消失且零页面、控制台和业务请求错误。
-- BUG-20260717-001：Server 655/655、后端 E2E 37/37、浏览器 smoke 11/11、lint/typecheck/JaCoCo 通过；已 fast-forward 合入 `main@6495d3e`，尚未部署。
+- BUG-20260717-001 尚未部署；BUG-20260717-006 的 PR #28 在锁定 SHA 上通过五项 Required Checks 与双 Profile Full E2E，合并后 `quality-light`、`quality-server` 首跑和复用均通过，Cohort 为 8/10。
 
 ## 下一项唯一动作
 
-完成两个既有 Bug 的不可变发布复验，再对最后 3 个真实 Work Item 先登记、后运行适用 Profile。
+从受保护 `main@d055452` 重新发布不可变 Release 并完成无付费目标环境复验，再登记最后 2 个真实 Work Item。
