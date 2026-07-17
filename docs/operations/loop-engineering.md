@@ -230,7 +230,7 @@ $publicBaselinePath = 'E:\path\deeptrail-public-baseline'
 pnpm security:public-prepare -- --output $publicBaselinePath
 ```
 
-公开主仓已建立并应用 `.github/branch-protection-main.json`。后续只能从短期分支创建 PR；首个 PR 必须由真实独立 Reviewer 批准，以证明未经独立批准不能合并，随后关闭 `TASK-GOV-001`。原私有仓继续保留为审计档案，两个仓库不得互设 Remote 或推送旧历史。
+公开主仓已建立并应用 `.github/branch-protection-main.json`。仓库只有一名人工维护者：受信任的手工工作流把锁定 SHA 复制为 `github-actions[bot]` 作者的 Draft PR，唯一人工所有者负责批准，证明 PR 作者外审批门禁；这只是账号级职责分离，不等价于第二位人员审计。PR #22 已完成首个实证并关闭 `TASK-GOV-001`；原私有仓继续保留为审计档案，两个仓库不得互设 Remote 或推送旧历史。
 
 ## 11. 停止、回退与禁止事项
 

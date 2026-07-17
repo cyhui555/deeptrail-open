@@ -45,7 +45,7 @@ if (requiredChecks.length !== 5) failures.push("main 必须精确要求五项常
 if (!protection.required_status_checks?.strict) failures.push("Required Checks 必须基于最新 main");
 if (!protection.enforce_admins) failures.push("管理员必须遵守 main 保护");
 if ((protection.required_pull_request_reviews?.required_approving_review_count ?? 0) < 1) {
-  failures.push("main 至少需要一名独立 Reviewer");
+  failures.push("main 至少需要一名非 PR 作者 Reviewer");
 }
 if (!protection.required_pull_request_reviews?.dismiss_stale_reviews) {
   failures.push("新提交后必须撤销过期批准");
@@ -64,4 +64,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log(`GitHub 治理合同通过：${requiredChecks.length} 项 Required Checks，独立 Review 与 main 防护已声明。`);
+console.log(`GitHub 治理合同通过：${requiredChecks.length} 项 Required Checks，PR 作者外审批与 main 防护已声明。`);
