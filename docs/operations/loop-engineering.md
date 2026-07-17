@@ -1,9 +1,9 @@
 # Loop Engineering 本地操作手册
 
-- 当前能力：L0 LoopAny 记忆侧车 + L1 Phase 2 可复现只读质量 Profile；L2 Proposal-only 已实现但尚未正式准入
-- 不包含：业务写入、Daemon/Cron、自动 Skill Apply、远程 Git、服务器和 L3
+- 当前能力：L0/L1 Phase 2 与历史 L2 Proposal-only 准入；严格 Cohort 异常时按规则退回 L1
+- 不包含：业务写入、Daemon/Cron、自动 Skill Apply、自动合并、自动部署和未准入的 L3B/L3C
 - 架构：[Loop Engineering 落地方案](../architecture/loop-engineering-adoption-proposal.md)
-- 验收：[TASK-LOOP-002 验收记录](../verification/task-loop-002-loop-contract-hardening.md) / [TASK-LOOP-003 L2 准入报告](../verification/task-loop-003-m4-l2-admission.md)
+- 验收：[TASK-LOOP-002 验收记录](../verification/task-loop-002-loop-contract-hardening.md) / [TASK-LOOP-003 交付摘要](../archive/task-loop-003-l2-proposal-admission.md) / [TASK-LOOP-004](../issues/task-loop-004-l3a-controlled-execution.md)
 
 ## 1. 运行边界
 
@@ -238,4 +238,4 @@ pnpm security:public-prepare -- --output $publicBaselinePath
 - 回退前：确认无 Writer，创建并验证 Backup，在新目录 Restore + Doctor；不要把旧代码直接写入新 Schema Workspace。
 - 禁止：直接使用全局 `loopany`、覆盖 Backup、递归删除未知事务、自动重放 `applying`、把 Restore 切换为活动目录、把 Shadow 失败改写成成功。
 - 禁止：在 Loop Artifact、Receipt、文档或 Git 中保存 `.env`、Token、Cookie、完整日志、业务数据库、媒体或真实用户内容。
-- L2 Proposal-only 必须满足 `TASK-LOOP-003` 准入报告；业务 Mutation、服务器、远程 Git 和 L3 仍需新 Requirement、ADR、权限实测与独立验收，不能由本手册推导授权。
+- L2 Proposal-only 必须持续满足严格 Cohort；L3 权限按 [ADR](../architecture/adr-loop-l3-staged-automation.md) 分段准入，L3A 不能推导自动合并、部署或生产授权。
