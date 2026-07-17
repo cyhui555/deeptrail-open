@@ -129,6 +129,45 @@
           "runId": "run-85b4322f00d28933688e2094"
         }
       ]
+    },
+    {
+      "registrationSequence": 5,
+      "runs": [
+        {
+          "profile": "quality-web",
+          "runId": "run-fc18d1bd010ce66ccd21d32f"
+        },
+        {
+          "profile": "smoke",
+          "runId": "run-edf0811b85f41d03459c119e"
+        }
+      ]
+    },
+    {
+      "registrationSequence": 6,
+      "runs": [
+        {
+          "profile": "quality-web",
+          "runId": "run-b796712e5643ee581273ed71"
+        },
+        {
+          "profile": "smoke",
+          "runId": "run-46946134f43af8e182b347b5"
+        }
+      ]
+    },
+    {
+      "registrationSequence": 7,
+      "runs": [
+        {
+          "profile": "quality-web",
+          "runId": "run-b05149b3e095a3505cda21d6"
+        },
+        {
+          "profile": "smoke",
+          "runId": "run-97df584f9b6dbb7dc84f11dc"
+        }
+      ]
     }
   ]
 }
