@@ -64,4 +64,4 @@
 
 ## 下一项唯一动作
 
-GitHub Free 脱敏公开主仓、五项 Required Checks、对话解决、管理员守规与禁止 force-push/删除均已落地。下一步由真实独立 Reviewer 审核已整合全部治理证据与 Cohort 门禁的 PR #17并关闭 `TASK-GOV-001`，再完成两个 Bug 的发布复验和其余 7 项预登记真实样本。
+GitHub Free 脱敏公开主仓、五项 Required Checks、对话解决、管理员守规与禁止 force-push/删除均已落地。下一步由唯一人工所有者审核 `github-actions[bot]` 创建且锁定 SHA 的治理 PR并关闭 `TASK-GOV-001`；该账号级分离不等价于第二位人员审计，随后再完成两个 Bug 的发布复验和其余 7 项预登记真实样本。

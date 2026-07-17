@@ -10,7 +10,7 @@
 
 - `BUG-20260717-001`：修复已直接合入 `main@6495d3e`，待部署和目标环境复验，见[活动 Work Item](bug-20260717-001-optimize-watchdog-race.md)与 [GitHub #21](https://github.com/cyhui555/deeptrail/issues/21)。
 - `BUG-20260717-002`：AI 非法 JSON 失败关闭与前端安全降级已完成本地 G2，待目标环境复验，见[活动 Work Item](bug-20260717-002-ai-json-parse-fallback-success.md)与 [GitHub #24](https://github.com/cyhui555/deeptrail/issues/24)。
-- `TASK-LOOP-003`：L1 Phase 2 本地 G2、脱敏公开主仓、远程 CI 与主干保护已完成，L2 仍等待独立 Review、发布复验和 10 项新样本，见[活动 Work Item](task-loop-003-l1-phase2-to-l2.md)、[执行计划](../plans/task-loop-003-l1-phase2-exec-plan.md)与[准入报告](../verification/task-loop-003-m4-l2-admission.md)。
+- `TASK-LOOP-003`：L1 Phase 2 本地 G2、脱敏公开主仓、远程 CI 与主干保护已完成，L2 仍等待机器人作者 PR 的唯一人工审批、发布复验和 10 项新样本，见[活动 Work Item](task-loop-003-l1-phase2-to-l2.md)、[执行计划](../plans/task-loop-003-l1-phase2-exec-plan.md)与[准入报告](../verification/task-loop-003-m4-l2-admission.md)。
 
 ## Closed
 
