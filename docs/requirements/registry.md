@@ -36,7 +36,7 @@
 | REQ-OPS-001 | 建立后台运营入口并由管理员统一分配用户账号 | 已完成 | 默认环境关闭公开注册；管理员角色、账号初始化、用户查询/创建/启停/重置密码、越权拦截及响应式管理界面通过服务端与浏览器验收 |
 | REQ-DEPLOY-002 | 将当前旅迹版本可追溯地部署到目标 Linux 主机并沉淀后续发版脚本 | 已完成 | `v0.2.0` 已以不可变 release 发布到受控目标主机的 `30301` 端口；备份、迁移、健康、重启、外网、管理员认证和浏览器验收通过，见[目标环境发布报告](../archive/task-release-002-production-deployment.md)；远程 CI、TLS、独立 Restore 等仍阻断完整生产放行 |
 | REQ-LOOP-001 | 在不重写业务程序的前提下，将工程接入固定版本 LoopAny 并形成可审计的本地影子闭环 | 已完成 | PR #19 已按 deepbarin 规范补齐 ExecutionSpec/Outcome、分阶段恢复、隔离 Backup/Restore 与可执行手册；L0 和 L1 Phase 1 G0—G3 通过，业务反馈、治理进化和 L2/L3 保持 `NOT READY` |
-| REQ-LOOP-002 | 将 Loop 工程推进到持续可验证的 L1 Phase 2，并以脱敏 Release Outcome 和稳定 Shadow 证据完成 L2 Proposal-only 准入 | 进行中 | PR #22/#23 已实证单维护者受保护合并与第 4 项 Shadow；正式 L2 仍由两个 Bug 的目标环境复验及公开 Cohort 从 4/10 补齐到 10/10 阻断 |
+| REQ-LOOP-002 | 将 Loop 工程推进到持续可验证的 L1 Phase 2，并以脱敏 Release Outcome 和稳定 Shadow 证据完成 L2 Proposal-only 准入 | 进行中 | PR #22–#24 已实证单维护者受保护合并与第 4 项 Shadow；正式 L2 仍由两个 Bug 的目标环境复验及公开 Cohort 从 4/10 补齐到 10/10 阻断 |
 
 ## 范围说明
 

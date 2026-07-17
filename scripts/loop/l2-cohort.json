@@ -55,6 +55,30 @@
       "profiles": [
         "quality-light"
       ]
+    },
+    {
+      "sequence": 5,
+      "workItem": "docs/issues/bug-20260717-003-amap-e2e-build-config.md",
+      "profiles": [
+        "quality-web",
+        "smoke"
+      ]
+    },
+    {
+      "sequence": 6,
+      "workItem": "docs/issues/bug-20260717-004-pdf-static-map-e2e-isolation.md",
+      "profiles": [
+        "quality-web",
+        "smoke"
+      ]
+    },
+    {
+      "sequence": 7,
+      "workItem": "docs/issues/bug-20260717-005-dev-pwa-e2e-profile.md",
+      "profiles": [
+        "quality-web",
+        "smoke"
+      ]
     }
   ],
   "evidence": [

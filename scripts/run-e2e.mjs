@@ -12,7 +12,13 @@ const serverRoot = path.join(root, 'apps/server');
 const webRoot = path.join(root, 'apps/web');
 const mavenRunner = path.join(root, 'scripts/run-maven.mjs');
 const testWebServer = path.join(root, 'scripts/start-test-web.mjs');
-const testArgs = process.argv.slice(2);
+const rawArgs = process.argv.slice(2);
+const webModeArg = rawArgs.find((arg) => arg.startsWith('--web-mode='));
+const webMode = webModeArg?.slice('--web-mode='.length) || 'production';
+if (!['production', 'development'].includes(webMode)) {
+  throw new Error(`未知 E2E Web 模式：${webMode}`);
+}
+const testArgs = rawArgs.filter((arg) => arg !== webModeArg);
 const backendHealthUrl = process.env.BACKEND_HEALTH_URL || 'http://127.0.0.1:8080/api/health';
 const frontendHealthUrl = process.env.FRONTEND_HEALTH_URL || 'http://127.0.0.1:3000/login';
 const reuseExisting = process.env.PLAYWRIGHT_REUSE_SERVER === 'true';
@@ -198,11 +204,16 @@ try {
     await rm(path.join(webRoot, '.next'), { recursive: true, force: true, maxRetries: 3 });
     const nextCli = require.resolve('next/dist/bin/next', { paths: [webRoot] });
     const webEnv = {
+      // 地图用例会在页面初始化阶段注入确定性 AMap Mock，但编译后的 Loader 仍要求配置字段完整。
+      // 该占位值只进入本地测试构建，不访问真实 SDK，也不是可用于外部服务的密钥。
+      NEXT_PUBLIC_AMAP_KEY: 'deeptrail-e2e-test-key',
       NEXT_PUBLIC_AMAP_SECURITY_CODE: 'deeptrail-e2e-security-code',
       PORT: '3000',
     };
-    // E2E 使用 production server，避免 Next dev 把浏览器主动取消请求打印成 uncaughtException 假红。
-    await runCommand('Web production build', process.execPath, [nextCli, 'build'], webRoot, webEnv);
+    if (webMode === 'production') {
+      // 常规 E2E 使用 production server，避免 Next dev 把浏览器主动取消请求打印成 uncaughtException 假红。
+      await runCommand('Web production build', process.execPath, [nextCli, 'build'], webRoot, webEnv);
+    }
     mockAiServer = await startMockAiServer();
     const backend = startService(
       'API',
@@ -219,22 +230,34 @@ try {
     );
     // 必须先确认 API 就绪，再开放 Web 监听；否则端口复用期间的遗留客户端会命中未就绪代理。
     await waitForService('API', backendHealthUrl, backend);
-    const web = startService(
-      'Web',
-      process.execPath,
-      [testWebServer],
-      webRoot,
-      // 仅验证安全密钥初始化时序；地图本身仍由页面级 AMap Mock 隔离，不访问外部 SDK。
-      webEnv,
-      true,
-    );
+    const web = webMode === 'production'
+      ? startService(
+        'Web',
+        process.execPath,
+        [testWebServer],
+        webRoot,
+        // 仅验证安全配置初始化时序；地图本身仍由页面级 AMap Mock 隔离，不访问外部 SDK。
+        webEnv,
+        true,
+      )
+      : startService(
+        'Web',
+        process.execPath,
+        [nextCli, 'dev', '--hostname', '127.0.0.1', '--port', '3000'],
+        webRoot,
+        webEnv,
+      );
     await waitForService('Web', frontendHealthUrl, web);
   }
 
   const playwrightCli = require.resolve('@playwright/test/cli');
   const result = spawn(process.execPath, [playwrightCli, 'test', ...testArgs], {
     cwd: root,
-    env: { ...process.env, PLAYWRIGHT_EXTERNAL_SERVERS: 'true' },
+    env: {
+      ...process.env,
+      PLAYWRIGHT_EXTERNAL_SERVERS: 'true',
+      DEEPTRAIL_E2E_WEB_MODE: webMode,
+    },
     stdio: 'inherit',
     windowsHide: true,
   });
