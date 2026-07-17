@@ -1,7 +1,7 @@
 # TASK-LOOP-003 M4 与 L2 准入报告
 
-- 结论：L1 Phase 2 本地 G2 通过；L2 正式准入为条件性 **NO-GO**
-- 验证 Revision：`f65b73e9f52eea8d9594f191b346628a3bf5aaa0`
+- 结论：L1 Phase 2 持续门禁通过；L2 **Proposal-only GO**，Mutation 与 L3 继续阻断
+- 验证样本 Revision：`d7023b7d0759850aa47d7f0086069cb63b447876`
 - 固定 Runtime：LoopAny `cdd1d08f4d3d5a09a49443ef1d7a698363ef06f5`
 - 模式：仅允许 Proposal，不允许源码写入、远程 Git、自动审批、自动合并或自动部署
 - 日期：2026-07-18
@@ -18,25 +18,24 @@
 
 | 检查 | 结果 |
 | --- | --- |
-| Loop 单测 | 14/14 PASS，含假绿检测与 Proposal 权限禁令 |
+| Loop 单测 | 17/17 PASS，含假绿检测、Cohort 追加约束与 Proposal 权限禁令 |
 | 固定 Runtime 集成 | 1/1 PASS，159 秒，覆盖故障恢复、Backup/隔离 Restore 和篡改拒绝 |
-| Server | 667/667、Checkstyle、JaCoCo 通过；后端 E2E 37/37 |
+| Server | 668/668、Checkstyle、JaCoCo 通过；后端 E2E 38/38 |
 | Web | lint、typecheck、生产构建和 11 项体积预算通过 |
 | Smoke | 12/12，通过后无 `Failed to proxy`、`ECONNREFUSED` 或未捕获异常 |
 | Eval | 4 个 Prompt、4 个核心表、12 个 AI 质量样本与 Outcome 合同通过 |
-| 公开安全门 | 当前快照、单根脱敏公开基线与 CI 报告产物检查通过；现私有仓全历史强制扫描因历史受控目标地址按设计失败，禁止直接公开原仓 |
-| Doctor/Recovery | 147 个 Artifact、455 条引用、901 条审计记录有效；无锁、无未终结事务 |
+| 公开安全门 | 公开仓当前 Tree/历史、单根基线、CI 报告产物与五项 Required Checks 通过；原私有仓仍不公开 |
+| Doctor/Recovery | 140 个 Artifact、479 条引用、1826 条审计记录有效；无锁、无未终结事务 |
 
-最终四个 Profile 均首次 `verified`、边界违规为 0；重复触发均为 `reused=true` 且 `commands=[]`：
+公开 Cohort 共 10 个真实 Work Item、17 个适用 Profile Run，严格审计结果如下：
 
-| Profile | Run |
-| --- | --- |
-| quality-light | `run-9b115da9558fcf60ad1a86d7` |
-| quality-server | `run-f36b7d343123da21a00e91b4` |
-| quality-web | `run-a99a4fbb422e41b74b57b1c3` |
-| smoke | `run-c56fa78646fe884d24837d28` |
+| 指标 | 结果 |
+| --- | ---: |
+| 首次验证 / 幂等复用 / 闭环终结 | 100% / 100% / 100% |
+| 边界违规 / 连续通过 | 0% / 10 |
+| targetMet / thresholdsMet / cohortReady | true / true / true |
 
-Web/Smoke Profile 建设中的失败 Run 均未删除或改写。Smoke 根因是 fresh workspace 中 Web 早于 API readiness 监听，启动窗口请求被拒绝；修复为 API 健康后再启动 Web，并通过 IPC 与进程树回收受控关闭，最终 Run 才进入 `verified`。
+第 9 项为 `run-e0bf6b1b52610814935a5870`，第 10 项为 `run-fd3a14e493a4e803b14fd4fc`；两项均先登记到受保护 `main`，再首次 `verified`，重复触发同 Run 且 `commands=[]`。历史失败未删除或改写；本次目标脚本离线依赖失败按非零退出处理，修复后才重跑通过。
 
 ## 3. M4 十项历史审计
 
@@ -52,13 +51,13 @@ Web/Smoke Profile 建设中的失败 Run 均未删除或改写。Smoke 根因是
 
 10 个首次 Run 均真实进入 `failed`，重复触发正确复用失败终态。失败原因是历史 Revision 缺少现行文档 Profile，并存在 22 项真实文档治理违规；审计命令因此按设计退出 1。
 
-## 4. NO-GO 原因与下一阶段操作
+## 4. GO 依据与权限边界
 
-1. PR #22 已证明机器人机制作者与唯一人工所有者审批的账号级分离，五项 Required Checks、保护规则读回和 `TASK-GOV-001` 关闭均完成；该证据不冒充第二位人员审计，治理项不再阻断。
-2. `BUG-20260717-001/002` 只有本地 G2，尚无经批准不可变制品和目标环境 Release 身份复验。
-3. 十项历史样本的首次验证成功率为 0，不能只凭闭环率和边界率批准自治升级。
-4. 公开主仓已登记且绑定 Evidence 8/10、共 15 个适用 Profile Run；首次成功率、复用率与闭环率均为 100%，边界违规为 0、连续成功 8，尚缺最后 2 个真实 Work Item。
+1. PR #22–#31 实证机器人机制作者、唯一人工所有者审批、五项 Required Checks 和无管理员绕过的受保护合并；该证据不冒充第二位人员审计。
+2. 受保护 `main@bc1ed2d` 已发布为不可变 Release；身份、镜像摘要、重启、外部入口和健康后故障注入自动恢复均通过。
+3. 目标机固定 Maven 镜像先预热空测试，再在 `--network none` 容器运行 117/117 固定回归；无生产 Secret、真实 Provider、用户数据或付费调用。
+4. 新 Cohort 达到 10/10：首次、复用、闭环 100%，边界违规 0，连续通过 10；46 份 Receipt、Runtime、Skill、事务和引用链全部可验证。
 
-下一阶段按顺序执行：从受保护主干重新发布不可变制品并复验既有 Bug → 对最后 2 个真实 Work Item 先登记、后运行适用 Profile。正式 L2 准入要求闭环与复用 100%、边界违规 0、首次验证成功率至少 90% 且最后 5 项连续通过；任一条件失败即保持 L1。
+L2 仅可基于脱敏 Outcome 生成结构化 Proposal，由人工决定是否建立 Work Item；源码/远程 Git/服务器 Mutation、自动审批、自动合并、自动部署和 L3 均未授权。任一固定门槛、Runtime、证据完整性或权限禁令失败时立即回退到 L1。
 
-本报告不授权 Push、合并、Branch Protection 修改或目标环境部署。
+本报告不授权自动 Push、合并、Branch Protection 修改、目标环境部署或付费调用。

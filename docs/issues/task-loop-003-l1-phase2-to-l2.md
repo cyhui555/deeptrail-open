@@ -1,12 +1,12 @@
 # TASK-LOOP-003：Loop Engineering L1 Phase 2 与 L2 Proposal-only 准入
 
-- 状态：Verification / G2
+- 状态：Verification / L2 Proposal-only
 - 优先级：P0
 - Owner：工程所有者
 - 关联 Requirement：`REQ-LOOP-002`
 - ExecPlan：[L1 Phase 2 执行计划](../plans/task-loop-003-l1-phase2-exec-plan.md)
 - 基线：`main@4d30a83`
-- 最近更新：2026-07-17
+- 最近更新：2026-07-18
 
 ## 目标
 
@@ -64,4 +64,4 @@
 
 ## 下一项唯一动作
 
-PR #22–#28 已实证 GitHub Free 单维护者受保护合并链、Full E2E、发布恢复修复和第 4–8 项 Shadow。下一步重新发布并复验既有 Bug，再对最后 2 个真实 Work Item 先登记、后运行适用 Profile。
+公开 Cohort 10/10 严格审计 `cohortReady=true`；下一步仅运行人工决定是否转 Work Item 的 Proposal-only 试点，Mutation 与 L3 继续阻断。
