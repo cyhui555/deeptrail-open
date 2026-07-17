@@ -54,6 +54,8 @@ function startService(name, command, args, cwd, extraEnv = {}, useIpc = false) {
   const child = spawn(command, args, {
     cwd,
     env: { ...process.env, ...extraEnv },
+    // POSIX 上为每个服务建立独立进程组，确保 Maven/Next 的孙进程可被完整回收。
+    detached: process.platform !== 'win32',
     shell: false,
     stdio: useIpc ? ['inherit', 'inherit', 'inherit', 'ipc'] : 'inherit',
     windowsHide: true,
@@ -95,33 +97,48 @@ async function runCommand(name, command, args, cwd, extraEnv = {}) {
   }
 }
 
-function stopProcessTree(child) {
-  if (!child || child.exitCode !== null) {
-    return;
-  }
+function signalProcessTree(child, signal) {
+  if (!child?.pid) return;
   if (process.platform === 'win32') {
     // Windows 需终止 cmd、Maven/Next 及其孙进程，否则端口会污染下一轮测试。
     const taskkill = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe');
-    spawnSync(taskkill, ['/pid', String(child.pid), '/t', '/f'], {
+    const force = signal === 'SIGKILL' ? ['/f'] : [];
+    spawnSync(taskkill, ['/pid', String(child.pid), '/t', ...force], {
       stdio: 'ignore',
       windowsHide: true,
     });
     return;
   }
-  child.kill('SIGTERM');
+  try {
+    // startService 已建立独立进程组；负 PID 会把信号送到 Maven/Next 的完整进程树。
+    process.kill(-child.pid, signal);
+  } catch (error) {
+    if (error?.code !== 'ESRCH') throw error;
+  }
 }
 
-async function waitForExit(child, timeoutMs) {
-  if (!child || child.exitCode !== null) {
-    return true;
+function isProcessTreeAlive(child) {
+  if (!child?.pid) return false;
+  if (process.platform === 'win32') {
+    return child.exitCode === null;
   }
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(false), timeoutMs);
-    child.once('exit', () => {
-      clearTimeout(timer);
-      resolve(true);
-    });
-  });
+  try {
+    process.kill(-child.pid, 0);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ESRCH') return false;
+    if (error?.code === 'EPERM') return true;
+    throw error;
+  }
+}
+
+async function waitForProcessTreeExit(child, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!isProcessTreeAlive(child)) return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return !isProcessTreeAlive(child);
 }
 
 async function requestIpcShutdown(child, timeoutMs) {
@@ -153,35 +170,16 @@ async function requestIpcShutdown(child, timeoutMs) {
 }
 
 async function stopProcessTreeGracefully(child) {
-  if (!child || child.exitCode !== null) {
-    return;
-  }
+  if (!child) return;
   if (await requestIpcShutdown(child, 10_000)) {
-    if (process.platform === 'win32') {
-      // app.close() 不会回收所有 Windows Next Worker；父进程仍存活时按树统一终止。
-      stopProcessTree(child);
-    } else {
-      child.disconnect();
-      child.kill('SIGTERM');
-    }
-    await waitForExit(child, 5_000);
-    return;
+    if (child.connected) child.disconnect();
   }
-  if (process.platform === 'win32') {
-    // 先请求整棵进程树正常退出，给 Next 足够时间排空 keep-alive 请求；超时后才强制清理。
-    const taskkill = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe');
-    spawnSync(taskkill, ['/pid', String(child.pid), '/t'], {
-      stdio: 'ignore',
-      windowsHide: true,
-    });
-    if (!(await waitForExit(child, 5_000))) {
-      stopProcessTree(child);
-      await waitForExit(child, 5_000);
-    }
-    return;
+  // 先给整棵进程树正常退出窗口；若仍有后代存活，再强制清理，不能只等待父进程退出。
+  signalProcessTree(child, 'SIGTERM');
+  if (!(await waitForProcessTreeExit(child, 5_000))) {
+    signalProcessTree(child, 'SIGKILL');
+    await waitForProcessTreeExit(child, 5_000);
   }
-  child.kill('SIGTERM');
-  await waitForExit(child, 5_000);
 }
 
 let exitCode = 1;
@@ -290,6 +288,11 @@ try {
   if (apiChild) {
     console.log(`E2E_CLEANUP_API_START at=${new Date().toISOString()}`);
     await stopProcessTreeGracefully(apiChild);
+    if (!(await waitForUnavailable(backendHealthUrl))) {
+      // 清理成功必须以服务端口真正释放为准，不能只依赖 Maven 父进程的退出状态。
+      console.error(`API 服务未在清理窗口内退出：${backendHealthUrl}`);
+      exitCode = 1;
+    }
   }
   if (mockAiServer) {
     await new Promise((resolve) => mockAiServer.close(resolve));
