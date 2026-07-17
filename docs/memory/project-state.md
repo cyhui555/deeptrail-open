@@ -1,9 +1,9 @@
 # 当前项目状态
 
 - 最后核对：2026-07-18
-- 当前阶段：旅迹 v0.2.0 已发布到目标环境；Loop Engineering L1 Phase 2 本地 G2 通过，脱敏公开主仓、五项远程 CI 与 `main` 保护已落地
-- 当前检查门：PR #22–#28 已完成受保护合并、Full E2E、发布恢复修复及第 4–8 项 Shadow；公开 Cohort Evidence 当前 8/10，目标环境仍待重新发布与复验
-- 活动工作项：`BUG-20260717-001`、`BUG-20260717-002`、`BUG-20260717-003`、`BUG-20260717-004`、`BUG-20260717-005`、`BUG-20260717-006`、`TASK-CI-001`
+- 当前阶段：旅迹 v0.2.0 不可变 Release 已复验；Loop Engineering 已准入 L2 Proposal-only，Mutation/L3 继续阻断
+- 当前检查门：PR #22–#31 受保护合并、目标机发布/自动恢复/断网 117 项回归与公开 Cohort 10/10 严格审计全部通过
+- 活动工作项：`TASK-LOOP-003`、`TASK-RELEASE-003`、`TASK-OPS-002` 处于 L2 观察期
 - 最近完成：`TASK-GOV-001`、`TASK-WORKSPACE-001`、`TASK-LOOP-002`、`TASK-LOOP-001`
 
 ## 当前事实
@@ -52,8 +52,8 @@
 - v0.2.0 release 门禁：部署脚本静态失败用例、PowerShell 语法、Compose YAML、lint、typecheck、Server verify、Server E2E 37/37、生产构建、11/11 路由预算和 smoke 11/11 通过；硬导航 hydration 前输入重置竞态已由控件就绪门禁消除。
 - 目标环境：外部登录/健康 200、管理员认证与注册关闭通过、Chromium 登录/后台/退出零页面错误，升级前备份校验、数据库检查、容器重启恢复和端口最小暴露通过；HTTP 下 Service Worker 不激活。
 - 生产 AI 修复：目标机补齐 LongCat 配置并强制重建容器后，已认证状态 available、生产容器 Provider 探针 HTTP 200/`choices`，Chromium 不可用提示消失且零页面、控制台和业务请求错误。
-- BUG-20260717-001 尚未部署；BUG-20260717-006 的 PR #28 在锁定 SHA 上通过五项 Required Checks 与双 Profile Full E2E，合并后 `quality-light`、`quality-server` 首跑和复用均通过，Cohort 为 8/10。
+- BUG-20260717-001/002/006 已随 `bc1ed2d` Release 完成目标机复验；恢复演练在新容器健康后注入退出码 97，原 Release 自动恢复，付费调用为 0。
 
 ## 下一项唯一动作
 
-从受保护 `main@d055452` 重新发布不可变 Release 并完成无付费目标环境复验，再登记最后 2 个真实 Work Item。
+运行 L2 Proposal-only 观察期；Proposal 是否转为 Work Item 仍由人工决定，任何 Mutation、自动合并/部署或付费调用均需新授权与专项验收。

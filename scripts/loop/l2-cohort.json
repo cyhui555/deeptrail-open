@@ -203,6 +203,24 @@
           "runId": "run-00e7de4466f955c51d118bcd"
         }
       ]
+    },
+    {
+      "registrationSequence": 9,
+      "runs": [
+        {
+          "profile": "quality-light",
+          "runId": "run-e0bf6b1b52610814935a5870"
+        }
+      ]
+    },
+    {
+      "registrationSequence": 10,
+      "runs": [
+        {
+          "profile": "quality-light",
+          "runId": "run-fd3a14e493a4e803b14fd4fc"
+        }
+      ]
     }
   ]
 }
