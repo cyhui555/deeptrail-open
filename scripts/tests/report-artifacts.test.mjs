@@ -16,6 +16,8 @@ test("报告产物在上传前拒绝 Token 和二进制附件", async () => {
     await writeFile(report, "<html><body>safe report</body></html>", "utf8");
     const clean = runCheck(temporaryRoot);
     assert.equal(clean.status, 0, clean.stderr);
+    const cleanThroughPnpmSeparator = runCheck(temporaryRoot, true);
+    assert.equal(cleanThroughPnpmSeparator.status, 0, cleanThroughPnpmSeparator.stderr);
 
     const token = ["ghp", "_", "C".repeat(36)].join("");
     await writeFile(report, `<html><body>${token}</body></html>`, "utf8");
@@ -54,8 +56,9 @@ test("报告产物在目录为空时失败", async () => {
   }
 });
 
-function runCheck(target) {
-  return spawnSync(process.execPath, [script, target], {
+function runCheck(target, withPnpmSeparator = false) {
+  const arguments_ = withPnpmSeparator ? [script, "--", target] : [script, target];
+  return spawnSync(process.execPath, arguments_, {
     cwd: process.cwd(),
     encoding: "utf8",
     windowsHide: true,

@@ -4,7 +4,9 @@ import process from "node:process";
 
 import { normalizePath, scanText } from "./public-readiness.mjs";
 
-const roots = process.argv.slice(2);
+const arguments_ = process.argv.slice(2);
+// pnpm 在不同平台可能保留脚本参数分隔符，只剥离开头的 CLI 分隔符，不放宽目录检查。
+const roots = arguments_[0] === "--" ? arguments_.slice(1) : arguments_;
 if (roots.length === 0) {
   console.error("用法：node scripts/check-report-artifacts.mjs <报告目录> [...]");
   process.exit(2);
