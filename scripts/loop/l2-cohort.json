@@ -176,6 +176,19 @@
           "runId": "run-97df584f9b6dbb7dc84f11dc"
         }
       ]
+    },
+    {
+      "registrationSequence": 8,
+      "runs": [
+        {
+          "profile": "quality-light",
+          "runId": "run-4cc6c7cc32de9484bb549482"
+        },
+        {
+          "profile": "quality-server",
+          "runId": "run-00e7de4466f955c51d118bcd"
+        }
+      ]
     }
   ]
 }
