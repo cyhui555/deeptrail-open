@@ -570,6 +570,8 @@ async function l3Fixture() {
   await writeFile(path.join(repoRoot, "pnpm-lock.yaml"),
     "lockfileVersion: '9.0'\n\nsettings:\n  autoInstallPeers: true\n  excludeLinksFromLockfile: false\n\nimporters:\n\n  .: {}\n");
   await writeFile(path.join(repoRoot, ".gitignore"), "node_modules/\n");
+  await writeFile(path.join(repoRoot, ".npmrc"),
+    `store-dir=${path.join(root, "initially-missing-store").replaceAll("\\", "/")}\n`);
   await gitTest(repoRoot, ["add", "."]);
   await gitTest(repoRoot, ["commit", "-m", "test: baseline"]);
   await gitTest(repoRoot, ["branch", "-M", "main"]);

@@ -445,9 +445,22 @@ async function defaultProfileVerifier({ config, policy, plan, worktreePath, runt
     timeoutMs: 30_000,
     outputLimit: 1024 * 1024
   }), "定位固定 pnpm Store");
-  const storePath = storeResult.stdout.trim();
+  const requestedStorePath = storeResult.stdout.trim();
+  assert(path.isAbsolute(requestedStorePath),
+    "L3_PNPM_STORE_INVALID", "L3 pnpm Store 必须是绝对路径");
+  const storePath = await canonicalizePlannedPath(requestedStorePath, "L3 pnpm Store");
+  assertOutside(config.repoRoot, storePath, "L3 pnpm Store");
+  assertDisjoint(worktreePath, storePath, ["L3 Worktree", "L3 pnpm Store"]);
+  assertDisjoint(runtimePath, storePath, ["L3 Runtime", "L3 pnpm Store"]);
+  assertDisjoint(config.loopHome, storePath, ["Loop Home", "L3 pnpm Store"]);
+  if (config.backupRoot) {
+    assertDisjoint(config.backupRoot, storePath, ["Backup Root", "L3 pnpm Store"]);
+  }
+  // 新 CI Runner 可能尚未物化 Store；空目录可创建，但缺失包仍由 --offline 失败关闭。
+  await mkdir(storePath, { recursive: true });
   const storeInfo = await lstat(storePath).catch(() => null);
-  assert(path.isAbsolute(storePath) && storeInfo?.isDirectory() && !storeInfo.isSymbolicLink(),
+  assert(storeInfo?.isDirectory() && !storeInfo.isSymbolicLink()
+      && path.relative(storePath, await realpath(storePath)) === "",
     "L3_PNPM_STORE_INVALID", "L3 pnpm Store 不存在或类型非法");
 
   // Profile 代码不继承用户 Home、AppData、GitHub CLI、SSH 或 Provider 凭据目录。
