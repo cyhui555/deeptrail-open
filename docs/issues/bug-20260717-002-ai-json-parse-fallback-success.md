@@ -1,6 +1,6 @@
 # BUG-20260717-002 AI 行程 JSON 解析失败仍进入成功终态
 
-- 状态：Verification / G2 已完成
+- 状态：Verification / G3（已发布并完成目标机 117 项固定样例复验）
 - 优先级：P1
 - GitHub Issue：[cyhui555/deeptrail#24](https://github.com/cyhui555/deeptrail/issues/24)
 - 关联需求：`REQ-AI-001`、`REQ-UX-002`

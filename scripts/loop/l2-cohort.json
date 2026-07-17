@@ -87,6 +87,20 @@
         "quality-light",
         "quality-server"
       ]
+    },
+    {
+      "sequence": 9,
+      "workItem": "docs/issues/task-release-003-target-release-validation.md",
+      "profiles": [
+        "quality-light"
+      ]
+    },
+    {
+      "sequence": 10,
+      "workItem": "docs/issues/task-ops-002-no-cost-target-regressions.md",
+      "profiles": [
+        "quality-light"
+      ]
     }
   ],
   "evidence": [

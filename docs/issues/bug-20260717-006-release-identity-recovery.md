@@ -1,6 +1,6 @@
 # BUG-20260717-006 Release 身份缺失且失败发布未自动恢复
 
-- 状态：In Progress
+- 状态：Verification / G3
 - 优先级：P0
 - 关联需求：`REQ-DEPLOY-002`、`REQ-LOOP-002`
 - 发现环境：目标 Linux 主机，不可变 Release `v0.2.0-20260717-143945-8642554dbf77`
@@ -18,11 +18,11 @@
 
 ## 验收标准
 
-- [ ] `/actuator/info` 精确返回 `release.id`、`git-commit` 与 `artifact-digest`，且无 Secret 或用户内容。
-- [ ] 新 Release 验收失败后自动启动上一 Release，并验证 `/login` 与 `/api/health` 可达。
-- [ ] 恢复失败保留原始发布失败码和明确告警；首次部署无上一 Release 时安全停止未验收容器。
-- [ ] Server 单测、部署脚本静态/故障恢复测试及受保护 CI 全部通过。
-- [ ] 目标机不可变发布验证成功，旧版本在故障注入后可恢复，且不产生第三方费用。
+- [x] `/actuator/info` 精确返回 `release.id`、`git-commit` 与 `artifact-digest`，且无 Secret 或用户内容。
+- [x] 新 Release 验收失败后自动启动上一 Release，并验证 `/login` 与 `/api/health` 可达。
+- [x] 恢复失败保留原始发布失败码和明确告警；首次部署无上一 Release 时安全停止未验收容器。
+- [x] Server 单测、部署脚本静态/故障恢复测试及受保护 CI 全部通过。
+- [x] 目标机不可变发布验证成功，旧版本在故障注入后可恢复，且不产生第三方费用。
 
 ## 验证计划
 

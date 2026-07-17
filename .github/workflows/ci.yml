@@ -43,6 +43,9 @@ jobs:
       - name: Check governance documents and work items
         run: pnpm governance:check
 
+      - name: Check deployment scripts
+        run: bash infra/deploy/tests/static-tests.sh
+
       - name: Run Loop gateway tests
         run: pnpm loop:test
 
