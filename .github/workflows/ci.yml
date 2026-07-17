@@ -267,7 +267,15 @@ jobs:
         env:
           CI: 'true'
           PLAYWRIGHT_CAPTURE_DIAGNOSTICS: 'false'
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/production
         run: pnpm test:e2e
+
+      - name: Run development-only PWA boundaries
+        env:
+          CI: 'true'
+          PLAYWRIGHT_CAPTURE_DIAGNOSTICS: 'false'
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/development
+        run: pnpm test:e2e:dev-boundaries
 
       - name: Check full Playwright report safety
         id: full_e2e_report_safety

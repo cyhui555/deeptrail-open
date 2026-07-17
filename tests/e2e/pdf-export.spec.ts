@@ -2,6 +2,19 @@ import { test, expect } from '@playwright/test';
 import { AMAP_MOCK_JS } from './lib/amap-mock';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
+const ONE_PIXEL_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9WlJcAAAAASUVORK5CYII=',
+  'base64',
+);
+
+/** PDF 主路径只验证导出合同，静态地图必须由确定性图片替身隔离外部 REST 服务。 */
+async function mockStaticMap(page: import('@playwright/test').Page): Promise<void> {
+  await page.route('**/api/static-map?**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'image/png',
+    body: ONE_PIXEL_PNG,
+  }));
+}
 
 /**
  * 注册并登录用户，返回 token。
@@ -78,6 +91,7 @@ test.describe('全部行程 PDF 导出 E2E', () => {
 
     // 注入 AMap mock 替代 CDN 脚本
     await page.addInitScript(AMAP_MOCK_JS);
+    await mockStaticMap(page);
 
     // 登录态
     await page.goto('/');
@@ -130,6 +144,7 @@ test.describe('全部行程 PDF 导出 E2E', () => {
     const token = await registerAndLogin(request, username, 'Test123456');
 
     await page.addInitScript(AMAP_MOCK_JS);
+    await mockStaticMap(page);
     await page.goto('/');
     await page.context().addCookies([
       { name: 'token', value: token, domain: 'localhost', path: '/' },

@@ -5,9 +5,12 @@
 ## Verification
 
 - `TASK-CI-001`：PR #23 已经唯一人工审批、五项 Required Checks 合并并完成 `quality-light` Shadow 首跑/复用，见[活动 Work Item](task-ci-001-node24-actions-runtime.md)与 [GitHub #18](https://github.com/cyhui555/deeptrail-open/issues/18)。
+- `BUG-20260717-003`：AMap Production E2E 配置修复与第 5 项预登记已完成，待运行适用 Shadow，见[活动 Work Item](bug-20260717-003-amap-e2e-build-config.md)。
+- `BUG-20260717-004`：PDF 主路径静态地图隔离与第 6 项预登记已完成，待运行适用 Shadow，见[活动 Work Item](bug-20260717-004-pdf-static-map-e2e-isolation.md)。
+- `BUG-20260717-005`：真实 Development PWA Profile 与第 7 项预登记已完成，待运行适用 Shadow，见[活动 Work Item](bug-20260717-005-dev-pwa-e2e-profile.md)。
 - `BUG-20260717-001`：修复已直接合入 `main@6495d3e`，待部署和目标环境复验，见[活动 Work Item](bug-20260717-001-optimize-watchdog-race.md)与 [GitHub #21](https://github.com/cyhui555/deeptrail/issues/21)。
 - `BUG-20260717-002`：AI 非法 JSON 失败关闭与前端安全降级已完成本地 G2，待目标环境复验，见[活动 Work Item](bug-20260717-002-ai-json-parse-fallback-success.md)与 [GitHub #24](https://github.com/cyhui555/deeptrail/issues/24)。
-- `TASK-LOOP-003`：单维护者受保护合并链已由 PR #22 实证；公开 Cohort 当前 4/10，第 4 项 TASK-CI-001 的首跑、复用与闭环证据已绑定，两个 Bug 仍待发布复验，见[活动 Work Item](task-loop-003-l1-phase2-to-l2.md)、[执行计划](../plans/task-loop-003-l1-phase2-exec-plan.md)与[准入报告](../verification/task-loop-003-m4-l2-admission.md)。
+- `TASK-LOOP-003`：单维护者受保护合并链已由 PR #22 实证；公开 Cohort Evidence 当前 4/10，第 5–7 项已预登记且待 Shadow，两个既有 Bug 仍待发布复验，见[活动 Work Item](task-loop-003-l1-phase2-to-l2.md)、[执行计划](../plans/task-loop-003-l1-phase2-exec-plan.md)与[准入报告](../verification/task-loop-003-m4-l2-admission.md)。
 
 ## Closed
 

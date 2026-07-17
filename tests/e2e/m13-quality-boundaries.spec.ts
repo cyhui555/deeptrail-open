@@ -1,5 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
+const isDevelopmentWeb = process.env.DEEPTRAIL_E2E_WEB_MODE === 'development';
+
 /**
  * 注入最小认证替身，让质量边界测试只验证浏览器行为，不依赖真实用户或外部服务。
  */
@@ -175,6 +177,7 @@ test('RUM 与 PWA 缓存均不保留认证页查询隐私', async ({ page }) => 
 });
 
 test('开发态会清理遗留 Service Worker 与静态构建缓存', async ({ page }) => {
+  test.skip(!isDevelopmentWeb, '该合同必须由独立 Next.js development Profile 验证');
   await page.goto('/login?__pwa_test=1');
   await page.evaluate(async () => {
     await navigator.serviceWorker.register('/sw.js');
@@ -200,6 +203,7 @@ test('开发态会清理遗留 Service Worker 与静态构建缓存', async ({ p
 });
 
 test('开发态 Service Worker 存储 API 异常不会产生未处理错误', async ({ page }) => {
+  test.skip(!isDevelopmentWeb, '该合同必须由独立 Next.js development Profile 验证');
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
   await page.addInitScript(() => {
