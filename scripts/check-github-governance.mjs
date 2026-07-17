@@ -1,9 +1,17 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import process from "node:process";
 
 const workflowPath = ".github/workflows/ci.yml";
+const workflowsRoot = ".github/workflows";
 const protectionPath = ".github/branch-protection-main.json";
 const workflow = await readFile(workflowPath, "utf8");
+const workflowFiles = (await readdir(workflowsRoot))
+  .filter((name) => /\.ya?ml$/i.test(name))
+  .sort();
+const workflowSources = await Promise.all(workflowFiles.map(async (name) => ({
+  name,
+  content: await readFile(`${workflowsRoot}/${name}`, "utf8"),
+})));
 const protection = JSON.parse(await readFile(protectionPath, "utf8"));
 const failures = [];
 const requiredActions = new Map([
@@ -25,15 +33,28 @@ if (!new RegExp(`uses:\\s*actions/checkout@${checkout.sha}[\\s\\S]*?fetch-depth:
   failures.push("Governance Job 必须获取完整 Git 历史");
 }
 const seenActions = new Set();
-for (const match of workflow.matchAll(/^\s*uses:\s*([^\s@]+)@([^\s#]+)(?:\s+#\s+(v\d+))?\s*$/gm)) {
-  const [, action, reference, version] = match;
-  const expected = requiredActions.get(action);
-  if (!expected) failures.push(`Workflow 使用了未登记 Action：${action}`);
-  else if (reference !== expected.sha || version !== expected.version) {
-    failures.push(`${action} 必须固定为 ${expected.version} 的完整 Commit SHA`);
+// 扫描全部 Workflow，避免通过新增 YAML 绕过已发布的 Action 允许列表与 SHA 锁定合同。
+for (const source of workflowSources) {
+  for (const match of source.content.matchAll(/^\s*uses:\s*([^\s#]+)(?:\s+#\s+(v\d+))?\s*$/gm)) {
+    const [, specifier, version] = match;
+    if (specifier.startsWith("./")) continue;
+    const separator = specifier.lastIndexOf("@");
+    if (separator <= 0) {
+      failures.push(`${source.name} 使用了未固定引用：${specifier}`);
+      continue;
+    }
+    const action = specifier.slice(0, separator);
+    const reference = specifier.slice(separator + 1);
+    const expected = requiredActions.get(action);
+    if (!expected) failures.push(`${source.name} 使用了未登记 Action：${action}`);
+    else if (reference !== expected.sha || version !== expected.version) {
+      failures.push(`${source.name} 的 ${action} 必须固定为 ${expected.version} 的完整 Commit SHA`);
+    }
+    if (!/^[a-f0-9]{40}$/.test(reference)) {
+      failures.push(`${source.name} 的 ${action} 未固定完整 Commit SHA`);
+    }
+    seenActions.add(action);
   }
-  if (!/^[a-f0-9]{40}$/.test(reference)) failures.push(`${action} 未固定完整 Commit SHA`);
-  seenActions.add(action);
 }
 for (const action of requiredActions.keys()) {
   if (!seenActions.has(action)) failures.push(`Workflow 缺少必需 Action：${action}`);
