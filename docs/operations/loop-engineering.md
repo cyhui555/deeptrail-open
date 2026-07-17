@@ -127,6 +127,8 @@ pnpm loop:doctor
 
 健康状态应同时满足：`writer: null`、`incompleteTransactions: []`、`unattestedLegacy: 0`、Skill Manifest 摘要稳定、Doctor `ok: true`。正式公开 Home 应全部为 v2；历史 Home 只允许 `receipt-compatibility.json` 精确登记且由固定 Backup 证明的 v1。`loop:recover` 在发现未完成项时会以退出码 1 返回，这是诊断结果，不代表应删除现场。
 
+`pnpm loop:cohort:l2:strict` 成功时返回稳定 `admissionDigest`；它绑定 Cohort 样本、阈值与结果，但不包含持续追加的 Doctor Receipt/Audit 计数，供 L3 activation 精确登记。
+
 ## 7. Backup 与隔离 Restore
 
 创建逐文件 SHA-256 Backup，并从 JSON 读取 ID：

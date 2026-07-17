@@ -455,7 +455,12 @@ async function main() {
   }
   const config = await resolveGatewayConfig({ repoRoot });
   const report = await verifyRuntimeCohort(config, manifest);
-  process.stdout.write(`${JSON.stringify({ ...report, static: staticResult }, null, 2)}\n`);
+  const admissionDigest = report.cohortReady ? cohortAdmissionDigest(report) : null;
+  process.stdout.write(`${JSON.stringify({
+    ...report,
+    admissionDigest,
+    static: staticResult
+  }, null, 2)}\n`);
   if (args.has("--strict") && !report.cohortReady) process.exitCode = 1;
 }
 
