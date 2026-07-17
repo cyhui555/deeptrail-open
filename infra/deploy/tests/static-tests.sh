@@ -31,10 +31,10 @@ cleanup_test() {
 }
 trap cleanup_test EXIT
 
-for script in common.sh build-images.sh prepare-host.sh deploy.sh verify.sh rollback.sh open-port.sh remote-release.sh; do
+for script in common.sh build-images.sh prepare-host.sh deploy.sh verify.sh rollback.sh open-port.sh remote-release.sh verify-target-regressions.sh; do
   bash -n "${DEPLOY_DIR}/${script}"
 done
-for script in build-images.sh prepare-host.sh deploy.sh verify.sh rollback.sh open-port.sh remote-release.sh; do
+for script in build-images.sh prepare-host.sh deploy.sh verify.sh rollback.sh open-port.sh remote-release.sh verify-target-regressions.sh; do
   bash "${DEPLOY_DIR}/${script}" --help >/dev/null
 done
 grep -Fq "node:24-alpine" "${DEPLOY_DIR}/remote-release.sh"
@@ -48,6 +48,11 @@ grep -Fq '/tmp:exec,size=64m,uid=10001,gid=10001,mode=1770' \
 grep -Fq 'DEEPTRAIL_SERVER_ARTIFACT_DIGEST' "${DEPLOY_DIR}/deploy.sh"
 grep -Fq 'APP_ARTIFACT_DIGEST' "${DEPLOY_DIR}/../docker/compose.production.yml"
 grep -Fq 'recover_release_services "${PREVIOUS_RELEASE}"' "${DEPLOY_DIR}/deploy.sh"
+grep -Fq -- '--network none' "${DEPLOY_DIR}/verify-target-regressions.sh"
+grep -Fq 'dst=/source,readonly' "${DEPLOY_DIR}/verify-target-regressions.sh"
+if grep -Eq '/etc/deeptrail|server\.env|production\.env' "${DEPLOY_DIR}/verify-target-regressions.sh"; then
+  die '目标机回归脚本不得加载生产配置。'
+fi
 
 validate_release_id 'v0.2.0-20260716-220000-5becf81206a5'
 if (validate_release_id '../escape') >/dev/null 2>&1; then die '非法 release ID 未被拒绝。'; fi

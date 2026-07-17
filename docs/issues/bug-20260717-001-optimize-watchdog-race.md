@@ -1,6 +1,6 @@
 # BUG-20260717-001 行程优化超时竞态与迟到结果丢弃
 
-- 状态：Verification / G2（已合入 `main@6495d3e`，未部署）
+- 状态：Verification / G3（已发布并完成目标机 117 项固定样例复验）
 - 优先级：P1
 - GitHub Issue：[cyhui555/deeptrail#21](https://github.com/cyhui555/deeptrail/issues/21)
 - ExecPlan：[行程优化超时修复计划](../plans/bug-20260717-001-optimize-timeout-fix.md)
