@@ -48,6 +48,13 @@
         "quality-web",
         "smoke"
       ]
+    },
+    {
+      "sequence": 4,
+      "workItem": "docs/issues/task-ci-001-node24-actions-runtime.md",
+      "profiles": [
+        "quality-light"
+      ]
     }
   ],
   "evidence": [
