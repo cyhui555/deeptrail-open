@@ -1,6 +1,6 @@
 # 旅迹 Loop Engineering 落地方案
 
-- 状态：L0 与 L1 Phase 1 已验收；L2 仅保留设计；L3 阻断
+- 状态：L1 Phase 2 本地 G2 通过；L2 Proposal-only 条件性 NO-GO；L3 阻断
 - 事实入口：`REQ-LOOP-001`、[TASK-LOOP-002 交付摘要](../archive/task-loop-002-loop-contract-hardening.md)
 - 运行入口：[本地运行手册](../operations/loop-engineering.md)
 - 上游基线：LoopAny `cdd1d08f4d3d5a09a49443ef1d7a698363ef06f5`
