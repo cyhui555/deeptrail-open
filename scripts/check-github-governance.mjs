@@ -6,14 +6,37 @@ const protectionPath = ".github/branch-protection-main.json";
 const workflow = await readFile(workflowPath, "utf8");
 const protection = JSON.parse(await readFile(protectionPath, "utf8"));
 const failures = [];
+const requiredActions = new Map([
+  ["actions/checkout", { sha: "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0", version: "v7" }],
+  ["actions/setup-node", { sha: "820762786026740c76f36085b0efc47a31fe5020", version: "v7" }],
+  ["actions/setup-java", { sha: "03ad4de0992f5dab5e18fcb136590ce7c4a0ac95", version: "v5" }],
+  ["actions/upload-artifact", { sha: "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a", version: "v7" }],
+  ["pnpm/action-setup", { sha: "0ebf47130e4866e96fce0953f49152a61190b271", version: "v6" }],
+]);
 
 const workflowJobNames = new Set(
   [...workflow.matchAll(/^ {4}name:\s*(.+?)\s*$/gm)].map((match) => match[1]),
 );
 const requiredChecks = protection.required_status_checks?.contexts ?? [];
 const governanceJob = workflow.match(/\n  governance-loop:[\s\S]*?\n  backend-quality:/)?.[0] ?? "";
-if (!/uses:\s*actions\/checkout@v4[\s\S]*?fetch-depth:\s*0/.test(governanceJob)) {
+const checkout = requiredActions.get("actions/checkout");
+if (!new RegExp(`uses:\\s*actions/checkout@${checkout.sha}[\\s\\S]*?fetch-depth:\\s*0`)
+  .test(governanceJob)) {
   failures.push("Governance Job 必须获取完整 Git 历史");
+}
+const seenActions = new Set();
+for (const match of workflow.matchAll(/^\s*uses:\s*([^\s@]+)@([^\s#]+)(?:\s+#\s+(v\d+))?\s*$/gm)) {
+  const [, action, reference, version] = match;
+  const expected = requiredActions.get(action);
+  if (!expected) failures.push(`Workflow 使用了未登记 Action：${action}`);
+  else if (reference !== expected.sha || version !== expected.version) {
+    failures.push(`${action} 必须固定为 ${expected.version} 的完整 Commit SHA`);
+  }
+  if (!/^[a-f0-9]{40}$/.test(reference)) failures.push(`${action} 未固定完整 Commit SHA`);
+  seenActions.add(action);
+}
+for (const action of requiredActions.keys()) {
+  if (!seenActions.has(action)) failures.push(`Workflow 缺少必需 Action：${action}`);
 }
 for (const context of requiredChecks) {
   if (!workflowJobNames.has(context)) failures.push(`Required Check 不存在于 CI Job：${context}`);
