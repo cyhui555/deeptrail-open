@@ -48,7 +48,7 @@ for (const relativePath of trackedFiles) {
   scannedTextFiles += 1;
   for (const category of scanText(content, normalized)) addFailure(normalized, category);
   if (/^\.github\/workflows\/.*\.ya?ml$/i.test(normalized)) {
-    for (const category of validateWorkflowText(content)) addFailure(normalized, category);
+    for (const category of validateWorkflowText(content, normalized)) addFailure(normalized, category);
   }
 }
 
