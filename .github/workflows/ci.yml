@@ -87,7 +87,7 @@ jobs:
 
       - name: Upload backend quality reports
         if: always() && steps.backend_report_safety.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-quality-reports
           if-no-files-found: ignore
@@ -131,7 +131,7 @@ jobs:
 
       - name: Upload backend E2E reports
         if: always() && steps.backend_e2e_report_safety.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-e2e-reports
           if-no-files-found: ignore
@@ -222,7 +222,7 @@ jobs:
 
       - name: Upload Playwright reports
         if: always() && steps.smoke_report_safety.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-smoke-reports
           if-no-files-found: ignore
@@ -276,7 +276,7 @@ jobs:
 
       - name: Upload full Playwright reports
         if: always() && steps.full_e2e_report_safety.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-full-e2e-reports
           if-no-files-found: ignore
