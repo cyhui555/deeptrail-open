@@ -236,15 +236,43 @@ atomic_switch_current() {
   mv -Tf -- "${temporary_link}" "${CURRENT_LINK}"
 }
 
-wait_for_http() {
+try_wait_for_http() {
   local url="$1" attempts="${2:-60}" interval="${3:-2}" attempt
   for ((attempt = 1; attempt <= attempts; attempt += 1)); do
     if curl --fail --silent --show-error --connect-timeout 3 --max-time 10 "${url}" >/dev/null; then
-      return
+      return 0
     fi
     sleep "${interval}"
   done
-  die "健康检查超时：${url}"
+  return 1
+}
+
+wait_for_http() {
+  local url="$1" attempts="${2:-60}" interval="${3:-2}"
+  try_wait_for_http "${url}" "${attempts}" "${interval}" || die "健康检查超时：${url}"
+}
+
+recover_release_services() {
+  local release_directory="$1" port
+  [[ -n "${release_directory}" ]] || return 1
+  port="$(production_env_value "${release_directory}" 'DEEPTRAIL_WEB_PORT')"
+  if [[ ! "${port}" =~ ^[0-9]+$ ]] || ((port < 30301 || port > 30400)); then
+    warn "上一 release 的端口无效，无法自动恢复：${port:-<empty>}"
+    return 1
+  fi
+
+  warn "正在恢复上一 release：$(basename "${release_directory}")"
+  if ! run_compose "${release_directory}" up -d --remove-orphans; then
+    warn '上一 release 的 Compose 服务启动失败。'
+    return 1
+  fi
+  if ! try_wait_for_http "http://127.0.0.1:${port}/login" 60 2 \
+      || ! try_wait_for_http "http://127.0.0.1:${port}/api/health" 60 2; then
+    warn '上一 release 已启动，但本机健康检查未通过。'
+    return 1
+  fi
+  warn "上一 release 已恢复并通过本机健康检查：$(basename "${release_directory}")"
+  return 0
 }
 
 verify_database() {

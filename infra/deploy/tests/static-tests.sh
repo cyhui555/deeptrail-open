@@ -47,6 +47,7 @@ grep -Fq '/tmp:exec,size=64m,uid=10001,gid=10001,mode=1770' \
   "${DEPLOY_DIR}/../docker/compose.production.yml"
 grep -Fq 'DEEPTRAIL_SERVER_ARTIFACT_DIGEST' "${DEPLOY_DIR}/deploy.sh"
 grep -Fq 'APP_ARTIFACT_DIGEST' "${DEPLOY_DIR}/../docker/compose.production.yml"
+grep -Fq 'recover_release_services "${PREVIOUS_RELEASE}"' "${DEPLOY_DIR}/deploy.sh"
 
 validate_release_id 'v0.2.0-20260716-220000-5becf81206a5'
 if (validate_release_id '../escape') >/dev/null 2>&1; then die '非法 release ID 未被拒绝。'; fi
@@ -95,6 +96,40 @@ docker() {
 validate_release_image_metadata "${release_directory}"
 if (MOCK_SERVER_USER='root'; validate_release_image_metadata "${release_directory}") >/dev/null 2>&1; then
   die 'Server root 用户未被拒绝。'
+fi
+
+RECOVERY_COMPOSE_RESULT=0
+RECOVERY_HTTP_RESULT=0
+RECOVERY_PORT=30301
+RECOVERY_URLS=''
+run_compose() {
+  [[ "$1" == '/srv/deeptrail/releases/previous' ]] || return 1
+  shift
+  [[ "$*" == 'up -d --remove-orphans' ]] || return 1
+  return "${RECOVERY_COMPOSE_RESULT}"
+}
+production_env_value() {
+  [[ "$1" == '/srv/deeptrail/releases/previous' && "$2" == 'DEEPTRAIL_WEB_PORT' ]] || return 1
+  printf '%s\n' "${RECOVERY_PORT}"
+}
+curl() {
+  local url="${*: -1}"
+  RECOVERY_URLS+="${url}"$'\n'
+  return "${RECOVERY_HTTP_RESULT}"
+}
+sleep() { :; }
+
+recover_release_services '/srv/deeptrail/releases/previous'
+grep -Fxq 'http://127.0.0.1:30301/login' <<<"${RECOVERY_URLS}" || die '恢复流程未验证登录页。'
+grep -Fxq 'http://127.0.0.1:30301/api/health' <<<"${RECOVERY_URLS}" || die '恢复流程未验证 API 健康。'
+if (RECOVERY_COMPOSE_RESULT=1; recover_release_services '/srv/deeptrail/releases/previous') >/dev/null 2>&1; then
+  die '上一 release 启动失败时恢复流程错误返回成功。'
+fi
+if (RECOVERY_PORT=30299; recover_release_services '/srv/deeptrail/releases/previous') >/dev/null 2>&1; then
+  die '上一 release 端口越界时恢复流程错误返回成功。'
+fi
+if (RECOVERY_HTTP_RESULT=1; recover_release_services '/srv/deeptrail/releases/previous') >/dev/null 2>&1; then
+  die '上一 release 健康检查失败时恢复流程错误返回成功。'
 fi
 
 printf 'DEPLOY_SCRIPT_STATIC_TESTS_OK\n'

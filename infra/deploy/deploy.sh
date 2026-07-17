@@ -94,7 +94,13 @@ on_error() {
   if [[ "${DEPLOYMENT_STARTED}" -eq 1 ]]; then
     warn '新 release 未通过验收，current 未切换；停止未验收 Web/Server。'
     run_compose "${RELEASE_DIRECTORY}" stop web server >/dev/null 2>&1 || true
-    warn '请先审查迁移兼容性，再调用 rollback.sh 恢复上一 release。'
+    if [[ -n "${PREVIOUS_RELEASE}" && "${PREVIOUS_RELEASE}" != "${RELEASE_DIRECTORY}" ]]; then
+      if ! recover_release_services "${PREVIOUS_RELEASE}"; then
+        warn '上一 release 自动恢复失败；保留 current 指针和现场，请立即人工恢复。'
+      fi
+    else
+      warn '没有上一 release 可恢复；首次发布保持未激活状态。'
+    fi
   fi
   exit "${exit_code}"
 }

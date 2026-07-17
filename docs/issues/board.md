@@ -4,6 +4,7 @@
 
 ## Verification
 
+- `BUG-20260717-006`：目标机实证 Release 身份为空且失败发布未自动恢复，正在修复身份贡献器与原 Release 自动拉回，见[活动 Work Item](bug-20260717-006-release-identity-recovery.md)。
 - `TASK-CI-001`：PR #23 已经唯一人工审批、五项 Required Checks 合并并完成 `quality-light` Shadow 首跑/复用，见[活动 Work Item](task-ci-001-node24-actions-runtime.md)与 [GitHub #18](https://github.com/cyhui555/deeptrail-open/issues/18)。
 - `BUG-20260717-003`：AMap Production E2E 配置修复及第 5 项 `quality-web/smoke` Shadow 首跑、复用已完成，见[活动 Work Item](bug-20260717-003-amap-e2e-build-config.md)。
 - `BUG-20260717-004`：PDF 主路径静态地图隔离及第 6 项 `quality-web/smoke` Shadow 首跑、复用已完成，见[活动 Work Item](bug-20260717-004-pdf-static-map-e2e-isolation.md)。

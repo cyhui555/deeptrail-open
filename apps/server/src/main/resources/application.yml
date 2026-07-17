@@ -162,9 +162,3 @@ management:
       probes:
         enabled: true
       show-details: never
-
-info:
-  release:
-    id: ${APP_RELEASE_ID:local}
-    git-commit: ${APP_GIT_COMMIT:unknown}
-    artifact-digest: ${APP_ARTIFACT_DIGEST:unknown}
