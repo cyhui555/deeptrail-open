@@ -6,6 +6,7 @@
 - GitHub：[#34](https://github.com/cyhui555/deeptrail-open/issues/34)
 - ExecPlan：[L3A 执行计划](../plans/task-loop-004-l3a-exec-plan.md)
 - ADR：[L3 分阶段权限模型](../architecture/adr-loop-l3-staged-automation.md)
+- 验证：[L3A G2 准入记录](../verification/task-loop-004-l3a-admission.md)
 
 ## 目标
 

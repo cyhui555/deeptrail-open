@@ -62,6 +62,6 @@
 - [x] 复现严格 Cohort 失败并定位五份 schema v1 Receipt。
 - [x] 五份当前文件与既有 Backup SHA-256 全部一致。
 - [x] 登记 GitHub #33、#34 和受保护短期分支。
-- [x] 实现 Receipt 证明链；确认公开严格 Cohort 48/48 v2、10/10 Work Items 通过。
+- [x] 实现 Receipt 证明链；确认公开严格 Cohort 49/49 v2、10/10 Work Items 通过。
 - [x] 实现默认关闭的 L3A Policy、Plan、隔离凭据 Runtime、Worktree 与事务回执；Loop 测试 23/23。
 - [ ] 完成本地 G2、远程 PR 与首个试点 G3。

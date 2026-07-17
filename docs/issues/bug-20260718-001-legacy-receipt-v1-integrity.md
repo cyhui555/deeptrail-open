@@ -17,9 +17,9 @@
 
 ## 验收
 
-- [x] 历史 Home：34 份 v2 + 五份已证明 v1，`unattestedLegacy=0`。
+- [x] 历史 Home：35 份 v2 + 五份已证明 v1，`unattestedLegacy=0`。
 - [x] 未登记 v1、当前文件漂移、Backup 漂移和 v2 篡改均由测试覆盖并失败。
-- [x] `loop:test` 23/23、真实 Runtime 集成 1/1；公开 Home Doctor 与严格 Cohort 48/48 v2、10 Work Items / 17 Profiles 全部通过。
+- [x] `loop:test` 23/23、真实 Runtime 集成 1/1；公开 Home Doctor 与严格 Cohort 49/49 v2、10 Work Items / 17 Profiles 全部通过。
 - [ ] 修复经受保护 PR 合入，不直推主干。
 
 ## 回滚
