@@ -64,4 +64,4 @@
 
 ## 下一项唯一动作
 
-PR #22–#24 已实证 GitHub Free 单维护者受保护合并链和第 4 项 Shadow；三个真实 Full E2E 失败簇及第 5–7 项预登记已完成。下一步按已进入受保护 `main` 的登记运行适用 Shadow，再完成两个既有 Bug 的发布复验和其余 3 项真实样本。
+PR #22–#26 已实证 GitHub Free 单维护者受保护合并链、Full E2E 修复和第 4–7 项 Shadow。下一步完成两个既有 Bug 的不可变发布复验，再对最后 3 个真实 Work Item 先登记、后运行适用 Profile。
