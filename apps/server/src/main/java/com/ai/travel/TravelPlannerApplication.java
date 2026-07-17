@@ -4,6 +4,7 @@ import com.ai.travel.config.AppAuthProperties;
 import com.ai.travel.config.AppCorsProperties;
 import com.ai.travel.config.AppGeocodingProperties;
 import com.ai.travel.config.AppJourneyProperties;
+import com.ai.travel.config.AppReleaseProperties;
 import com.ai.travel.config.AppStorageProperties;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,7 +21,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @SpringBootApplication
 @MapperScan("com.ai.travel.mapper")
 @EnableConfigurationProperties({AppStorageProperties.class, AppJourneyProperties.class,
-    AppGeocodingProperties.class, AppCorsProperties.class, AppAuthProperties.class})
+    AppGeocodingProperties.class, AppCorsProperties.class, AppAuthProperties.class,
+    AppReleaseProperties.class})
 public class TravelPlannerApplication {
 
   private static final String DEFAULT_DATA_DIRECTORY = "../../data";

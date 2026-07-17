@@ -79,6 +79,14 @@
         "quality-web",
         "smoke"
       ]
+    },
+    {
+      "sequence": 8,
+      "workItem": "docs/issues/bug-20260717-006-release-identity-recovery.md",
+      "profiles": [
+        "quality-light",
+        "quality-server"
+      ]
     }
   ],
   "evidence": [
