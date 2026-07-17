@@ -21,6 +21,7 @@ import {
   quarantineStaleWriteLock
 } from "./lock.mjs";
 import { runRecordedOperation } from "./recorded-operation.mjs";
+import { summarizeReceiptIntegrity, verifyReceiptSet } from "./receipt-integrity.mjs";
 import { runLoopAny, verifyRuntime } from "./runtime.mjs";
 import { verifyRunClosure } from "./shadow.mjs";
 import { syncSkills, verifySkills } from "./skills.mjs";
@@ -169,13 +170,21 @@ export async function doctorLoop(config, options = {}) {
       faultAfter: options.faultAfter,
       apply: async () => {
         const report = await verifyWorkspaceContract(config);
+        const receipts = await verifyReceiptSet(config);
         return {
           report,
-          receipt: summarizeWorkspaceVerification(report),
+          receipts,
+          receipt: {
+            ...summarizeWorkspaceVerification(report),
+            receipts: summarizeReceiptIntegrity(receipts)
+          },
           recovery: { doctorOk: report.loopany.ok }
         };
       },
-      postcheck: async (applied) => summarizeWorkspaceVerification(applied.report)
+      postcheck: async (applied) => ({
+        ...summarizeWorkspaceVerification(applied.report),
+        receipts: summarizeReceiptIntegrity(await verifyReceiptSet(config))
+      })
     });
     return {
       ok: true,
@@ -186,6 +195,7 @@ export async function doctorLoop(config, options = {}) {
       loopany: recorded.applied.report.loopany,
       audit: recorded.applied.report.audit,
       capabilities: recorded.applied.report.capabilities,
+      receipts: summarizeReceiptIntegrity(recorded.applied.receipts),
       transactionId: recorded.transactionId,
       receiptFile: recorded.receiptFile,
       receiptSha256: recorded.receiptSha256

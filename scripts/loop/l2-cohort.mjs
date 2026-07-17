@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -10,8 +10,8 @@ import { canonicalJson } from "./canonical.mjs";
 import { resolveGatewayConfig } from "./config.mjs";
 import { LoopGatewayError, formatError } from "./errors.mjs";
 import { recoverLoop } from "./operations.mjs";
+import { verifyReceiptSet } from "./receipt-integrity.mjs";
 import { verifyRunClosure } from "./shadow.mjs";
-import { verifyReceiptFile } from "./transactions.mjs";
 import { verifyWorkspaceContract } from "./workspace-check.mjs";
 
 const execFileAsync = promisify(execFile);
@@ -215,10 +215,8 @@ export async function verifyStaticCohort(manifest, repoRoot = process.cwd()) {
 }
 
 export async function verifyRuntimeCohort(config, manifest) {
-  const receiptFiles = (await readdir(config.receiptRoot, { withFileTypes: true }))
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-    .map((entry) => path.join(config.receiptRoot, entry.name));
-  const receipts = await Promise.all(receiptFiles.map((file) => verifyReceiptFile(file)));
+  const receiptIntegrity = await verifyReceiptSet(config);
+  const receipts = receiptIntegrity.documents;
   const shadowReceipts = receipts.filter((receipt) => receipt.operation === "shadow"
     && typeof receipt.result?.runId === "string");
   const evidenceBySequence = new Map(manifest.evidence
@@ -250,7 +248,11 @@ export async function verifyRuntimeCohort(config, manifest) {
     repository: manifest.repository,
     baseRevision: manifest.baseRevision,
     integrity: {
-      receiptsVerified: receipts.length,
+      receiptsVerified: receiptIntegrity.total,
+      v2ReceiptsVerified: receiptIntegrity.v2Verified,
+      legacyReceiptsAttested: receiptIntegrity.legacyAttested,
+      unattestedLegacyReceipts: receiptIntegrity.unattestedLegacy,
+      legacyReceiptPolicy: receiptIntegrity.policyId,
       doctorOk: workspace.ok,
       recoveryOk: recovery.ok,
       remoteGitWrite: workspace.capabilities.remoteGitWrite,

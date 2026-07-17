@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "policyId": "deeptrail-receipt-v1-20260716",
+  "recordedBefore": "2026-07-16T18:31:00.000Z",
+  "backup": {
+    "id": "backup-20260716194349-ceed4e4c9841",
+    "manifestDigest": "2510b7da527ee157384bf36e4bc1deed9865787db46ee389a3e57626b9928813",
+    "payloadDigest": "ceed4e4c9841db4617e29a2e1fca218c52fbebf6bfbc5a194a8ae11c8dabe9b3"
+  },
+  "receipts": [
+    {
+      "file": "20260716181526-2bf1780d-4da8-4c76-85df-ab6575531452-recovery.json",
+      "sha256": "8cb0a70843b72310e6c584b229ec821f7b1d6e4f12ab4e5d67d48202b5464afc"
+    },
+    {
+      "file": "20260716182246-311952ba-fcd1-4516-93a5-ffd0bfcb0438-recovery.json",
+      "sha256": "fb9d9228b990b335954907a4b0aff33949420990ba3a482348eb563cf11ce8da"
+    },
+    {
+      "file": "20260716182246-311952ba-fcd1-4516-93a5-ffd0bfcb0438.json",
+      "sha256": "d1d8278eeb59ea2d4a82d121c167e6c5dbbadf733fbf86da8aba110614a6663a"
+    },
+    {
+      "file": "20260716182327-ab70bace-9f6c-4a62-8cd6-1c1c1de35c74.json",
+      "sha256": "82be25ea2b384b051c8da4b3e449262a7c81f9c5c52bee9d6af80f1067f55926"
+    },
+    {
+      "file": "20260716183031-bd72102b-40c0-4224-8cc8-80437833ed29.json",
+      "sha256": "4e50c5f52a77c2ce7aa90ce1dd217148da5dacb580bb2bd4433aee536e5ad332"
+    }
+  ]
+}

@@ -15,6 +15,7 @@ import {
   syncSkillsRecorded
 } from "./operations.mjs";
 import { verifyRuntime } from "./runtime.mjs";
+import { summarizeReceiptIntegrity, verifyReceiptSet } from "./receipt-integrity.mjs";
 import { runShadow } from "./shadow.mjs";
 import { verifySkills } from "./skills.mjs";
 
@@ -37,6 +38,9 @@ async function main() {
     result = await clearStaleLockRecovery(config, args[2]);
   } else if (args[0] === "status" && args.length === 1) {
     result = await statusLoop(config);
+  } else if (args[0] === "receipts" && args[1] === "verify" && args.length === 2) {
+    await verifyRuntime(config);
+    result = summarizeReceiptIntegrity(await verifyReceiptSet(config));
   } else if (args[0] === "backup" && args.length === 1) {
     result = await backupLoop(config);
   } else if (args[0] === "restore") {
@@ -56,7 +60,7 @@ async function main() {
   } else {
     throw new LoopGatewayError(
       "USAGE",
-      "用法：loop <init|doctor|status|backup|restore --backup <id> --target <path>|recover [--finalize-failed|--resume-postcheck|--clear-stale-lock <id>]|skills sync|skills verify|shadow --work-item <path> [--profile docs|gateway]>"
+      "用法：loop <init|doctor|status|receipts verify|backup|restore --backup <id> --target <path>|recover [--finalize-failed|--resume-postcheck|--clear-stale-lock <id>]|skills sync|skills verify|shadow --work-item <path> [--profile docs|gateway]>"
     );
   }
 

@@ -77,9 +77,11 @@ export async function verifyBackup(config, backupId) {
   const document = await readJson(path.join(snapshot, "snapshot.json"));
   const { manifestDigest: storedManifestDigest, ...manifest } = document;
   if (manifest.schemaVersion !== SNAPSHOT_SCHEMA || manifest.backupId !== backupId
-    || manifest.projectId !== config.projectId
-    || manifest.loopany?.commit !== config.loopany.commit
-    || canonicalSha256(manifest) !== storedManifestDigest) {
+      || manifest.projectId !== config.projectId
+      || manifest.loopany?.commit !== config.loopany.commit
+      || !/^[a-f0-9]{64}$/.test(manifest.payloadDigest ?? "")
+      || !backupId.endsWith(`-${manifest.payloadDigest.slice(0, 12)}`)
+      || canonicalSha256(manifest) !== storedManifestDigest) {
     throw new LoopGatewayError("BACKUP_MANIFEST_TAMPERED", "Backup Manifest 完整性校验失败");
   }
   const actual = await collectTree(path.join(snapshot, "payload"));
@@ -92,6 +94,7 @@ export async function verifyBackup(config, backupId) {
     backupId,
     path: snapshot,
     payloadDigest: manifest.payloadDigest,
+    manifestDigest: storedManifestDigest,
     files: actual.length,
     manifest
   };

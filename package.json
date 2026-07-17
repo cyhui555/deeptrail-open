@@ -27,6 +27,7 @@
     "loop:backup": "node scripts/loop/cli.mjs backup",
     "loop:init": "node scripts/loop/cli.mjs init",
     "loop:recover": "node scripts/loop/cli.mjs recover",
+    "loop:receipts:verify": "node scripts/loop/cli.mjs receipts verify",
     "loop:restore": "node scripts/loop/cli.mjs restore",
     "loop:shadow": "node scripts/loop/cli.mjs shadow",
     "loop:status": "node scripts/loop/cli.mjs status",

@@ -4,11 +4,13 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
+import { canonicalSha256 } from "../canonical.mjs";
 import { resolveGatewayConfig } from "../config.mjs";
 import { LoopGatewayError } from "../errors.mjs";
 import { sha256 } from "../fs-safe.mjs";
 import { evaluateCohort, validateManifestShape } from "../l2-cohort.mjs";
 import { acquireWriteLock, quarantineStaleWriteLock } from "../lock.mjs";
+import { validateLegacyReceiptPolicy, verifyReceiptSet } from "../receipt-integrity.mjs";
 import { assertAllowedLoopAnyArgs, sanitizedEnvironment } from "../runtime.mjs";
 import { detectUnexpectedProcessError, stableRunIdentity } from "../shadow.mjs";
 import { generateProposal } from "../proposal.mjs";
@@ -19,6 +21,7 @@ import {
   verifyReceiptFile,
   writeReceipt
 } from "../transactions.mjs";
+import { manifestDigest } from "../tree.mjs";
 
 const staticConfig = {
   schemaVersion: 1,
@@ -187,6 +190,48 @@ test("Receipt 原子创建并可识别联合篡改", async () => {
   );
 });
 
+test("历史 v1 Receipt 只接受固定 Backup 的逐字节证明", async () => {
+  const fixture = await legacyReceiptFixture("receipt-v1");
+  const report = await verifyReceiptSet(fixture.config, { policy: fixture.policy });
+  assert.equal(report.total, 1);
+  assert.equal(report.v2Verified, 0);
+  assert.equal(report.legacyAttested, 1);
+  assert.equal(report.unattestedLegacy, 0);
+
+  await writeFile(fixture.currentFile, fixture.raw.replace('"outcome": "passed"', '"outcome": "failed"'));
+  await assert.rejects(
+    verifyReceiptSet(fixture.config, { policy: fixture.policy }),
+    (error) => error instanceof LoopGatewayError && error.code === "LEGACY_RECEIPT_TAMPERED"
+  );
+
+  await writeFile(fixture.currentFile, fixture.raw);
+  await writeFile(fixture.backupFile, fixture.raw.replace('"outcome": "passed"', '"outcome": "failed"'));
+  await assert.rejects(
+    verifyReceiptSet(fixture.config, { policy: fixture.policy }),
+    (error) => error instanceof LoopGatewayError && error.code === "BACKUP_PAYLOAD_TAMPERED"
+  );
+});
+
+test("未知 v1 Receipt 与兼容策略放宽均失败关闭", async () => {
+  const fixture = await legacyReceiptFixture("receipt-v1-unknown");
+  const unknown = fixture.fileName.replace("11111111-1111-4111-8111-111111111111",
+    "22222222-2222-4222-8222-222222222222");
+  await writeFile(path.join(fixture.config.receiptRoot, unknown), fixture.raw.replace(
+    fixture.document.receiptId, unknown.slice(0, -5)
+  ));
+  await assert.rejects(
+    verifyReceiptSet(fixture.config, { policy: fixture.policy }),
+    (error) => error instanceof LoopGatewayError && error.code === "LEGACY_RECEIPT_UNATTESTED"
+  );
+
+  const widened = structuredClone(fixture.policy);
+  widened.receipts.push(widened.receipts[0]);
+  assert.throws(
+    () => validateLegacyReceiptPolicy(widened),
+    (error) => error instanceof LoopGatewayError && error.code === "LEGACY_RECEIPT_POLICY_INVALID"
+  );
+});
+
 test("Backup Root 不得与 Loop Home 重叠", async () => {
   const root = await temporary("backup-overlap");
   await assert.rejects(
@@ -325,10 +370,66 @@ async function fakeConfig(name) {
     repoRoot,
     env: {
       DEEPTRAIL_LOOP_HOME: loopHome,
+      DEEPTRAIL_LOOP_BACKUP_ROOT: path.join(root, "backups"),
       LOOPANY_SOURCE_ROOT: sourceRoot,
       LOOPANY_BUN: path.join(root, "bun.exe")
     }
   });
+}
+
+async function legacyReceiptFixture(name) {
+  const config = await fakeConfig(name);
+  const fileName = "20260716180000-11111111-1111-4111-8111-111111111111.json";
+  const document = {
+    schemaVersion: 1,
+    receiptId: fileName.slice(0, -5),
+    recordedAt: "2026-07-16T18:00:00.000Z",
+    operation: "shadow",
+    outcome: "passed"
+  };
+  const raw = `${JSON.stringify(document, null, 2)}\n`;
+  const receiptSha256 = sha256(raw);
+  const portableReceipt = `receipts/${fileName}`;
+  const files = [{ path: portableReceipt, size: Buffer.byteLength(raw), sha256: receiptSha256 }];
+  const payloadDigest = manifestDigest(files);
+  const backupId = `backup-20260716194349-${payloadDigest.slice(0, 12)}`;
+  const manifest = {
+    schemaVersion: 1,
+    backupId,
+    projectId: config.projectId,
+    createdAt: "2026-07-16T19:43:49.645Z",
+    sourceRevision: "a".repeat(40),
+    loopany: {
+      commit: config.loopany.commit,
+      cliVersion: config.loopany.cliVersion,
+      bunVersion: config.loopany.bunVersion
+    },
+    payloadDigest,
+    files
+  };
+  const policy = {
+    schemaVersion: 1,
+    policyId: "test-legacy-receipt-v1",
+    recordedBefore: "2026-07-16T18:31:00.000Z",
+    backup: {
+      id: backupId,
+      manifestDigest: canonicalSha256(manifest),
+      payloadDigest
+    },
+    receipts: [{ file: fileName, sha256: receiptSha256 }]
+  };
+  const currentFile = path.join(config.receiptRoot, fileName);
+  const backupRoot = path.join(config.backupRoot, backupId);
+  const backupFile = path.join(backupRoot, "payload", "receipts", fileName);
+  await mkdir(config.receiptRoot, { recursive: true });
+  await mkdir(path.dirname(backupFile), { recursive: true });
+  await writeFile(currentFile, raw);
+  await writeFile(backupFile, raw);
+  await writeFile(path.join(backupRoot, "snapshot.json"), `${JSON.stringify({
+    ...manifest,
+    manifestDigest: policy.backup.manifestDigest
+  }, null, 2)}\n`);
+  return { config, fileName, document, raw, policy, currentFile, backupFile };
 }
 
 async function temporary(name) {
