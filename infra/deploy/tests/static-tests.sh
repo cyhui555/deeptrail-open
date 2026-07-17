@@ -50,6 +50,7 @@ grep -Fq 'APP_ARTIFACT_DIGEST' "${DEPLOY_DIR}/../docker/compose.production.yml"
 grep -Fq 'recover_release_services "${PREVIOUS_RELEASE}"' "${DEPLOY_DIR}/deploy.sh"
 grep -Fq -- '--network none' "${DEPLOY_DIR}/verify-target-regressions.sh"
 grep -Fq 'dst=/source,readonly' "${DEPLOY_DIR}/verify-target-regressions.sh"
+grep -Fq 'DependencyWarmupTest' "${DEPLOY_DIR}/verify-target-regressions.sh"
 if grep -Eq '/etc/deeptrail|server\.env|production\.env' "${DEPLOY_DIR}/verify-target-regressions.sh"; then
   die '目标机回归脚本不得加载生产配置。'
 fi

@@ -86,13 +86,25 @@ common_args=(
   --workdir /work
 )
 
-log "准备固定 Maven 依赖：${RELEASE_ID}@${REVISION}"
+log "准备固定 Maven 测试运行时：${RELEASE_ID}@${REVISION}"
 docker run "${common_args[@]}" "${MAVEN_IMAGE}" sh -ec '
   cp -a /source/. /work/
-  mvn -B -f apps/server/pom.xml -DskipTests test
+  mkdir -p apps/server/src/test/java/com/ai/travel/target
+  cat >apps/server/src/test/java/com/ai/travel/target/DependencyWarmupTest.java <<"JAVA"
+package com.ai.travel.target;
+
+import org.junit.jupiter.api.Test;
+
+class DependencyWarmupTest {
+  @Test
+  void resolvesTestRuntime() {
+  }
+}
+JAVA
+  mvn -B -f apps/server/pom.xml -Dtest=DependencyWarmupTest test
 '
 
-log '关闭测试容器网络并执行固定回归；不会加载生产 Secret 或 Provider 配置。'
+log '关闭回归容器网络并执行固定样例；不会加载生产 Secret 或 Provider 配置。'
 docker run "${common_args[@]}" --network none "${MAVEN_IMAGE}" sh -ec "
   cp -a /source/. /work/
   mvn -o -B -f apps/server/pom.xml -Dtest=${TEST_SELECTOR} test
