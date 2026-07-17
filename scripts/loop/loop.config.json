@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "projectId": "deeptrail",
+  "loopany": {
+    "commit": "cdd1d08f4d3d5a09a49443ef1d7a698363ef06f5",
+    "cliVersion": "0.2.0",
+    "bunVersion": "1.3.14",
+    "skills": [
+      "loopany-resolver",
+      "loopany-core",
+      "loopany-capture",
+      "loopany-review",
+      "loopany-reflect"
+    ]
+  },
+  "profiles": {
+    "docs": [
+      ["pnpm", "docs:check"]
+    ],
+    "gateway": [
+      ["pnpm", "loop:test"],
+      ["pnpm", "docs:check"]
+    ],
+    "quality-light": [
+      ["pnpm", "governance:check"],
+      ["pnpm", "loop:test"],
+      ["pnpm", "eval"]
+    ],
+    "quality-server": [
+      ["pnpm", "verify:server"],
+      ["pnpm", "test:e2e:server"]
+    ],
+    "quality-web": [
+      ["pnpm", "quality:web"]
+    ],
+    "smoke": [
+      ["pnpm", "quality:smoke"]
+    ]
+  },
+  "shadowPolicy": {
+    "workItemPattern": "^docs/issues/(?:task|TASK|bug|BUG|spike|SPIKE)-[A-Za-z0-9-]+\\.md$",
+    "requireCleanWorktree": true,
+    "maxCommands": 3,
+    "maxCommandSeconds": 180,
+    "maxOutputBytes": 2097152,
+    "maxAttempts": 1,
+    "unexpectedErrorPatterns": [
+      "uncaughtException",
+      "UnhandledPromiseRejection",
+      "FATAL ERROR",
+      "Error: aborted",
+      "Failed to proxy",
+      "ECONNREFUSED",
+      "AggregateError"
+    ],
+    "mutationEnabled": false,
+    "remoteGitWrite": false,
+    "autoSkillActivation": false
+  }
+}

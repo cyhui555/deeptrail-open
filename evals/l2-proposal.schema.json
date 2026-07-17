@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deeptrail.local/schemas/l2-proposal-v1.json",
+  "title": "DeepTrail L2 Proposal-only Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "proposalId", "mode", "release", "signals", "recommendation", "evidence", "constraints", "decision"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "proposalId": {"type": "string", "pattern": "^proposal-[0-9a-f]{16}$"},
+    "mode": {"const": "proposal-only"},
+    "release": {
+      "type": "object",
+      "required": ["releaseId", "gitCommit", "serverArtifactDigest"]
+    },
+    "signals": {"type": "array", "minItems": 1},
+    "recommendation": {
+      "type": "object",
+      "required": ["title", "priority", "rationale", "acceptanceHints"]
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["releaseOutcomeSha256"]
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceMutation", "remoteGit", "autoApprove", "autoMerge", "autoDeploy"],
+      "properties": {
+        "sourceMutation": {"const": false},
+        "remoteGit": {"const": false},
+        "autoApprove": {"const": false},
+        "autoMerge": {"const": false},
+        "autoDeploy": {"const": false}
+      }
+    },
+    "decision": {"const": "human-review-required"}
+  }
+}

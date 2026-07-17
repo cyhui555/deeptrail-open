@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deeptrail.local/schemas/release-outcome-v1.json",
+  "title": "DeepTrail Release Outcome",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "release", "window", "totals", "latencyMs", "privacy"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["releaseId", "gitCommit", "serverArtifactDigest", "deployedAt"],
+      "properties": {
+        "releaseId": {"type": "string", "minLength": 1, "maxLength": 128},
+        "gitCommit": {"type": "string", "pattern": "^[0-9a-f]{40,64}$"},
+        "serverArtifactDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "deployedAt": {"type": "string", "format": "date-time"}
+      }
+    },
+    "window": {
+      "type": "object",
+      "required": ["startedAt", "endedAt"],
+      "properties": {"startedAt": {"type": "string"}, "endedAt": {"type": "string"}}
+    },
+    "totals": {
+      "type": "object",
+      "required": ["tasks", "completed", "failed", "timeout", "cancelled", "parseInvalid", "degraded", "tokenTotal"],
+      "properties": {
+        "tasks": {"type": "integer", "minimum": 0},
+        "completed": {"type": "integer", "minimum": 0},
+        "failed": {"type": "integer", "minimum": 0},
+        "timeout": {"type": "integer", "minimum": 0},
+        "cancelled": {"type": "integer", "minimum": 0},
+        "parseInvalid": {"type": "integer", "minimum": 0},
+        "degraded": {"type": "integer", "minimum": 0},
+        "tokenTotal": {"type": "integer", "minimum": 0}
+      }
+    },
+    "latencyMs": {
+      "type": "object",
+      "required": ["p50", "p95"],
+      "properties": {"p50": {"type": "number", "minimum": 0}, "p95": {"type": "number", "minimum": 0}}
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["containsPrompt", "containsUserId", "containsRawResponse", "containsItineraryText"],
+      "properties": {
+        "containsPrompt": {"const": false},
+        "containsUserId": {"const": false},
+        "containsRawResponse": {"const": false},
+        "containsItineraryText": {"const": false}
+      }
+    }
+  }
+}

@@ -1,0 +1,93 @@
+name: deeptrail
+
+x-logging: &json-logging
+  driver: json-file
+  options:
+    max-file: '5'
+    max-size: 10m
+
+services:
+  server:
+    image: ${DEEPTRAIL_SERVER_IMAGE:?请设置不可变的 DEEPTRAIL_SERVER_IMAGE}
+    env_file:
+      - ${DEEPTRAIL_SERVER_ENV_FILE:-/etc/deeptrail/server.env}
+    environment:
+      APP_CORS_ALLOWED_ORIGINS: ${DEEPTRAIL_PUBLIC_ORIGIN:?请设置 DEEPTRAIL_PUBLIC_ORIGIN}
+      APP_DATA_DIR: /app/data
+      APP_LOG_DIR: /app/log
+      APP_RELEASE_ID: ${DEEPTRAIL_RELEASE_ID:?请设置 DEEPTRAIL_RELEASE_ID}
+      APP_GIT_COMMIT: ${DEEPTRAIL_GIT_COMMIT:?请设置 DEEPTRAIL_GIT_COMMIT}
+      APP_ARTIFACT_DIGEST: ${DEEPTRAIL_SERVER_ARTIFACT_DIGEST:?请设置 DEEPTRAIL_SERVER_ARTIFACT_DIGEST}
+      AUTH_COOKIE_SECURE: ${DEEPTRAIL_COOKIE_SECURE:-false}
+      MANAGEMENT_ENDPOINTS: ${DEEPTRAIL_MANAGEMENT_ENDPOINTS:-health,info,prometheus}
+      SPRING_PROFILES_ACTIVE: prod
+    healthcheck:
+      test: ['CMD', 'curl', '--fail', '--silent', 'http://127.0.0.1:8080/actuator/health/readiness']
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    logging: *json-logging
+    networks:
+      - app
+    read_only: true
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    tmpfs:
+      # sqlite-jdbc 会把受校验的原生库解压到 java.io.tmpdir 后加载，因此该受限 tmpfs 必须允许 exec。
+      - /tmp:exec,size=64m,uid=10001,gid=10001,mode=1770
+    volumes:
+      - ${DEEPTRAIL_DATA_ROOT:-/srv/deeptrail/data}:/app/data
+      - ${DEEPTRAIL_LOG_ROOT:-/srv/deeptrail/log}:/app/log
+
+  web:
+    image: ${DEEPTRAIL_WEB_IMAGE:?请设置不可变的 DEEPTRAIL_WEB_IMAGE}
+    depends_on:
+      server:
+        condition: service_healthy
+    env_file:
+      - ${DEEPTRAIL_WEB_ENV_FILE:-/etc/deeptrail/web.env}
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/login').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    logging: *json-logging
+    networks:
+      - app
+    ports:
+      - ${DEEPTRAIL_WEB_BIND:-0.0.0.0}:${DEEPTRAIL_WEB_PORT:?请设置 DEEPTRAIL_WEB_PORT}:3000
+    read_only: true
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 20s
+    tmpfs:
+      - /tmp:size=32m,uid=1000,gid=1000,mode=1770
+      - /app/apps/web/.next/cache:size=64m,uid=1000,gid=1000,mode=0750
+
+  ops:
+    image: ${DEEPTRAIL_SERVER_IMAGE:?请设置不可变的 DEEPTRAIL_SERVER_IMAGE}
+    entrypoint: ['sh']
+    healthcheck:
+      disable: true
+    networks:
+      - app
+    profiles:
+      - operations
+    read_only: true
+    restart: 'no'
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=32m,uid=10001,gid=10001,mode=1770
+    volumes:
+      - ${DEEPTRAIL_DATA_ROOT:-/srv/deeptrail/data}:/app/data
+      - ${DEEPTRAIL_BACKUP_ROOT:-/srv/deeptrail/backups}:/app/backups
+
+networks:
+  app:
+    driver: bridge

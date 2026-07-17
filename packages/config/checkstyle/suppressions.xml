@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD Suppressions Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<suppressions>
+  <!-- Flyway Java 迁移类名必须遵循 V{版本}__{描述}，无法使用普通 UpperCamelCase。 -->
+  <suppress checks="TypeName" files="[\\/]db[\\/]migration[\\/].*\.java"/>
+    <!-- STYLE_GUIDE.md 第6节要求中文摘要"不需句号结尾"，与 Google SummaryJavadoc 冲突，整项目禁用 -->
+    <suppress checks="SummaryJavadoc" files=".*"/>
+    <!-- 配置类等 Lombok @Value + @ConstructorBinding，常需大量 param 文档与常见行长度冲突 -->
+    <suppress checks="LineLength" files="src/main/java/com/ai/travel/config/.*"/>
+</suppressions>

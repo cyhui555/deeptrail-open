@@ -1,0 +1,37 @@
+spring:
+  datasource:
+    url: "jdbc:sqlite:file:travel_test?mode=memory&cache=shared"
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 1
+  sql:
+    init:
+      mode: never
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: true
+    clean-disabled: true
+  ai:
+    openai:
+      api-key: test-only-not-a-real-provider-key
+
+app:
+  auth:
+    enabled: false
+    registration-enabled: true
+    cookie-secure: false
+    cookie-same-site: Lax
+    cookie-max-age-days: 7
+  jwt:
+    secret: test-only-jwt-secret-at-least-32-bytes-long
+    expiration-days: 7
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+
+logging:
+  level:
+    com.ai.travel: INFO

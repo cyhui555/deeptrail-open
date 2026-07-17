@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+TEST_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+DEPLOY_DIR="$(cd -- "${TEST_DIR}/.." >/dev/null 2>&1 && pwd -P)"
+TMPDIR="${DEPLOY_TEST_TMPDIR:-${DEPLOY_DIR}}"
+export TMPDIR
+
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON_COMMAND='python3'
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_COMMAND='python'
+else
+  printf '缺少 Python，无法测试 release manifest。\n' >&2
+  exit 1
+fi
+python3() { command "${PYTHON_COMMAND}" "$@"; }
+
+temporary_root="$(mktemp -d "${TMPDIR}/.deeptrail-deploy-test.XXXXXX")"
+export DEEPTRAIL_DEPLOY_ROOT="${temporary_root}/deploy"
+# shellcheck source=../common.sh
+source "${DEPLOY_DIR}/common.sh"
+
+cleanup_test() {
+  if [[ -n "${release_directory:-}" && "${release_directory}" == "${temporary_root}/"* ]]; then
+    rm -f -- "${release_directory}/compose.production.yml" "${release_directory}/production.env" "${manifest_path:-}"
+    rmdir -- "${release_directory}" 2>/dev/null || true
+  fi
+  rmdir -- "${RELEASES_ROOT}" "${DEEPTRAIL_DEPLOY_ROOT}" "${temporary_root}" 2>/dev/null || true
+}
+trap cleanup_test EXIT
+
+for script in common.sh build-images.sh prepare-host.sh deploy.sh verify.sh rollback.sh open-port.sh remote-release.sh; do
+  bash -n "${DEPLOY_DIR}/${script}"
+done
+for script in build-images.sh prepare-host.sh deploy.sh verify.sh rollback.sh open-port.sh remote-release.sh; do
+  bash "${DEPLOY_DIR}/${script}" --help >/dev/null
+done
+grep -Fq "node:24-alpine" "${DEPLOY_DIR}/remote-release.sh"
+grep -Fq "ARG NODE_IMAGE=node:24-alpine" "${DEPLOY_DIR}/../docker/web.Dockerfile"
+grep -Fq "https://registry.npmmirror.com" "${DEPLOY_DIR}/remote-release.sh"
+grep -Fq "PUBLIC_HOST=''" "${DEPLOY_DIR}/remote-release.sh"
+grep -Fq 'DEEPTRAIL_DEPLOY_HOST' "${DEPLOY_DIR}/publish.ps1"
+grep -Fq 'ARG PNPM_REGISTRY=https://registry.npmmirror.com' "${DEPLOY_DIR}/../docker/web.Dockerfile"
+grep -Fq '/tmp:exec,size=64m,uid=10001,gid=10001,mode=1770' \
+  "${DEPLOY_DIR}/../docker/compose.production.yml"
+grep -Fq 'DEEPTRAIL_SERVER_ARTIFACT_DIGEST' "${DEPLOY_DIR}/deploy.sh"
+grep -Fq 'APP_ARTIFACT_DIGEST' "${DEPLOY_DIR}/../docker/compose.production.yml"
+
+validate_release_id 'v0.2.0-20260716-220000-5becf81206a5'
+if (validate_release_id '../escape') >/dev/null 2>&1; then die '非法 release ID 未被拒绝。'; fi
+validate_port 30301
+if (validate_port 30401) >/dev/null 2>&1; then die '越界端口未被拒绝。'; fi
+
+zero_digest="$(printf '0%.0s' {1..64})"
+one_digest="$(printf '1%.0s' {1..64})"
+two_digest="$(printf '2%.0s' {1..64})"
+server_image="sha256:${zero_digest}"
+web_image="sha256:${one_digest}"
+validate_image_reference "${server_image}"
+if (validate_image_reference 'deeptrail-server:latest') >/dev/null 2>&1; then die '漂移镜像 tag 未被拒绝。'; fi
+
+mkdir -p "${RELEASES_ROOT}"
+release_directory="${RELEASES_ROOT}/v0.2.0-20260716-220000-5becf81206a5"
+mkdir "${release_directory}"
+manifest_path="${release_directory}/release.json"
+write_release_manifest "${manifest_path}" "$(basename "${release_directory}")" \
+  '5becf81206a5bdf8bf21446cb555b575a3e493e6' '2026-07-16T14:00:00Z' "${two_digest}" \
+  "${server_image}" "maven:3.9@sha256:${zero_digest}" "eclipse-temurin:17@sha256:${one_digest}" \
+  "${web_image}" "node:24@sha256:${two_digest}"
+printf 'services: {}\n' >"${release_directory}/compose.production.yml"
+cat >"${release_directory}/production.env" <<EOF
+DEEPTRAIL_SERVER_IMAGE=${server_image}
+DEEPTRAIL_WEB_IMAGE=${web_image}
+EOF
+validate_release_directory "${release_directory}"
+validate_release_manifest "${manifest_path}" "$(basename "${release_directory}")" "${server_image}" "${web_image}"
+if (validate_release_manifest "${manifest_path}" 'wrong-release' "${server_image}" "${web_image}") >/dev/null 2>&1; then
+  die 'manifest 身份不一致未被拒绝。'
+fi
+
+MOCK_SERVER_USER='10001:10001'
+docker() {
+  local arguments="$*"
+  case "${arguments}" in
+    *org.opencontainers.image.revision*) printf '5becf81206a5bdf8bf21446cb555b575a3e493e6\n' ;;
+    *org.opencontainers.image.version*) printf '%s\n' "$(basename "${release_directory}")" ;;
+    *org.opencontainers.image.created*) printf '2026-07-16T14:00:00Z\n' ;;
+    *"${server_image}"*Config.User*) printf '%s\n' "${MOCK_SERVER_USER}" ;;
+    *Config.User*) printf 'node\n' ;;
+    *) die "Docker mock 收到未知参数：${arguments}" ;;
+  esac
+}
+validate_release_image_metadata "${release_directory}"
+if (MOCK_SERVER_USER='root'; validate_release_image_metadata "${release_directory}") >/dev/null 2>&1; then
+  die 'Server root 用户未被拒绝。'
+fi
+
+printf 'DEPLOY_SCRIPT_STATIC_TESTS_OK\n'

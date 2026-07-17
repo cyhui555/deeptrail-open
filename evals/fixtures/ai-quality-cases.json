@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "generate-valid-one-day",
+      "boundary": "parsing",
+      "taskType": "generate",
+      "raw": "{\"summary\":\"city break\",\"days\":[{\"day\":1,\"schedule\":[]}],\"tips\":[]}",
+      "expected": {"valid": true, "dayCount": 1}
+    },
+    {
+      "id": "generate-valid-multi-day",
+      "boundary": "parsing",
+      "taskType": "generate",
+      "raw": "{\"summary\":\"long trip\",\"days\":[{\"day\":1,\"schedule\":[]},{\"day\":2,\"schedule\":[]}],\"tips\":[]}",
+      "expected": {"valid": true, "dayCount": 2}
+    },
+    {
+      "id": "xiaohongshu-valid-wrapped",
+      "boundary": "parsing",
+      "taskType": "xiaohongshu",
+      "raw": "说明文字 {\"summary\":\"note trip\",\"days\":[{\"day\":1,\"schedule\":[]}],\"tips\":[]} 结束",
+      "expected": {"valid": true, "dayCount": 1}
+    },
+    {
+      "id": "optimize-valid-direct",
+      "boundary": "parsing",
+      "taskType": "optimize",
+      "raw": "{\"summary\":\"optimized\",\"days\":[{\"day\":1,\"schedule\":[]}],\"changes\":[]}",
+      "expected": {"valid": true, "dayCount": 1}
+    },
+    {
+      "id": "optimize-valid-inner-compensation",
+      "boundary": "parsing",
+      "taskType": "optimize",
+      "raw": "{\"optimizedItinerary\":\"{\\\"summary\\\":\\\"inner\\\",\\\"days\\\":[{\\\"day\\\":1,\\\"schedule\\\":[]}]}\",\"changes\":[]}",
+      "expected": {"valid": true, "dayCount": 1}
+    },
+    {
+      "id": "generate-empty-response",
+      "boundary": "parsing",
+      "taskType": "generate",
+      "raw": "   ",
+      "expected": {"valid": false, "reason": "EMPTY_RESPONSE"}
+    },
+    {
+      "id": "generate-malformed-json",
+      "boundary": "parsing",
+      "taskType": "generate",
+      "raw": "prefix {invalid-json} suffix",
+      "expected": {"valid": false, "reason": "MALFORMED_JSON"}
+    },
+    {
+      "id": "optimize-empty-days",
+      "boundary": "parsing",
+      "taskType": "optimize",
+      "raw": "{\"summary\":\"empty\",\"days\":[],\"changes\":[]}",
+      "expected": {"valid": false, "reason": "MISSING_DAYS"}
+    },
+    {
+      "id": "xiaohongshu-truncated-json",
+      "boundary": "parsing",
+      "taskType": "xiaohongshu",
+      "raw": "{\"summary\":\"cut\",\"days\":[{\"day\":1",
+      "expected": {"valid": false, "reason": "MALFORMED_JSON"}
+    },
+    {
+      "id": "scheduler-timeout-fail-closed",
+      "boundary": "scheduler",
+      "taskType": "generate",
+      "expected": {"terminalStatus": "timeout", "providerCallsAfterTerminal": 0, "businessWritesAfterTerminal": 0}
+    },
+    {
+      "id": "scheduler-cancel-fail-closed",
+      "boundary": "scheduler",
+      "taskType": "optimize",
+      "expected": {"terminalStatus": "cancelled", "providerCallsAfterTerminal": 0, "businessWritesAfterTerminal": 0}
+    },
+    {
+      "id": "geocoding-degradation-bounded",
+      "boundary": "geocoding",
+      "taskType": "xiaohongshu",
+      "expected": {"degradation": "invalid_coordinate", "rawUserContentRecorded": false}
+    }
+  ]
+}

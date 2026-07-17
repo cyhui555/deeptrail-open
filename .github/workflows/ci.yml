@@ -1,0 +1,284 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 18 * * 1-5'
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DEEPTRAIL_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+
+jobs:
+  governance-loop:
+    name: Governance and Loop quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Check governance documents and work items
+        run: pnpm governance:check
+
+      - name: Run Loop gateway tests
+        run: pnpm loop:test
+
+      - name: Run deterministic Eval
+        run: pnpm eval
+
+  backend-quality:
+    name: Backend quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Set up Node.js for report safety
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Maven verify
+        run: bash ./mvnw -B verify
+
+      - name: Check backend report safety
+        id: backend_report_safety
+        if: always()
+        run: >-
+          node ../../scripts/check-report-artifacts.mjs
+          target/surefire-reports
+          target/site/jacoco/jacoco.xml
+          target/site/jacoco/jacoco.csv
+          target/checkstyle-result.xml
+
+      - name: Upload backend quality reports
+        if: always() && steps.backend_report_safety.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-quality-reports
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            apps/server/target/surefire-reports/
+            apps/server/target/site/jacoco/jacoco.xml
+            apps/server/target/site/jacoco/jacoco.csv
+            apps/server/target/checkstyle-result.xml
+
+  backend-e2e:
+    name: Backend E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Set up Node.js for report safety
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run tagged backend E2E tests
+        run: bash ./mvnw -B -Pbackend-e2e test
+
+      - name: Check backend E2E report safety
+        id: backend_e2e_report_safety
+        if: always()
+        run: node ../../scripts/check-report-artifacts.mjs target/surefire-reports-e2e
+
+      - name: Upload backend E2E reports
+        if: always() && steps.backend_e2e_report_safety.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-e2e-reports
+          if-no-files-found: ignore
+          retention-days: 7
+          path: apps/server/target/surefire-reports-e2e/
+
+  frontend-quality:
+    name: Frontend quality and Eval
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter @deeptrail/web lint
+
+      - name: Typecheck
+        run: pnpm --filter @deeptrail/web typecheck
+
+      - name: Build
+        run: pnpm --filter @deeptrail/web build
+
+      - name: Check overview bundle budget
+        run: pnpm perf:check
+
+      - name: Eval
+        run: pnpm eval
+
+  frontend-smoke:
+    name: Frontend smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        env:
+          CI: 'true'
+          PLAYWRIGHT_CAPTURE_DIAGNOSTICS: 'false'
+        run: pnpm test:e2e:smoke
+
+      - name: Check Playwright report safety
+        id: smoke_report_safety
+        if: always()
+        run: pnpm security:artifacts -- playwright-report
+
+      - name: Upload Playwright reports
+        if: always() && steps.smoke_report_safety.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-smoke-reports
+          if-no-files-found: ignore
+          retention-days: 7
+          path: playwright-report/
+
+  frontend-full-e2e:
+    name: Frontend full E2E
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run full Playwright suite
+        env:
+          CI: 'true'
+          PLAYWRIGHT_CAPTURE_DIAGNOSTICS: 'false'
+        run: pnpm test:e2e
+
+      - name: Check full Playwright report safety
+        id: full_e2e_report_safety
+        if: always()
+        run: pnpm security:artifacts -- playwright-report
+
+      - name: Upload full Playwright reports
+        if: always() && steps.full_e2e_report_safety.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-full-e2e-reports
+          if-no-files-found: ignore
+          retention-days: 7
+          path: playwright-report/

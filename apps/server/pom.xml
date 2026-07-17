@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.3.5</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.ai.travel</groupId>
+  <artifactId>travel-planner</artifactId>
+  <version>0.2.0</version>
+  <name>travel-planner</name>
+  <description>Spring AI Travel Planner</description>
+
+  <properties>
+    <java.version>17</java.version>
+    <spring-ai.version>1.0.0-M6</spring-ai.version>
+    <byte-buddy.version>1.14.19</byte-buddy.version>
+    <surefire.exclude.tags>e2e,real-network</surefire.exclude.tags>
+    <!-- Mockito 不再依赖运行时自附加；固定 agent 后本地与 CI 的启动语义一致。 -->
+    <test.jvm.args>-javaagent:${settings.localRepository}/net/bytebuddy/byte-buddy-agent/${byte-buddy.version}/byte-buddy-agent-${byte-buddy.version}.jar -Dfile.encoding=UTF-8</test.jvm.args>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+  </properties>
+
+  <dependencies>
+    <!-- Web -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- Spring AI -->
+    <dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
+      <version>${spring-ai.version}</version>
+    </dependency>
+
+    <!-- Validation -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+
+    <!-- Database Driver + MyBatis Plus -->
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+      <version>3.5.7</version>
+    </dependency>
+    <dependency>
+      <groupId>org.xerial</groupId>
+      <artifactId>sqlite-jdbc</artifactId>
+      <version>3.46.1.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+
+    <!-- Hutool -->
+    <dependency>
+      <groupId>cn.hutool</groupId>
+      <artifactId>hutool-all</artifactId>
+      <version>5.8.27</version>
+    </dependency>
+
+    <!-- Guava（RateLimiter 工业级限流器，替换手搓令牌桶） -->
+    <!-- Spring Boot BOM 未管理 Guava 版本，手动指定 33.4.0-jre -->
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>33.4.0-jre</version>
+    </dependency>
+
+    <!-- Commons IO (文件操作工具) -->
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.16.1</version>
+    </dependency>
+
+    <!-- Lombok -->
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- OpenAPI / Swagger -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+      <version>2.6.0</version>
+    </dependency>
+
+    <!-- JWT -->
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-api</artifactId>
+      <version>0.12.5</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-impl</artifactId>
+      <version>0.12.5</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-jackson</artifactId>
+      <version>0.12.5</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <id>spring-milestones</id>
+      <name>Spring Milestones</name>
+      <url>https://repo.spring.io/milestone</url>
+    </repository>
+  </repositories>
+
+  <build>
+    <testResources>
+      <testResource>
+        <directory>src/test/resources</directory>
+      </testResource>
+      <testResource>
+        <!-- 契约基线只在 docs 维护，测试时复制到 classpath。 -->
+        <directory>../../docs/api</directory>
+        <targetPath>contracts</targetPath>
+        <includes>
+          <include>openapi-contract-baseline.json</include>
+        </includes>
+      </testResource>
+      <testResource>
+        <!-- Eval 夹具由 Node 与 JUnit 共用，避免两套质量口径漂移。 -->
+        <directory>../../evals/fixtures</directory>
+        <targetPath>evals</targetPath>
+        <includes>
+          <include>ai-quality-cases.json</include>
+        </includes>
+      </testResource>
+    </testResources>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <!-- Flyway 只从这一处加载版本化 SQL，避免 schema 与运行时迁移器并存。 -->
+        <directory>../../database/migrations</directory>
+        <targetPath>db/migration</targetPath>
+        <includes>
+          <include>**/*.sql</include>
+        </includes>
+      </resource>
+    </resources>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <excludedGroups>${surefire.exclude.tags}</excludedGroups>
+          <failIfNoTests>true</failIfNoTests>
+          <argLine>@{argLine} ${test.jvm.args}</argLine>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.6.0</version>
+        <configuration>
+          <configLocation>google_checks.xml</configLocation>
+          <suppressionsLocation>../../packages/config/checkstyle/suppressions.xml</suppressionsLocation>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>true</failsOnError>
+          <violationSeverity>warning</violationSeverity>
+          <linkXRef>false</linkXRef>
+        </configuration>
+        <executions>
+          <execution>
+            <id>checkstyle-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.12</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>check</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.90</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+              <excludes>
+                <exclude>**/config/**</exclude>
+                <exclude>**/exception/**</exclude>
+                <exclude>**/TravelPlannerApplication*</exclude>
+                <exclude>**/entity/**</exclude>
+              </excludes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>backend-e2e</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <groups>e2e</groups>
+              <excludedGroups>real-network</excludedGroups>
+              <failIfNoTests>true</failIfNoTests>
+              <reportsDirectory>${project.build.directory}/surefire-reports-e2e</reportsDirectory>
+              <argLine>@{argLine} ${test.jvm.args}</argLine>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>real-network-tests</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <groups>real-network</groups>
+              <excludedGroups>disabled</excludedGroups>
+              <failIfNoTests>true</failIfNoTests>
+              <argLine>@{argLine} ${test.jvm.args}</argLine>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

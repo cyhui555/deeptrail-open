@@ -1,0 +1,15 @@
+{
+  "name": "@deeptrail/server",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "build": "node ../../scripts/run-maven.mjs -B -DskipTests package",
+    "dev": "node ../../scripts/run-maven.mjs -Dspring-boot.run.profiles=dev spring-boot:run",
+    "lint": "node ../../scripts/run-maven.mjs -B -DskipTests checkstyle:check",
+    "test": "node ../../scripts/run-maven.mjs -B test",
+    "test:contract": "node ../../scripts/run-maven.mjs -B -Dtest=OpenApiContractTest test",
+    "test:e2e": "node ../../scripts/run-maven.mjs -B -Pbackend-e2e test",
+    "typecheck": "node ../../scripts/run-maven.mjs -B -DskipTests compile",
+    "verify": "node ../../scripts/run-maven.mjs -B verify"
+  }
+}

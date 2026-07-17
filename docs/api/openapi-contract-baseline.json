@@ -1,0 +1,39 @@
+{
+  "requiredOperations": [
+    { "path": "/api/health", "method": "get" },
+    { "path": "/api/auth/login", "method": "post" },
+    { "path": "/api/auth/logout", "method": "post" },
+    { "path": "/api/auth/me", "method": "get" },
+    { "path": "/api/admin/users", "method": "get" },
+    { "path": "/api/admin/users", "method": "post" },
+    { "path": "/api/admin/users/{userId}/status", "method": "patch" },
+    { "path": "/api/admin/users/{userId}/password", "method": "put" },
+    { "path": "/api/ai/status", "method": "get" },
+    { "path": "/api/itineraries/generate", "method": "post" },
+    { "path": "/api/itineraries/optimize", "method": "post" },
+    { "path": "/api/itineraries/from-xiaohongshu", "method": "post" },
+    { "path": "/api/itineraries/tasks/{taskId}", "method": "get" },
+    { "path": "/api/trips", "method": "get" },
+    { "path": "/api/trips", "method": "post" },
+    { "path": "/api/trips/{planId}", "method": "get" },
+    { "path": "/api/trips/{planId}/checkin/start", "method": "post" },
+    { "path": "/api/itineraries/checkin/items/{itemId}", "method": "get" },
+    { "path": "/api/itineraries/checkin/items/{itemId}", "method": "post" },
+    { "path": "/api/trips/{planId}/track/points", "method": "post" },
+    { "path": "/api/media/{mediaId}", "method": "get" }
+  ],
+  "requiredSchemaProperties": {
+    "AuthResponse": ["token", "userId", "username", "role"],
+    "AdminUserResponse": ["userId", "username", "role", "enabled", "createdAt"],
+    "GenerateItineraryRequest": [
+      "departureLocation",
+      "departureTime",
+      "destination",
+      "days",
+      "peopleCount"
+    ],
+    "TripPlanResponse": ["id", "title", "status", "activeTaskId"],
+    "CheckinRequest": ["idempotencyKey"],
+    "TrackPointDto": ["clientPointId"]
+  }
+}

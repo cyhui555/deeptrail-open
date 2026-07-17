@@ -1,0 +1,60 @@
+# IDE 与系统文件
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# 环境变量与密钥
+.env
+.env.local
+.env.*.local
+.mcp.json
+
+# Node / pnpm / Turbo
+node_modules/
+.pnpm-store/
+.turbo/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+
+# 运行数据与本地产物
+data/
+log/
+logs/
+storage/
+artifacts/
+*.db
+*.sqlite
+*.sqlite3
+tmp_*
+*-out.txt
+hs_err_pid*.log
+replay_pid*.log
+
+# 测试产物
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Python 辅助脚本缓存
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 压缩包与本地导出
+*.zip
+*.tar.gz
+*.rar
+*.7z

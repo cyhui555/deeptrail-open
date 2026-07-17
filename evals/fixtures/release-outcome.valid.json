@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "release": {
+    "releaseId": "eval-20260717-a1b2c3d4",
+    "gitCommit": "a1b2c3d4e5f678901234567890abcdef12345678",
+    "serverArtifactDigest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "deployedAt": "2026-07-17T04:00:00Z"
+  },
+  "window": {"startedAt": "2026-07-17T04:00:00Z", "endedAt": "2026-07-17T05:00:00Z"},
+  "totals": {
+    "tasks": 10,
+    "completed": 7,
+    "failed": 1,
+    "timeout": 1,
+    "cancelled": 1,
+    "parseInvalid": 1,
+    "degraded": 2,
+    "tokenTotal": 4200
+  },
+  "latencyMs": {"p50": 1250, "p95": 8700},
+  "privacy": {
+    "containsPrompt": false,
+    "containsUserId": false,
+    "containsRawResponse": false,
+    "containsItineraryText": false
+  }
+}

@@ -1,0 +1,7 @@
+packages:
+  - apps/*
+
+allowBuilds:
+  # core-js 的 postinstall 只输出提示，禁用不会影响运行时产物。
+  core-js: false
+  esbuild: true

@@ -1,0 +1,2 @@
+# 仅保存仓库级设置，不在此处声明用户密钥或个人工具配置。
+project_doc_fallback_filenames = ["AGENTS.md"]

@@ -1,0 +1,14 @@
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+logging:
+  level:
+    com.ai.travel: DEBUG
+    org.mybatis: DEBUG
+
+app:
+  auth:
+    cookie-secure: false

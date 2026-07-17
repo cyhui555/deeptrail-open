@@ -1,0 +1,49 @@
+services:
+  server:
+    build:
+      context: ../..
+      dockerfile: infra/docker/server.Dockerfile
+    environment:
+      SPRING_AI_OPENAI_API_KEY: ${SPRING_AI_OPENAI_API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:?请配置至少 32 字节的 JWT_SECRET}
+      GAODE_API_KEY: ${GAODE_API_KEY:-}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - '8080:8080'
+    volumes:
+      - travel-data:/app/data
+      - travel-log:/app/log
+    healthcheck:
+      test: ['CMD', 'curl', '--fail', '--silent', 'http://127.0.0.1:8080/actuator/health/readiness']
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://server:8080}
+        NEXT_PUBLIC_AMAP_KEY: ${NEXT_PUBLIC_AMAP_KEY:-}
+        NEXT_PUBLIC_AMAP_SECURITY_CODE: ${NEXT_PUBLIC_AMAP_SECURITY_CODE:-}
+    environment:
+      AMAP_REST_KEY: ${AMAP_REST_KEY:-}
+    depends_on:
+      server:
+        condition: service_healthy
+    ports:
+      - '3000:3000'
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--spider', 'http://127.0.0.1:3000/login']
+      interval: 15s
+      timeout: 5s
+      start_period: 15s
+      retries: 5
+
+volumes:
+  travel-data:
+  travel-log:

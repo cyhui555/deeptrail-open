@@ -1,0 +1,170 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: travel-planner
+
+  # Spring AI - LongCat (OpenAI-compatible)
+  ai:
+    openai:
+      # Spring AI 创建 ChatClient 时要求非空；占位值只允许应用启动，模型调用前会被本地拦截。
+      api-key: ${SPRING_AI_OPENAI_API_KEY:provider-key-not-configured}
+      base-url: ${SPRING_AI_OPENAI_BASE_URL:https://api.longcat.chat/openai}
+      chat:
+        options:
+          model: ${SPRING_AI_OPENAI_MODEL:LongCat-2.0}
+          temperature: 0.7
+          # LongCat-2.0 官方最大输出为 131072；结构化行程不能回退到 4096，
+          # 否则多日 JSON 会在闭合前被截断并形成“任务成功但行程为空”的假成功。
+          max-tokens: ${SPRING_AI_OPENAI_CHAT_OPTIONS_MAX_TOKENS:131072}
+
+  # SQLite
+  sql:
+    init:
+      mode: never
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: true
+    clean-disabled: true
+  datasource:
+    # v0.8.1: WAL + busy_timeout + synchronized + lock_mode（修复 SQLITE_BUSY 的 JDBC 层基础配置）
+    # WAL 模式：读写不阻塞，写写仍串行但 busy_timeout 能让 JDBC 排队重试而非立即失败
+    # busy_timeout=5000（5s）：等锁超时抛异常前最多等待 5s，覆盖大多数事务重疊场景
+    # synchronous=NORMAL：WAL 模式下保证 crash-safe，比 FULL 显著减少 fsync 次数
+    # cache=shared：同一进程多连接共享同一 page cache（防连接间缓存不一致）
+    # APP_DATA_DIR 允许部署覆盖；默认值按 apps/server 工作目录解析到仓库根 data。
+    url: "jdbc:sqlite:${APP_DATA_DIR:../../data}/travel.db"
+    driver-class-name: org.sqlite.JDBC
+    username:
+    password:
+    hikari:
+      # SQLite 文件级串行 Writer：pool-size=3 让 SQLite busy_timeout 有"重试机会"
+      # pool-size 过大 → 多写事务同时抢文件锁 → busy_timeout 到期后仍抛 SQLITE_BUSY
+      # pool-size 过小 → 并发请求排队久（但 SQLite 本就无法真正并发写）
+      # 读操作 0.8+ 在 WAL 模式下不阻塞，pool-size=3 已覆盖典型单机并发
+      maximum-pool-size: 3
+      minimum-idle: 1
+      # 连接最大生命周期=10min（WAL checkpoint 需要定期新连接推进）
+      max-lifetime: 600000
+      # 连接等待超时 10s（覆盖 busy_timeout=5s，避免 Hikari 先于 SQLite 超时）
+      connection-timeout: 10000
+      # busy_timeout 必须对连接池中的每条连接设置，不能只依赖一次性迁移连接。
+      connection-init-sql: PRAGMA busy_timeout=5000
+      # SQLite 不支持 isolation 设为比默认高的级别
+      transaction-isolation: TRANSACTION_SERIALIZABLE
+
+  # Jackson
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      write-dates-as-timestamps: false
+
+  # Thread pool
+  task:
+    execution:
+      pool:
+        core-size: 4
+        max-size: 16
+        queue-capacity: 100
+      thread-name-prefix: ai-task-
+
+# MyBatis Plus
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.ai.travel.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+
+# Swagger/OpenAPI
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    path: /swagger-ui.html
+    try-it-out-enabled: true
+
+# AI HTTP 客户端超时（仅连接超时，读取超时不限制，由看门狗统一管控）
+ai:
+  http:
+    connect-timeout-seconds: 15
+
+# 任务调度 & 看门狗
+task:
+  scheduler:
+    interval-ms: 1000
+  watchdog:
+    interval-ms: 30000
+    timeout-minutes: 10
+  max-retry: 2
+
+app:
+  release:
+    id: ${APP_RELEASE_ID:local}
+    git-commit: ${APP_GIT_COMMIT:unknown}
+    artifact-digest: ${APP_ARTIFACT_DIGEST:unknown}
+  auth:
+    enabled: true
+    registration-enabled: false
+    cookie-secure: ${AUTH_COOKIE_SECURE:false}
+    cookie-same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
+    cookie-max-age-days: ${JWT_EXPIRATION_DAYS:7}
+  jwt:
+    secret: ${JWT_SECRET:}
+    expiration-days: ${JWT_EXPIRATION_DAYS:7}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  storage:
+    root: ${APP_DATA_DIR:../../data}/storage
+    maxFileSize: 50MB
+    allowedImageTypes: jpg,jpeg,png,webp,heic
+    allowedVideoTypes: mp4,mov,m4v
+  checkin:
+    proximityMeters: 200
+  journey:
+    aiSummaryTimeoutMs: 30000
+    aiSummaryMaxRetries: 1
+  geocoding:
+    enabled: true
+    provider: auto
+    fallback-enabled: true
+    gaode-api-key: ${GAODE_API_KEY:}
+    cache-enabled: true
+    cache-max-size: 500
+    cache-expire-minutes: 10080
+    connect-timeout-ms: 3000
+    read-timeout-ms: 5000
+    # Provider 已完成内部重试仍失败时短时熔断，避免几十个 POI 串行耗尽任务 deadline。
+    circuit-breaker-failure-threshold: 1
+    circuit-breaker-open-seconds: 60
+    gaode-max-qps: 5
+    city-validation-enabled: true
+    city-max-distance-meters: 100000
+
+management:
+  metrics:
+    tags:
+      release_id: ${APP_RELEASE_ID:local}
+  endpoints:
+    web:
+      exposure:
+        # Prometheus 只在部署环境显式加入，默认继续暴露最小健康信息。
+        include: ${MANAGEMENT_ENDPOINTS:health,info}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+info:
+  release:
+    id: ${APP_RELEASE_ID:local}
+    git-commit: ${APP_GIT_COMMIT:unknown}
+    artifact-digest: ${APP_ARTIFACT_DIGEST:unknown}

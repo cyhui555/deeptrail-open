@@ -1,0 +1,22 @@
+{
+  "name": "旅迹",
+  "short_name": "旅迹",
+  "description": "把旅行规划、行程、签到和轨迹收在一处。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f1e7d8",
+  "theme_color": "#2b6595",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

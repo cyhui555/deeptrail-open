@@ -1,0 +1,15 @@
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    com.ai.travel: INFO
+    org.mybatis: WARN
+
+app:
+  auth:
+    # 生产流量必须经 HTTPS；本地 HTTP 验证请使用 dev/test profile。
+    cookie-secure: ${AUTH_COOKIE_SECURE:true}
