@@ -96,6 +96,15 @@
           "runId": "run-93a399300d59d085996aa3c3"
         }
       ]
+    },
+    {
+      "registrationSequence": 4,
+      "runs": [
+        {
+          "profile": "quality-light",
+          "runId": "run-85b4322f00d28933688e2094"
+        }
+      ]
     }
   ]
 }
