@@ -1,0 +1,60 @@
+name: Automation PR author
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Existing agent branch to promote
+        required: true
+        type: string
+      expected_sha:
+        description: Exact 40-character source commit
+        required: true
+        type: string
+      target_branch:
+        description: New automation branch
+        required: true
+        type: string
+      title:
+        description: Draft pull request title
+        required: true
+        type: string
+      body:
+        description: Draft pull request summary
+        required: false
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: automation-pr-author
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: github.actor == github.repository_owner && github.ref == 'refs/heads/main' && github.repository == 'cyhui555/deeptrail-open'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout trusted author script
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Create bot-owned draft pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          WORKFLOW_ACTOR: ${{ github.actor }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          SOURCE_REF: ${{ inputs.source_ref }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+          PR_TITLE: ${{ inputs.title }}
+          PR_BODY: ${{ inputs.body }}
+        run: node scripts/github/automation-pr-author.mjs
