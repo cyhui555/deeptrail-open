@@ -80,7 +80,7 @@ public class CheckinTaskService {
         checkinAccessService,
         assembler);
     this.itemCommandService = new CheckinItemCommandService(
-        checkinTaskMapper, checkinItemMapper);
+        checkinTaskMapper, checkinItemMapper, tripPlanMapper);
     this.executionService = new CheckinExecutionService(
         checkinTaskMapper, checkinItemMapper, checkinMediaMapper, tripPlanMapper);
   }
@@ -107,6 +107,11 @@ public class CheckinTaskService {
 
   public Long addCustomItem(String taskId, AddCustomItemRequest request, Long userId) {
     return itemCommandService.addCustomItem(taskId, request, userId);
+  }
+
+  public Long addCustomItemToPlan(
+      String planId, AddCustomItemRequest request, Long userId) {
+    return itemCommandService.addCustomItemToPlan(planId, request, userId);
   }
 
   public void editCustomItem(Long itemId, Long userId, EditCustomItemRequest request) {

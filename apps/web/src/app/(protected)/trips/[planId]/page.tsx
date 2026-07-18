@@ -108,7 +108,7 @@ export default function TripPlanDetailPage() {
   }, []);
 
   // 打开自定义行程点表单
-  const openAddForm = useCallback((taskId: string) => {
+  const openAddForm = useCallback((taskId: string | null = null) => {
     setAddFormTargetTaskId(taskId);
     setShowAddModal(true);
   }, []);
@@ -256,11 +256,19 @@ export default function TripPlanDetailPage() {
         <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
           <div className="flex items-start gap-3">
             <Info aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-amber-900">当前为空白清单，暂无打卡日程</p>
               <p className="mt-1 text-xs text-amber-700">
                 可先在首页使用「生成行程」由 AI 生成行程后关联任务，或在清单内逐日添加自定义行程点。
               </p>
+              <button
+                type="button"
+                onClick={() => openAddForm()}
+                className="button-primary mt-3 min-h-11 gap-2 px-4"
+              >
+                <Plus aria-hidden="true" className="h-4 w-4" />
+                添加第一个地点
+              </button>
             </div>
           </div>
         </div>
@@ -679,7 +687,7 @@ export default function TripPlanDetailPage() {
       )}
 
       {/* 添加自定义行程点弹窗（共享组件） */}
-      {showAddModal && addFormTargetTaskId && (
+      {showAddModal && (
         <AddCustomItemModal
           planId={planId}
           taskId={addFormTargetTaskId}
@@ -689,9 +697,11 @@ export default function TripPlanDetailPage() {
             setAddFormTargetTaskId(null);
           }}
           onAdded={() => {
+            const targetDay = tasks.find((task) => task.id === addFormTargetTaskId)?.dayNumber ?? 1;
+            setExpandedDays((previous) => new Set(previous).add(targetDay));
             setShowAddModal(false);
             setAddFormTargetTaskId(null);
-            refreshAfterAction();
+            void refreshAfterAction();
           }}
         />
       )}

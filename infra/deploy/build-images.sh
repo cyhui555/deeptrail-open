@@ -66,12 +66,14 @@ validate_sha256 "${SOURCE_SHA256}"
 [[ "${PNPM_REGISTRY}" =~ ^https://[A-Za-z0-9][A-Za-z0-9./_-]*$ ]] \
   || die '--pnpm-registry 必须是无凭据、无查询参数的 HTTPS URL。'
 
-if [[ -n "${WEB_BUILD_ENV}" ]]; then
-  [[ -f "${WEB_BUILD_ENV}" && ! -L "${WEB_BUILD_ENV}" ]] || die "Web 构建环境文件不存在或为链接：${WEB_BUILD_ENV}"
-  if grep -Ev '^(NEXT_PUBLIC_AMAP_KEY|NEXT_PUBLIC_AMAP_SECURITY_CODE)=[^[:cntrl:]]*$|^[[:space:]]*(#.*)?$' "${WEB_BUILD_ENV}" | grep -q .; then
-    die 'Web 构建环境文件只允许两个 NEXT_PUBLIC_AMAP_* 键。'
-  fi
+[[ -n "${WEB_BUILD_ENV}" ]] || die '生产 Web 构建必须提供 --web-build-env。'
+[[ -f "${WEB_BUILD_ENV}" && ! -L "${WEB_BUILD_ENV}" ]] || die "Web 构建环境文件不存在或为链接：${WEB_BUILD_ENV}"
+if grep -Ev '^(NEXT_PUBLIC_AMAP_KEY|NEXT_PUBLIC_AMAP_SECURITY_CODE)=[^[:cntrl:]]*$|^[[:space:]]*(#.*)?$' "${WEB_BUILD_ENV}" | grep -q .; then
+  die 'Web 构建环境文件只允许两个 NEXT_PUBLIC_AMAP_* 键。'
 fi
+# 两项公开配置都会在构建期固化；空文件或只配置一项都会生成不可修复的残缺镜像。
+validate_required_env_key "${WEB_BUILD_ENV}" 'NEXT_PUBLIC_AMAP_KEY'
+validate_required_env_key "${WEB_BUILD_ENV}" 'NEXT_PUBLIC_AMAP_SECURITY_CODE'
 
 if [[ "${OUTPUT_PATH}" != /* ]]; then OUTPUT_PATH="${INVOCATION_ROOT}/${OUTPUT_PATH}"; fi
 [[ ! -e "${OUTPUT_PATH}" && ! -L "${OUTPUT_PATH}" ]] || die "输出文件已存在，不会覆盖：${OUTPUT_PATH}"
@@ -113,10 +115,7 @@ docker buildx build \
   --build-arg "PNPM_REGISTRY=${PNPM_REGISTRY}" \
   --tag "${SERVER_TAG}" "${output_args[@]}" .
 
-web_secret_args=()
-if [[ -n "${WEB_BUILD_ENV}" ]]; then
-  web_secret_args=(--secret "id=deeptrail_web_public_env,src=${WEB_BUILD_ENV}")
-fi
+web_secret_args=(--secret "id=deeptrail_web_public_env,src=${WEB_BUILD_ENV}")
 docker buildx build \
   --platform linux/amd64 \
   --file infra/docker/web.Dockerfile \

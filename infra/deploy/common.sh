@@ -87,6 +87,18 @@ validate_secret_file() {
     die "${path} 权限必须为 0600 或 0400，当前为 ${mode}。"
 }
 
+validate_required_env_key() {
+  local path="$1"
+  local key="$2"
+  local assignment_count valid_count
+  [[ "${key}" =~ ^[A-Z][A-Z0-9_]*$ ]] || die "非法环境变量名：${key}"
+  assignment_count="$(grep -Ec "^${key}=" "${path}" || true)"
+  valid_count="$(grep -Ec "^${key}=[^[:space:][:cntrl:]]+$" "${path}" || true)"
+  # 总赋值数与有效赋值数都必须为 1，避免后置空值覆盖前面的有效配置。
+  [[ "${assignment_count}" == '1' && "${valid_count}" == '1' ]] \
+    || die "${path} 必须且只能配置一次非空 ${key}。"
+}
+
 validate_release_directory() {
   local release_directory="$1"
   [[ -d "${release_directory}" && ! -L "${release_directory}" ]] || die "release 目录不存在或为符号链接：${release_directory}"

@@ -71,7 +71,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
     const body = (await res.json()) as ApiResponse<T>;
     if (!body.success) {
-      // 后端通过 HTTP 200 + errorCode 返回业务错误；UNAUTHORIZED 当作 401 处理，触发前端登出
+      // 多数业务错误仍使用 HTTP 200 + errorCode；无权限等传输层错误会在上方按真实状态码处理。
       if (body.errorCode === 'UNAUTHORIZED') {
         throw new ApiError(body.message || '请先登录', 401);
       }
@@ -414,16 +414,17 @@ export async function abandonCheckin(itemId: number): Promise<void> {
 }
 
 /**
- * 添加自定义行程点到某天的打卡列表。
+ * 添加自定义行程点到某天的打卡列表；空白行程可省略 taskId，
+ * 由服务端持久化首个手动日程。
  *
  * @param planId 行程清单 ID
- * @param taskId 打卡任务 ID（某天）
+ * @param taskId 打卡任务 ID（某天）；空白行程首个地点传 null
  * @param data 自定义点信息；lat/lng 同时填写或同时留空
  * @return 新增打卡项 ID
  */
 export async function addCustomItem(
   planId: string,
-  taskId: string,
+  taskId: string | null,
   data: {
     name: string;
     period?: string;
@@ -434,7 +435,10 @@ export async function addCustomItem(
     lng?: number;
   },
 ): Promise<number> {
-  return request<number>(`/api/itineraries/checkin/trips/${planId}/checkin/${taskId}/custom-item`, {
+  const path = taskId
+    ? `/api/itineraries/checkin/trips/${planId}/checkin/${taskId}/custom-item`
+    : `/api/itineraries/checkin/trips/${planId}/custom-item`;
+  return request<number>(path, {
     method: 'POST',
     body: JSON.stringify(data),
   });

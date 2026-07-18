@@ -7,10 +7,10 @@ import com.ai.travel.dto.request.SetActiveTaskRequest;
 import com.ai.travel.dto.request.StartCheckinRequest;
 import com.ai.travel.dto.request.UpdateTripPlanRequest;
 import com.ai.travel.dto.response.CheckinTaskResponse;
+import com.ai.travel.dto.response.PageResult;
 import com.ai.travel.dto.response.TripPlanResponse;
 import com.ai.travel.dto.response.TripPlanSummaryResponse;
 import com.ai.travel.service.TripPlanService;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -50,7 +50,7 @@ public class TripPlanController {
 
   @Operation(summary = "获取我的行程清单列表", description = "按状态分组、分页查询，排除已删除")
   @GetMapping
-  public ApiResponse<Page<TripPlanSummaryResponse>> list(
+  public ApiResponse<PageResult<TripPlanSummaryResponse>> list(
       @RequestParam(required = false) String status,
       @RequestParam(defaultValue = "1") @Min(1) int page,
       @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {

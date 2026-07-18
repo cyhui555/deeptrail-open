@@ -174,6 +174,27 @@ public class CheckinController {
   }
 
   /**
+   * 给空白行程添加首个自定义行程点。
+   *
+   * <p>服务层会校验行程归属，并在尚无打卡日程时持久化第 1 天手动任务。
+   */
+  @Operation(summary = "为空白行程添加首个自定义行程点",
+      description = "若清单尚无打卡日程，则创建第 1 天手动任务并添加地点",
+      responses = {
+          @ApiResponse(responseCode = "200", description = "新增打卡项 ID"),
+          @ApiResponse(responseCode = "403", description = "无权操作"),
+          @ApiResponse(responseCode = "404", description = "行程清单不存在")
+      })
+  @PostMapping("/trips/{planId}/custom-item")
+  public com.ai.travel.dto.ApiResponse<Long> addFirstCustomItem(
+      @PathVariable String planId,
+      @Valid @RequestBody AddCustomItemRequest request) {
+    Long itemId = checkinTaskService.addCustomItemToPlan(
+        planId, request, UserContext.getUserId());
+    return com.ai.travel.dto.ApiResponse.ok(itemId);
+  }
+
+  /**
    * 编辑自定义行程点。
    *
    * @param itemId 打卡项 ID

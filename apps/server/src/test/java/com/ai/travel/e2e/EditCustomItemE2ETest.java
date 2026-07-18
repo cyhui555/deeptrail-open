@@ -21,7 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  * <p>创建清单 → 添加自定义行程点 → 编辑自定义行程点 → 验证 DB + 展示。
  *
- * <p>注意：GlobalExceptionHandler 统一返回 HTTP 200，错误码在 body 的 errorCode 字段中。
+ * <p>业务校验错误通过 body 的 errorCode 表达；越权访问同时返回 HTTP 403。
  */
 @Tag("e2e")
 class EditCustomItemE2ETest extends E2ETestBase {
@@ -292,7 +292,7 @@ class EditCustomItemE2ETest extends E2ETestBase {
     String resp = mockMvc.perform(put("/api/itineraries/checkin/items/" + itemId)
             .contentType("application/json")
             .content("{\"name\":\"B 试图改 A 的项\"}"))
-        .andExpect(status().isOk())
+        .andExpect(status().isForbidden())
         .andReturn().getResponse().getContentAsString();
     DocumentContext ctx = JsonPath.parse(resp);
     assertThat(ctx.read("$.success", Boolean.class)).isFalse();

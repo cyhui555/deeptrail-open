@@ -10,11 +10,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.ai.travel.dto.response.PageResult;
+import com.ai.travel.dto.response.TripPlanSummaryResponse;
 import com.ai.travel.exception.GlobalExceptionHandler;
 import com.ai.travel.security.UserContext;
 import com.ai.travel.service.TripPlanService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -89,6 +92,28 @@ class TripPlanControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
         .andExpect(jsonPath("$.data").value("plan-blank-1"));
+  }
+
+  @Test
+  @DisplayName("获取清单列表应返回前端约定的分页字段")
+  void listPlans_returnsStablePageContract() throws Exception {
+    TripPlanSummaryResponse plan = new TripPlanSummaryResponse();
+    plan.setId("plan-1");
+    plan.setTitle("测试清单");
+    when(tripPlanService.listUserTrips(null, 2, 10))
+        .thenReturn(new PageResult<>(List.of(plan), 21, 2, 10, 3));
+
+    mockMvc.perform(get("/api/trips")
+            .param("page", "2")
+            .param("size", "10"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.records[0].id").value("plan-1"))
+        .andExpect(jsonPath("$.data.total").value(21))
+        .andExpect(jsonPath("$.data.page").value(2))
+        .andExpect(jsonPath("$.data.size").value(10))
+        .andExpect(jsonPath("$.data.totalPages").value(3))
+        .andExpect(jsonPath("$.data.current").doesNotExist())
+        .andExpect(jsonPath("$.data.pages").doesNotExist());
   }
 
   @Test
