@@ -4,7 +4,7 @@
 
 ## Verification
 
-- `BUG-20260718-003`：生产 E2E 五项根因已修复并通过本地全门禁，Draft PR #49 等待人工 Review/Merge，见[活动 Work Item](bug-20260718-003-production-e2e-remediation.md)与[执行计划](../plans/bug-20260718-003-production-e2e-remediation.md)。
+- `BUG-20260718-003`：生产 E2E 五项根因已修复并通过本地全门禁，机器人作者 PR 等待人工 Review/Merge，见[活动 Work Item](bug-20260718-003-production-e2e-remediation.md)与[执行计划](../plans/bug-20260718-003-production-e2e-remediation.md)。
 - `TASK-LOOP-007`：在人工 Review/Merge 边界下建立只读 Issue 准入合同，先消除终态事项阻塞，再推进自动提单与 PR 生命周期，见[活动 Work Item](task-loop-007-autonomous-intake.md)与[执行计划](../plans/task-loop-007-autonomous-intake-exec-plan.md)。
 - Release/运维验证项：[BUG-20260717-006](bug-20260717-006-release-identity-recovery.md)、[TASK-RELEASE-003](task-release-003-target-release-validation.md)、[TASK-OPS-002](task-ops-002-no-cost-target-regressions.md)。
 - CI 与 Web 质量验证项：[TASK-CI-001](task-ci-001-node24-actions-runtime.md)、[BUG-20260717-001](bug-20260717-001-optimize-watchdog-race.md)、[BUG-20260717-002](bug-20260717-002-ai-json-parse-fallback-success.md)、[BUG-20260717-003](bug-20260717-003-amap-e2e-build-config.md)、[BUG-20260717-004](bug-20260717-004-pdf-static-map-e2e-isolation.md)、[BUG-20260717-005](bug-20260717-005-dev-pwa-e2e-profile.md)。
