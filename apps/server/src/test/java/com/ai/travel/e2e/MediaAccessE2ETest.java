@@ -37,10 +37,13 @@ class MediaAccessE2ETest extends E2ETestBase {
 
     UserContext.setUserId(2L);
     String response = mockMvc.perform(get("/api/media/" + media.getId()))
-        .andExpect(status().isOk())
+        .andExpect(status().isForbidden())
         .andReturn().getResponse().getContentAsString();
 
-    assertThat(JsonPath.parse(response).read("$.errorCode", String.class))
-        .isEqualTo("FORBIDDEN");
+    var body = JsonPath.parse(response);
+    assertThat(body.read("$.success", Boolean.class)).isFalse();
+    assertThat(body.read("$.errorCode", String.class)).isEqualTo("FORBIDDEN");
+    Object data = body.read("$.data");
+    assertThat(data).isNull();
   }
 }

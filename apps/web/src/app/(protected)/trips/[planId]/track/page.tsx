@@ -21,6 +21,24 @@ import { getTrackPoints, uploadTrackPoints } from '@/lib/api';
 import { createIdempotencyKey, saveOfflineTrackPoints } from '@/lib/offlineSync';
 import type { TrackPoint } from '@/types';
 
+const BEIJING_TIME_OFFSET_MS = 8 * 60 * 60 * 1_000;
+const EXPLICIT_TIME_ZONE_PATTERN = /(Z|[+-]\d{2}:\d{2})$/i;
+
+function formatRecordedAtInBeijingTime(recordedAt: string): string {
+  // 轨迹 API 保证返回带时区的时间；拒绝隐式本地时间，避免 SSR 与浏览器按不同环境解释。
+  if (!EXPLICIT_TIME_ZONE_PATTERN.test(recordedAt)) return '时间未知';
+  const timestamp = Date.parse(recordedAt);
+  if (!Number.isFinite(timestamp)) return '时间未知';
+
+  // 中国标准时间没有夏令时，使用 UTC getter 可绕开运行环境时区和 Intl/ICU 文本差异。
+  const beijingTime = new Date(timestamp + BEIJING_TIME_OFFSET_MS);
+  return [
+    beijingTime.getUTCHours(),
+    beijingTime.getUTCMinutes(),
+    beijingTime.getUTCSeconds(),
+  ].map((part) => String(part).padStart(2, '0')).join(':');
+}
+
 /** 旅行现场的轨迹录制页：支持自适应采样、批量上传与断网暂存。 */
 export default function TrackPage() {
   const params = useParams();
@@ -219,8 +237,8 @@ export default function TrackPage() {
             {points.slice(-30).reverse().map((point) => (
               <div key={point.id} className="flex justify-between gap-4 border-b border-gray-100 py-2 text-xs text-gray-600 last:border-0">
                 <span className="font-mono tabular-nums">{point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}</span>
-                <time className="shrink-0 tabular-nums" dateTime={point.recordedAt}>
-                  {new Date(point.recordedAt).toLocaleTimeString('zh-CN')}
+                <time className="shrink-0 tabular-nums" dateTime={point.recordedAt} title="北京时间">
+                  {formatRecordedAtInBeijingTime(point.recordedAt)}
                 </time>
               </div>
             ))}

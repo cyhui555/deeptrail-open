@@ -5,6 +5,8 @@ import com.ai.travel.dto.ErrorCode;
 import java.lang.IllegalStateException;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -56,10 +58,17 @@ public class GlobalExceptionHandler {
     return ApiResponse.error(ErrorCode.USER_NOT_FOUND.getCode(), ex.getMessage());
   }
 
+  /**
+   * 将越权业务异常映射为 HTTP 403，同时保留统一错误响应体供客户端读取错误码。
+   *
+   * @param ex 越权异常
+   * @return 不包含业务数据的 403 响应
+   */
   @ExceptionHandler(ForbiddenException.class)
-  public ApiResponse<?> handleForbidden(ForbiddenException ex) {
+  public ResponseEntity<ApiResponse<?>> handleForbidden(ForbiddenException ex) {
     log.warn("禁止访问: {}", ex.getMessage());
-    return ApiResponse.error(ErrorCode.FORBIDDEN.getCode(), ex.getMessage());
+    ApiResponse<?> body = ApiResponse.error(ErrorCode.FORBIDDEN.getCode(), ex.getMessage());
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
   }
 
   @ExceptionHandler(PlanNotFoundException.class)

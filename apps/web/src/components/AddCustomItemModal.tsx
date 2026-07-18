@@ -10,8 +10,8 @@ import type { PickedLocation } from '@/components/LocationPickerDialog';
 interface AddCustomItemModalProps {
   /** 行程清单 ID。 */
   planId: string;
-  /** 目标打卡任务 ID（某天）。 */
-  taskId: string;
+  /** 目标打卡任务 ID（某天）；空白行程添加首个地点时为空。 */
+  taskId: string | null;
   /** 是否显示弹窗。 */
   open: boolean;
   /** 关闭弹窗回调。 */

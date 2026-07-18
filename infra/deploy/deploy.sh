@@ -62,8 +62,9 @@ validate_release_manifest "${RELEASE_JSON_SOURCE}" "${RELEASE_ID}" "${SERVER_IMA
 RELEASE_REVISION="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["revision"])' "${RELEASE_JSON_SOURCE}")"
 SERVER_ARTIFACT_DIGEST="${SERVER_IMAGE##*@}"
 validate_secret_file "${SERVER_ENV_FILE}" 1
-validate_secret_file "${WEB_ENV_FILE}" 0
+validate_secret_file "${WEB_ENV_FILE}" 1
 grep -Eq '^JWT_SECRET=.{64,}$' "${SERVER_ENV_FILE}" || die 'server.env 缺少足够长度的 JWT_SECRET。'
+validate_required_env_key "${WEB_ENV_FILE}" 'AMAP_REST_KEY'
 
 docker compose version >/dev/null
 install -d -o root -g root -m 0755 "${RELEASES_ROOT}"
@@ -142,7 +143,8 @@ fi
 
 DEPLOYMENT_STARTED=1
 run_compose "${RELEASE_DIRECTORY}" up -d --remove-orphans
-bash "${SCRIPT_DIR}/verify.sh" --release-dir "${RELEASE_DIRECTORY}" --public-url "http://127.0.0.1:${PORT}"
+bash "${SCRIPT_DIR}/verify.sh" --release-dir "${RELEASE_DIRECTORY}" \
+  --public-url "http://127.0.0.1:${PORT}" --map-smoke
 atomic_switch_current "${RELEASE_DIRECTORY}"
 DEPLOYMENT_STARTED=0
 trap - ERR

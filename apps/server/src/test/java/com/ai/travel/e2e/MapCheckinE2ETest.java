@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
  * E2E: 打卡点地图坐标修正（07-02-map-checkin）。
  * 创建清单 → 开始打卡 → 修正坐标 → 验证展示坐标 → 错误场景。
  *
- * <p>注意：GlobalExceptionHandler 统一返回 HTTP 200，错误码在 body 的 errorCode 字段中。
+ * <p>业务校验错误通过 body 的 errorCode 表达；越权访问同时返回 HTTP 403。
  */
 @Tag("e2e")
 class MapCheckinE2ETest extends E2ETestBase {

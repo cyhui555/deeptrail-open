@@ -23,6 +23,7 @@ export DEEPTRAIL_DEPLOY_ROOT="${temporary_root}/deploy"
 source "${DEPLOY_DIR}/common.sh"
 
 cleanup_test() {
+  rm -f -- "${env_contract_file:-}"
   if [[ -n "${release_directory:-}" && "${release_directory}" == "${temporary_root}/"* ]]; then
     rm -f -- "${release_directory}/compose.production.yml" "${release_directory}/production.env" "${manifest_path:-}"
     rmdir -- "${release_directory}" 2>/dev/null || true
@@ -59,6 +60,59 @@ validate_release_id 'v0.2.0-20260716-220000-5becf81206a5'
 if (validate_release_id '../escape') >/dev/null 2>&1; then die '非法 release ID 未被拒绝。'; fi
 validate_port 30301
 if (validate_port 30401) >/dev/null 2>&1; then die '越界端口未被拒绝。'; fi
+
+env_contract_file="${temporary_root}/web.env"
+printf 'AMAP_REST_KEY=test-rest-key\n' >"${env_contract_file}"
+validate_required_env_key "${env_contract_file}" 'AMAP_REST_KEY'
+printf 'AMAP_REST_KEY=\n' >"${env_contract_file}"
+if (validate_required_env_key "${env_contract_file}" 'AMAP_REST_KEY') >/dev/null 2>&1; then
+  die '空的必需部署配置未被拒绝。'
+fi
+printf 'AMAP_REST_KEY=first\nAMAP_REST_KEY=second\n' >"${env_contract_file}"
+if (validate_required_env_key "${env_contract_file}" 'AMAP_REST_KEY') >/dev/null 2>&1; then
+  die '重复的必需部署配置未被拒绝。'
+fi
+printf 'AMAP_REST_KEY=valid\nAMAP_REST_KEY=\n' >"${env_contract_file}"
+if (validate_required_env_key "${env_contract_file}" 'AMAP_REST_KEY') >/dev/null 2>&1; then
+  die '有效值与后置空值混合时未被拒绝。'
+fi
+printf 'AMAP_REST_KEY=valid\nAMAP_REST_KEY= \n' >"${env_contract_file}"
+if (validate_required_env_key "${env_contract_file}" 'AMAP_REST_KEY') >/dev/null 2>&1; then
+  die '有效值与后置空白值混合时未被拒绝。'
+fi
+printf 'NEXT_PUBLIC_AMAP_KEY=test-public-key\nNEXT_PUBLIC_AMAP_SECURITY_CODE=test-security-code\n' >"${env_contract_file}"
+validate_required_env_key "${env_contract_file}" 'NEXT_PUBLIC_AMAP_KEY'
+validate_required_env_key "${env_contract_file}" 'NEXT_PUBLIC_AMAP_SECURITY_CODE'
+printf 'NEXT_PUBLIC_AMAP_KEY=test-public-key\n' >"${env_contract_file}"
+if (validate_required_env_key "${env_contract_file}" 'NEXT_PUBLIC_AMAP_SECURITY_CODE') >/dev/null 2>&1; then
+  die '缺失 NEXT_PUBLIC_AMAP_SECURITY_CODE 时未被拒绝。'
+fi
+grep -Eq '^[[:space:]]*validate_required_env_key "\$\{WEB_BUILD_ENV\}" '\''NEXT_PUBLIC_AMAP_KEY'\''[[:space:]]*$' \
+  "${DEPLOY_DIR}/build-images.sh"
+grep -Eq '^[[:space:]]*validate_required_env_key "\$\{WEB_BUILD_ENV\}" '\''NEXT_PUBLIC_AMAP_SECURITY_CODE'\''[[:space:]]*$' \
+  "${DEPLOY_DIR}/build-images.sh"
+grep -Eq '^[[:space:]]*validate_required_env_key "\$\{WEB_ENV_FILE\}" '\''AMAP_REST_KEY'\''[[:space:]]*$' \
+  "${DEPLOY_DIR}/deploy.sh"
+python3 - "${DEPLOY_DIR}/deploy.sh" <<'PY'
+import sys
+
+lines = open(sys.argv[1], encoding="utf-8").read().splitlines()
+verify_calls = [
+    index for index, line in enumerate(lines)
+    if line.startswith('bash "${SCRIPT_DIR}/verify.sh" --release-dir "${RELEASE_DIRECTORY}"')
+]
+switch_calls = [
+    index for index, line in enumerate(lines)
+    if line == 'atomic_switch_current "${RELEASE_DIRECTORY}"'
+]
+if len(verify_calls) != 1 or len(switch_calls) != 1:
+    raise SystemExit("部署必须且只能包含一次 release 验收和 current 原子切换")
+verify_index = verify_calls[0]
+if verify_index + 1 >= len(lines) or lines[verify_index + 1].strip() != '--public-url "http://127.0.0.1:${PORT}" --map-smoke':
+    raise SystemExit("release 验收必须显式启用真实地图探针")
+if verify_index >= switch_calls[0]:
+    raise SystemExit("真实地图探针必须在 current 原子切换前执行")
+PY
 
 zero_digest="$(printf '0%.0s' {1..64})"
 one_digest="$(printf '1%.0s' {1..64})"

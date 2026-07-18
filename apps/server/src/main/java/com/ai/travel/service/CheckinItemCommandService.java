@@ -5,11 +5,18 @@ import com.ai.travel.dto.request.AddCustomItemRequest;
 import com.ai.travel.dto.request.EditCustomItemRequest;
 import com.ai.travel.entity.CheckinItem;
 import com.ai.travel.entity.CheckinTask;
+import com.ai.travel.entity.TripPlan;
 import com.ai.travel.exception.CheckinItemNotFoundException;
 import com.ai.travel.exception.ForbiddenException;
+import com.ai.travel.exception.PlanNotFoundException;
 import com.ai.travel.mapper.CheckinItemMapper;
 import com.ai.travel.mapper.CheckinTaskMapper;
+import com.ai.travel.mapper.TripPlanMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +30,29 @@ public class CheckinItemCommandService {
 
   private final CheckinTaskMapper checkinTaskMapper;
   private final CheckinItemMapper checkinItemMapper;
+  private final TripPlanMapper tripPlanMapper;
+
+  /**
+   * 为行程添加首个手动地点；空白行程尚无按天任务时同时创建第 1 天任务。
+   *
+   * <p>手动任务使用由 planId 派生的稳定 UUID，既满足既有非空 {@code task_id} 约束，
+   * 又让重试复用同一任务身份；整个“建任务 + 建地点”过程处于同一事务中。
+   */
+  @Transactional
+  public Long addCustomItemToPlan(String planId, AddCustomItemRequest request, Long userId) {
+    TripPlan plan = requirePlan(planId);
+    requirePlanOwner(plan, userId);
+
+    CheckinTask task = findFirstTask(planId);
+    if (task == null) {
+      if (StrUtil.isNotBlank(plan.getActiveTaskId())) {
+        throw new IllegalStateException("已有执行版本的清单应先创建按天打卡任务");
+      }
+      task = createManualFirstDayTask(plan, userId);
+    }
+    requireOwner(task, userId, "无权操作该打卡任务");
+    return insertCustomItem(task, request, userId);
+  }
 
   /** 添加自定义行程点并同步任务总数。 */
   @Transactional
@@ -30,8 +60,14 @@ public class CheckinItemCommandService {
     CheckinTask task = requireTask(taskId);
     requireOwner(task, userId, "无权操作该打卡任务");
 
+    return insertCustomItem(task, request, userId);
+  }
+
+  private Long insertCustomItem(
+      CheckinTask task, AddCustomItemRequest request, Long userId) {
+
     CheckinItem item = new CheckinItem();
-    item.setCheckinTaskId(taskId);
+    item.setCheckinTaskId(task.getId());
     item.setPoiName(request.getName());
     item.setPoiAddress(request.getAddress());
     item.setPeriod(request.getPeriod());
@@ -51,7 +87,7 @@ public class CheckinItemCommandService {
     task.setTotalPoi(valueOrZero(task.getTotalPoi()) + 1);
     checkinTaskMapper.updateById(task);
     log.info("Custom checkin item added: taskId={}, name={}, userId={}",
-        taskId, request.getName(), userId);
+        task.getId(), request.getName(), userId);
     return item.getId();
   }
 
@@ -125,6 +161,48 @@ public class CheckinItemCommandService {
     if (task == null) {
       throw new RuntimeException("打卡任务不存在: " + taskId);
     }
+    return task;
+  }
+
+  private TripPlan requirePlan(String planId) {
+    TripPlan plan = tripPlanMapper.selectById(planId);
+    if (plan == null || plan.getDeletedAt() != null) {
+      throw new PlanNotFoundException("行程清单不存在: " + planId);
+    }
+    return plan;
+  }
+
+  private void requirePlanOwner(TripPlan plan, Long userId) {
+    if (userId == null || !userId.equals(plan.getUserId())) {
+      throw new ForbiddenException("无权操作该清单");
+    }
+  }
+
+  private CheckinTask findFirstTask(String planId) {
+    LambdaQueryWrapper<CheckinTask> wrapper = new LambdaQueryWrapper<>();
+    wrapper.eq(CheckinTask::getPlanId, planId)
+        .orderByAsc(CheckinTask::getDayNumber)
+        .last("LIMIT 1");
+    List<CheckinTask> tasks = checkinTaskMapper.selectList(wrapper);
+    return tasks == null || tasks.isEmpty() ? null : tasks.get(0);
+  }
+
+  private CheckinTask createManualFirstDayTask(TripPlan plan, Long userId) {
+    String manualTaskId = UUID.nameUUIDFromBytes(
+        ("manual-checkin:" + plan.getId()).getBytes(StandardCharsets.UTF_8)).toString();
+    CheckinTask task = new CheckinTask();
+    task.setId(manualTaskId);
+    task.setPlanId(plan.getId());
+    // 旧表要求 task_id 非空；手动任务没有 AI 来源，因此复用自身稳定 ID 作为内部来源标识。
+    task.setTaskId(manualTaskId);
+    task.setUserId(userId);
+    task.setItineraryDate(plan.getPlannedDate());
+    task.setDayNumber(1);
+    task.setStatus("ACTIVE");
+    task.setTotalPoi(0);
+    task.setCompletedPoi(0);
+    task.setCreatedAt(LocalDateTime.now());
+    checkinTaskMapper.insert(task);
     return task;
   }
 

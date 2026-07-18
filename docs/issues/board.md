@@ -1,19 +1,13 @@
 # 执行看板
 
-- 最近更新：2026-07-18
+- 最近更新：2026-07-19
 
 ## Verification
 
 - `TASK-LOOP-008`：把合格公开 Issue 转换为确定性、Proposal-only 的 Work Item 草案，见[活动 Work Item](task-loop-008-work-item-proposal.md)与[执行计划](../plans/task-loop-008-work-item-proposal-exec-plan.md)。
-- `BUG-20260717-006`：身份贡献器、不可变发布及健康后故障注入自动恢复均通过，见[活动 Work Item](bug-20260717-006-release-identity-recovery.md)。
-- `TASK-RELEASE-003`：目标机 117/117 固定回归、Release 身份与恢复演练通过，见[活动 Work Item](task-release-003-target-release-validation.md)。
-- `TASK-OPS-002`：零付费、无生产密钥且固定回归阶段断网的目标机回归已固化，见[活动 Work Item](task-ops-002-no-cost-target-regressions.md)。
-- `TASK-CI-001`：PR #23 已经唯一人工审批、五项 Required Checks 合并并完成 `quality-light` Shadow 首跑/复用，见[活动 Work Item](task-ci-001-node24-actions-runtime.md)与 [GitHub #18](https://github.com/cyhui555/deeptrail-open/issues/18)。
-- `BUG-20260717-003`：AMap Production E2E 配置修复及第 5 项 `quality-web/smoke` Shadow 首跑、复用已完成，见[活动 Work Item](bug-20260717-003-amap-e2e-build-config.md)。
-- `BUG-20260717-004`：PDF 主路径静态地图隔离及第 6 项 `quality-web/smoke` Shadow 首跑、复用已完成，见[活动 Work Item](bug-20260717-004-pdf-static-map-e2e-isolation.md)。
-- `BUG-20260717-005`：真实 Development PWA Profile 及第 7 项 `quality-web/smoke` Shadow 首跑、复用已完成，见[活动 Work Item](bug-20260717-005-dev-pwa-e2e-profile.md)。
-- `BUG-20260717-001`：并发、截止时间与迟到成功固定回归已在目标机通过，见[活动 Work Item](bug-20260717-001-optimize-watchdog-race.md)与 [GitHub #21](https://github.com/cyhui555/deeptrail/issues/21)。
-- `BUG-20260717-002`：非法 JSON 失败关闭与前端安全降级已发布复验，见[活动 Work Item](bug-20260717-002-ai-json-parse-fallback-success.md)与 [GitHub #24](https://github.com/cyhui555/deeptrail/issues/24)。
+- `BUG-20260718-003`：分页、HTTP 状态、空白行程和轨迹 hydration 四项代码根因已由 PR #50 合入 `main@20afc03`；地图/PDF 配置仍等待独立生产部署批准与复验，见[活动 Work Item](bug-20260718-003-production-e2e-remediation.md)与[执行计划](../plans/bug-20260718-003-production-e2e-remediation.md)。
+- Release/运维验证项：[BUG-20260717-006](bug-20260717-006-release-identity-recovery.md)、[TASK-RELEASE-003](task-release-003-target-release-validation.md)、[TASK-OPS-002](task-ops-002-no-cost-target-regressions.md)。
+- CI 与 Web 质量验证项：[TASK-CI-001](task-ci-001-node24-actions-runtime.md)、[BUG-20260717-001](bug-20260717-001-optimize-watchdog-race.md)、[BUG-20260717-002](bug-20260717-002-ai-json-parse-fallback-success.md)、[BUG-20260717-003](bug-20260717-003-amap-e2e-build-config.md)、[BUG-20260717-004](bug-20260717-004-pdf-static-map-e2e-isolation.md)、[BUG-20260717-005](bug-20260717-005-dev-pwa-e2e-profile.md)。
 
 ## Closed
 
