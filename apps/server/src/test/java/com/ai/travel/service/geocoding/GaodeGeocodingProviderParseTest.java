@@ -49,6 +49,27 @@ class GaodeGeocodingProviderParseTest {
   }
 
   @Test
+  @DisplayName("解析 POI 2.0 关键词搜索结果 — 应提取坐标和省市区")
+  void parse_poi_search_result() throws Exception {
+    String poiJson = "{"
+        + "\"status\":\"1\",\"info\":\"OK\",\"count\":\"1\","
+        + "\"pois\":[{"
+        + "  \"name\":\"青岛啤酒博物馆\",\"location\":\"120.341965,36.087052\","
+        + "  \"pname\":\"山东省\",\"cityname\":\"青岛市\",\"adname\":\"市北区\","
+        + "  \"type\":\"风景名胜;风景名胜相关;旅游景点\""
+        + "}]}";
+
+    GeoResult result = provider.parsePoiSearchResponse(poiJson);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getLatitude()).isEqualTo(36.087052);
+    assertThat(result.getLongitude()).isEqualTo(120.341965);
+    assertThat(result.getProvince()).isEqualTo("山东省");
+    assertThat(result.getCity()).isEqualTo("青岛市");
+    assertThat(result.getDistrict()).isEqualTo("市北区");
+  }
+
+  @Test
   @DisplayName("解析重庆同名 POI 的高德 JSON — 应提取重庆字段")
   void parse_chongqing_poi() throws Exception {
     String gaodeJson = "{"

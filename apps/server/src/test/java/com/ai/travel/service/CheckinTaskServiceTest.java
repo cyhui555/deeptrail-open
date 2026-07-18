@@ -1291,7 +1291,7 @@ class CheckinTaskServiceTest {
   }
 
   @Test
-  @DisplayName("强制重查坐标 — 跨城脏坐标被清空 + 地理编码拒绝 → 坐标归 null")
+  @DisplayName("强制重查坐标 — 成功结果覆盖，地理编码失败时保留旧坐标")
   void forceRefillCoordinates_crossCityCleaned() {
     TripPlan plan = new TripPlan();
     plan.setId("plan-1");
@@ -1313,14 +1313,14 @@ class CheckinTaskServiceTest {
     item2.setId(2L);
     item2.setPoiName("大学路");
     item2.setPoiAddress("市南区大学路");
-    item2.setPoiLat(29.551046);   // 重庆跨城 — 应被清空
+    item2.setPoiLat(29.551046);   // 重庆跨城 — 成功重查后应被覆盖
     item2.setPoiLng(106.594584);
 
     when(checkinItemMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(item1, item2));
     when(checkinItemMapper.updateById(any(CheckinItem.class))).thenReturn(1);
 
     // 强制重查"大学路"的地理编码返回青岛坐标（同城校验通过）
-    // "小鱼山"的地理编码返回 null（模拟 API 调用失败 / 未命中）—— 小鱼山原坐标被清空兜底
+    // "小鱼山"的地理编码返回 null（模拟 API 调用失败 / 未命中）—— 原坐标必须保留
     when(geocodingService.geocode(any(GeoRequest.class))).thenAnswer(inv -> {
       GeoRequest req = inv.getArgument(0);
       if ("大学路".equals(req.getName())) {
@@ -1334,38 +1334,35 @@ class CheckinTaskServiceTest {
 
     int resolved = checkinTaskService.forceRefillCoordinates("plan-1");
 
-    // 大学路：成功写入青岛坐标，小鱼山：坐标清空（mock API 失败兜底）
+    // 大学路：成功写入青岛坐标；小鱼山查询失败时保留旧坐标。
     assertThat(resolved).isEqualTo(1);
 
     org.mockito.ArgumentCaptor<CheckinItem> captor = org.mockito.ArgumentCaptor.forClass(CheckinItem.class);
-    verify(checkinItemMapper, org.mockito.Mockito.times(2)).updateById(captor.capture());
+    verify(checkinItemMapper, org.mockito.Mockito.times(1)).updateById(captor.capture());
     List<CheckinItem> updated = captor.getAllValues();
     // 大学路：坐标从重庆改为青岛
     CheckinItem daxuelu = updated.stream().filter(i -> "大学路".equals(i.getPoiName())).findFirst()
         .orElseThrow(() -> new AssertionError("未找到大学路"));
     assertThat(daxuelu.getPoiLat()).isEqualTo(36.0824);
     assertThat(daxuelu.getPoiLng()).isEqualTo(120.3556);
-    // 小鱼山：原青岛坐标因 mock API 失败被清空
-    CheckinItem xiaoyushan = updated.stream().filter(i -> "小鱼山".equals(i.getPoiName())).findFirst()
-        .orElseThrow(() -> new AssertionError("未找到小鱼山"));
-    assertThat(xiaoyushan.getPoiLat()).isNull();
-    assertThat(xiaoyushan.getPoiLng()).isNull();
+    assertThat(item1.getPoiLat()).isEqualTo(36.066019);
+    assertThat(item1.getPoiLng()).isEqualTo(120.332312);
   }
 
   /**
    * BUG-20260706-002 验证：forceRefill 在多 task + 多 POI 场景下，
-   * 并行 geocode 成功后走"写成功批量"、被 isLikelyInDestination 拒绝后走"清空批量"。
+   * 并行 geocode 成功后写新坐标，失败时保留既有坐标。
    *
    * <p>覆盖新代码路径：
    * <ul>
    *   <li>IN 查询（取代 N+1）</li>
    *   <li>CompletableFuture 并行 geocode</li>
-   *   <li>successItems batch updateById</li>
-   *   <li>clearedItems batch updateById</li>
+   *   <li>成功项 updateById</li>
+   *   <li>失败项零写入并保留原值</li>
    * </ul>
    */
   @Test
-  @DisplayName("BUG-20260706-002: forceRefill 多 task 多 POI 并行 — 批量写成功+清空")
+  @DisplayName("BUG-20260719-001: forceRefill 多 task 多 POI — 成功覆盖且失败保留")
   void forceRefillCoordinates_parallelMultiTaskBatchWrite() {
     TripPlan plan = new TripPlan();
     plan.setId("plan-1");
@@ -1383,14 +1380,14 @@ class CheckinTaskServiceTest {
     i1.setId(1L); i1.setCheckinTaskId("ctask-1");
     i1.setPoiName("栈桥"); i1.setPoiAddress("市南区");
     i1.setPoiLat(36.061); i1.setPoiLng(120.329);
-    CheckinItem i2 = new CheckinItem();  // task1/POI2: 青岛坐标 → geocode 失败（API null） → batch cleared
+    CheckinItem i2 = new CheckinItem();  // task1/POI2: 青岛坐标 → geocode 失败（API null） → 保留
     i2.setId(2L); i2.setCheckinTaskId("ctask-1");
     i2.setPoiName("小鱼山"); i2.setPoiAddress("市南区");
     i2.setPoiLat(36.066); i2.setPoiLng(120.332);
-    CheckinItem i3 = new CheckinItem();  // task2/POI1: 跨城重庆坐标 → 清空 → geocode 成功 → batch success
+    CheckinItem i3 = new CheckinItem();  // task2/POI1: 跨城重庆坐标 → geocode 成功 → 覆盖旧值
     i3.setId(3L); i3.setCheckinTaskId("ctask-2");
     i3.setPoiName("大学路"); i3.setPoiAddress("市南区大学路");
-    i3.setPoiLat(29.551); i3.setPoiLng(106.594);  // 重庆坐标（应被清空重查）
+    i3.setPoiLat(29.551); i3.setPoiLng(106.594);  // 重庆坐标（成功重查后应覆盖）
     CheckinItem i4 = new CheckinItem();  // task2/POI2: null 坐标 → geocode 失败 → FAILED（不写）
     i4.setId(4L); i4.setCheckinTaskId("ctask-2");
     i4.setPoiName("返航"); i4.setPoiAddress(null);
@@ -1419,8 +1416,8 @@ class CheckinTaskServiceTest {
     assertThat(resolved).isEqualTo(2);
 
     org.mockito.ArgumentCaptor<CheckinItem> captor = org.mockito.ArgumentCaptor.forClass(CheckinItem.class);
-    // 2 batch write × 每 batch 每条都调 updateById → 共 4 次写（2 success + 2 cleared）
-    verify(checkinItemMapper, org.mockito.Mockito.atLeast(3)).updateById(captor.capture());
+    // 仅两个成功结果写库；失败项不产生破坏性更新。
+    verify(checkinItemMapper, org.mockito.Mockito.times(2)).updateById(captor.capture());
     List<CheckinItem> updated = captor.getAllValues();
     assertThat(updated).isNotEmpty();
 
@@ -1428,18 +1425,14 @@ class CheckinTaskServiceTest {
     CheckinItem zhanqiao = updated.stream().filter(i -> "栈桥".equals(i.getPoiName())).findFirst().orElseThrow();
     assertThat(zhanqiao.getPoiLat()).isEqualTo(36.062);
 
-    // 校验 success：大学路 重庆坐标 → 清空 → 重新 geocode → 写新坐标（dest=青岛）
+    // 校验 success：大学路重庆坐标经重新 geocode 后覆盖为青岛坐标
     CheckinItem daxuelu = updated.stream().filter(i -> "大学路".equals(i.getPoiName())).findFirst().orElseThrow();
     assertThat(daxuelu.getPoiLat()).isEqualTo(36.0824);
 
-    // 校验 cleared：小鱼山（forceRefill 原坐标在青岛范围内 + geocode 失败 → 清空）
-    // 以及返航（原无坐标，geocode 失败 → skip，不清空也不写 —— 但 i4 是 null 坐标 → forceRefill 不操作）
-    // i4 真正的行：forceRefill=true → 进入循环 → hasValidCoordinate(i4)=false → resolveCoordinates=null → 进入 FAILED 分支
-    long clearedCount = updated.stream()
-        .filter(i -> i.getPoiLat() == null && i.getPoiLng() == null)
-        .count();
-    // 小鱼山被清空至少 1 次
-    assertThat(clearedCount).isGreaterThanOrEqualTo(1);
+    assertThat(i2.getPoiLat()).isEqualTo(36.066);
+    assertThat(i2.getPoiLng()).isEqualTo(120.332);
+    assertThat(i4.getPoiLat()).isNull();
+    assertThat(i4.getPoiLng()).isNull();
   }
 
   /**
@@ -1893,8 +1886,8 @@ class CheckinTaskServiceTest {
   }
 
   @Test
-  @DisplayName("强制回填坐标 - 坐标偏离目的地应清空")
-  void forceRefillCoordinates_farFromDestination_cleared() {
+  @DisplayName("强制回填坐标 - 坐标偏离目的地但重查失败时应保留")
+  void forceRefillCoordinates_farFromDestination_preservedOnFailure() {
     TripPlan plan = new TripPlan();
     plan.setId("plan-1");
     plan.setUserId(1L);
@@ -1917,9 +1910,10 @@ class CheckinTaskServiceTest {
     when(geocodingService.geocode(any())).thenReturn(null);
 
     int result = checkinTaskService.forceRefillCoordinates("plan-1");
-    assertThat(item.getPoiLat()).isNull();
-    assertThat(item.getPoiLng()).isNull();
+    assertThat(item.getPoiLat()).isEqualTo(29.55);
+    assertThat(item.getPoiLng()).isEqualTo(106.55);
     assertThat(result).isEqualTo(0);
+    verify(checkinItemMapper, org.mockito.Mockito.never()).updateById(any(CheckinItem.class));
   }
 
   @Test

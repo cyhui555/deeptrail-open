@@ -72,31 +72,50 @@ public class GaodeGeocodingProvider implements GeocodingProvider {
       throw new GeocodingException("Gaode API Key not configured");
     }
 
-    // 拼接查询串：address 在前作为主地址上下文，POI 名称在后作为精确匹配——
-    // 形如 "address=青岛市南区大学路&...", POI address 已含城市信息可大幅提升同城命中率
+    ensureRateLimiterRegistered();
+    int timeoutMs = Math.max(properties.getConnectTimeoutMs(), properties.getReadTimeoutMs());
+
+    // 结构化地址编码保留既有主路径；空结果再使用官方 POI 关键词搜索，
+    // 景点、餐厅等名称不再因为缺少门牌级地址而永久停留在无坐标状态。
+    GeoResult addressResult = executeAddressGeocode(request, timeoutMs);
+    if (addressResult != null && addressResult.isValid()) {
+      return addressResult;
+    }
+    return executePoiSearch(request, timeoutMs);
+  }
+
+  private GeoResult executeAddressGeocode(GeoRequest request, int timeoutMs)
+      throws GeocodingException {
     String queryAddress = buildAddressWithFallback(request);
     StringBuilder url = new StringBuilder(properties.getGaodeBaseUrl());
     url.append("?address=").append(urlEncode(queryAddress));
     url.append("&output=JSON");
     url.append("&key=").append(properties.getGaodeApiKey());
-
-    // region 映射为 city 参数
     if (StrUtil.isNotBlank(request.getRegion())) {
       url.append("&city=").append(urlEncode(request.getRegion()));
       url.append("&citylimit=true");
     }
+    return parseResponse(executeRateLimited(url.toString(), timeoutMs));
+  }
 
-    // 阻塞等待令牌桶（不限时阻塞，严格按 QPS 节奏放行）
-    // Guava RateLimiter.acquire() 响应中断并恢复 Thread.interrupted() 标志，不抛受检异常
-    ensureRateLimiterRegistered();
+  private GeoResult executePoiSearch(GeoRequest request, int timeoutMs)
+      throws GeocodingException {
+    StringBuilder url = new StringBuilder(properties.getGaodePoiSearchBaseUrl());
+    url.append("?keywords=").append(urlEncode(request.getName()));
+    if (StrUtil.isNotBlank(request.getRegion())) {
+      // region 只增加召回权重，最终仍由 GeocodingServiceImpl 做同城校验。
+      // 不使用硬限制，避免“川西”等宏观目的地被高德当作无效城市而返回空集。
+      url.append("&region=").append(urlEncode(request.getRegion()));
+    }
+    url.append("&city_limit=false&page_size=10&page_num=1&output=JSON");
+    url.append("&key=").append(properties.getGaodeApiKey());
+    return parsePoiSearchResponse(executeRateLimited(url.toString(), timeoutMs));
+  }
+
+  private String executeRateLimited(String url, int timeoutMs) throws GeocodingException {
+    // 每一次真实 HTTP 调用都重新获取令牌；fallback 不能绕过全局 QPS 约束。
     RateLimiters.waitFor("gaode");
-
-    // Hutool HttpRequest.timeout(int) 同时设置连接超时和读取超时
-    int timeoutMs = Math.max(properties.getConnectTimeoutMs(), properties.getReadTimeoutMs());
-
-    // 首次调用 + IOException 单次重试（覆盖长 idle 后 NAT/LB 丢弃 TCP 连接的 Connection reset）
-    String response = executeWithRetry(url.toString(), timeoutMs, RETRY_ON_IO_ERROR);
-    return parseResponse(response);
+    return executeWithRetry(url, timeoutMs, RETRY_ON_IO_ERROR);
   }
 
   /**
@@ -222,6 +241,49 @@ public class GaodeGeocodingProvider implements GeocodingProvider {
       throw e;
     } catch (Exception e) {
       throw new GeocodingException("Gaode parse error: " + e.getMessage(), e);
+    }
+  }
+
+  /** 解析高德 POI 2.0 关键词搜索响应。 */
+  GeoResult parsePoiSearchResponse(String json) throws GeocodingException {
+    try {
+      JsonNode root = objectMapper.readTree(json);
+      String status = root.path("status").asText("0");
+      if (!"1".equals(status)) {
+        String info = root.path("info").asText("unknown");
+        throw new GeocodingException("Gaode POI API error: " + info);
+      }
+
+      JsonNode pois = root.path("pois");
+      if (!pois.isArray() || pois.isEmpty()) {
+        return null;
+      }
+      for (JsonNode poi : pois) {
+        String location = poi.path("location").asText("");
+        if (StrUtil.isBlank(location) || !location.contains(",")) {
+          continue;
+        }
+        String[] parts = location.split(",");
+        Double longitude = parseDoubleSafe(parts[0]);
+        Double latitude = parseDoubleSafe(parts[1]);
+        if (latitude == null || longitude == null) {
+          continue;
+        }
+        return GeoResult.builder()
+            .longitude(longitude)
+            .latitude(latitude)
+            .level(poi.path("type").asText("POI"))
+            .provider(getProviderName())
+            .province(poi.path("pname").asText(null))
+            .city(poi.path("cityname").asText(null))
+            .district(poi.path("adname").asText(null))
+            .build();
+      }
+      return null;
+    } catch (GeocodingException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new GeocodingException("Gaode POI parse error: " + e.getMessage(), e);
     }
   }
 

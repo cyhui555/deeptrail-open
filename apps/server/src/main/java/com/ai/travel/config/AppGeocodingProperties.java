@@ -23,6 +23,9 @@ public class AppGeocodingProperties {
   /** 高德 API base URL。 */
   private String gaodeBaseUrl = "https://restapi.amap.com/v3/geocode/geo";
 
+  /** 高德 POI 关键词搜索 base URL。 */
+  private String gaodePoiSearchBaseUrl = "https://restapi.amap.com/v5/place/text";
+
   /** Nominatim base URL（可自建）。 */
   private String nominatimBaseUrl = "https://nominatim.openstreetmap.org/search";
 

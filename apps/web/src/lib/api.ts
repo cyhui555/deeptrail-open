@@ -34,9 +34,9 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+async function request<T>(path: string, options?: RequestInit, timeoutMs = 30_000): Promise<T> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
@@ -360,17 +360,25 @@ export async function getCheckinTasks(planId: string): Promise<CheckinTask[]> {
 
 /** 批量回填缺失坐标的打卡项（地理编码反查）；返回成功回填的项数 */
 export async function backfillCoordinates(planId: string): Promise<number> {
-  return request<number>(`/api/trips/${planId}/checkin/backfill-coordinates`, { method: 'POST' });
+  return request<number>(
+    `/api/trips/${planId}/checkin/backfill-coordinates`,
+    { method: 'POST' },
+    60_000,
+  );
 }
 
 /**
  * 强制重查所有打卡项坐标（清洗同名跨城脏坐标）
  *
- * 清空已有坐标后重新地理编码反查，依赖 province/destination 同城校验
+ * 成功反查时覆盖已有坐标，失败时保留旧值；继续依赖 province/destination 同城校验
  * 清洗重庆等同名错误坐标。返回成功反查并写入的项数。
  */
 export async function forceRefillCoordinates(planId: string): Promise<number> {
-  return request<number>(`/api/trips/${planId}/checkin/force-refill-coordinates`, { method: 'POST' });
+  return request<number>(
+    `/api/trips/${planId}/checkin/force-refill-coordinates`,
+    { method: 'POST' },
+    60_000,
+  );
 }
 
 /** 获取单日打卡详情 */

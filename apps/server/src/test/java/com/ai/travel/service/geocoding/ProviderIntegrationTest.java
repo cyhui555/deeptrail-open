@@ -45,6 +45,15 @@ class ProviderIntegrationTest {
       + "  \"level\":\"兴趣点\""
       + "}]}";
 
+  /** 模拟高德 POI 2.0 成功响应。 */
+  static final String GAODE_POI_OK_JSON = "{"
+      + "\"status\":\"1\",\"info\":\"OK\",\"count\":\"1\","
+      + "\"pois\":[{"
+      + "  \"name\":\"青岛啤酒博物馆\",\"location\":\"120.341965,36.087052\","
+      + "  \"pname\":\"山东省\",\"cityname\":\"青岛市\",\"adname\":\"市北区\","
+      + "  \"type\":\"风景名胜\""
+      + "}]}";
+
   /** 模拟 Nominatim 成功响应。 */
   static final String NOMINATIM_OK_JSON = "[{"
       + "\"lat\":\"36.082419\",\"lon\":\"120.355643\",\"type\":\"attraction\","
@@ -59,6 +68,7 @@ class ProviderIntegrationTest {
     AppGeocodingProperties props = new AppGeocodingProperties();
     props.setGaodeApiKey("test-key");
     props.setGaodeBaseUrl("http://localhost:8080/geocode");
+    props.setGaodePoiSearchBaseUrl("http://localhost:8080/place/text");
     props.setNominatimBaseUrl("http://localhost:8080/nominatim");
     // 测试限流用的高 QPS 配置,避免阻塞
     props.setGaodeMaxQps(100);
@@ -278,6 +288,37 @@ class ProviderIntegrationTest {
 
       GeoResult result = provider.geocode(GeoRequest.builder().name("小鱼山").build());
       assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("地址编码无结果 — 使用 POI 关键词搜索兜底并保留区域权重")
+    void emptyAddressResult_fallsBackToPoiSearch() throws Exception {
+      AtomicInteger attempts = new AtomicInteger();
+      AppGeocodingProperties props = gaodeProps();
+      GaodeGeocodingProvider provider = new GaodeGeocodingProvider(props, MAPPER) {
+        @Override
+        String executeHttpGet(String url, int timeoutMs) {
+          attempts.incrementAndGet();
+          if (url.contains("/geocode?")) {
+            return "{\"status\":\"1\",\"info\":\"OK\",\"count\":\"0\",\"geocodes\":[]}";
+          }
+          assertThat(url)
+              .contains("/place/text?keywords=%E9%9D%92%E5%B2%9B%E5%95%A4%E9%85%92%E5%8D%9A%E7%89%A9%E9%A6%86")
+              .contains("&region=%E9%9D%92%E5%B2%9B%E5%B8%82")
+              .contains("&city_limit=false");
+          return GAODE_POI_OK_JSON;
+        }
+      };
+
+      GeoResult result = provider.geocode(GeoRequest.builder()
+          .name("青岛啤酒博物馆")
+          .region("青岛市")
+          .build());
+
+      assertThat(result).isNotNull();
+      assertThat(result.getLatitude()).isEqualTo(36.087052);
+      assertThat(result.getCity()).isEqualTo("青岛市");
+      assertThat(attempts.get()).isEqualTo(2);
     }
 
     @Test

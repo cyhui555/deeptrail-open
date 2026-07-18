@@ -124,8 +124,8 @@ public class TripPlanController {
   }
 
   @Operation(summary = "强制重查所有打卡项坐标（清洗同名跨城脏坐标）",
-      description = "清空已有坐标后重新地理编码反查，"
-          + "依赖 province/destination 同城校验清洗重庆等同名错误坐标；"
+      description = "重新执行地理编码，成功结果覆盖旧值，空结果保留已有有效坐标；"
+          + "依赖 province/destination 同城校验拒绝重庆等同名跨城结果，"
           + "适用于青岛/伊犁等行程出现重庆坐标的场景")
   @PostMapping("/{planId}/checkin/force-refill-coordinates")
   public ApiResponse<Integer> forceRefillCoordinates(@PathVariable String planId) {

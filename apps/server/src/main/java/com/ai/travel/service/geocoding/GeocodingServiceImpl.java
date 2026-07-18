@@ -87,6 +87,19 @@ public class GeocodingServiceImpl implements GeocodingService {
         // 正常空响应说明 Provider 可达，不应把“无匹配”误判为连接故障。
         closeCircuit(providerName);
         if (result != null && result.isValid()) {
+          if (properties.isCityValidationEnabled()
+              && StrUtil.isNotBlank(request.getDestination())
+              && !isWithinDestination(result, request.getDestination())) {
+            log.info("Geocoding result rejected by city validation, try next provider: "
+                    + "name={}, provider={}, destination={}, province={}, city={}, district={}, "
+                    + "lat={}, lng={}",
+                request.getName(), providerName, request.getDestination(),
+                result.getProvince(), result.getCity(), result.getDistrict(),
+                result.getLatitude(), result.getLongitude());
+            result = null;
+            continue;
+          }
+          result.setDestinationSatisfied(true);
           log.info("Geocoding success: name={}, provider={}, lat={}, lng={}",
               request.getName(), provider.getProviderName(),
               result.getLatitude(), result.getLongitude());
@@ -111,20 +124,7 @@ public class GeocodingServiceImpl implements GeocodingService {
       return null;
     }
 
-    // 3. 同城校验：destination 存在且开启校验时，省/市区字段必须与 destination 匹配
-    if (properties.isCityValidationEnabled()
-        && StrUtil.isNotBlank(request.getDestination())
-        && !isWithinDestination(result, request.getDestination())) {
-      log.info("Geocoding result rejected by city validation: name={}, destination={}, "
-              + "province={}, city={}, district={}, lat={}, lng={}",
-          request.getName(), request.getDestination(),
-          result.getProvince(), result.getCity(), result.getDistrict(),
-          result.getLatitude(), result.getLongitude());
-      return null;
-    }
-    result.setDestinationSatisfied(true);
-
-    // 4. 写入 DB 缓存
+    // 3. 写入 DB 缓存
     saveToCache(result, cacheKey, request.getName(), request.getAddress(),
         request.getRegion(), request.getDestination(),
         properties.getCacheExpireMinutes());
