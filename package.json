@@ -26,6 +26,7 @@
     "loop:audit:m4": "node scripts/loop/m4-audit.mjs",
     "loop:backup": "node scripts/loop/cli.mjs backup",
     "loop:init": "node scripts/loop/cli.mjs init",
+    "loop:intake": "node scripts/loop/intake-cli.mjs",
     "loop:l3:preflight": "node scripts/loop/cli.mjs l3 preflight",
     "loop:l3:run-draft": "node scripts/loop/cli.mjs l3 run-draft",
     "loop:l3:merge-preflight": "node scripts/loop/cli.mjs l3 merge-preflight",

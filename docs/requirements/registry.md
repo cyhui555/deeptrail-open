@@ -1,6 +1,6 @@
 # 需求注册与追踪矩阵
 
-- 文档状态：旅迹 v0.1.0 已封板；后台运营第一期与 Loop L3A 已交付，L3B Engine 完成 G2
+- 文档状态：旅迹 v0.1.0 已封板；后台运营第一期与 Loop L3A 已交付，自主任务入口进入 G1
 - 最近更新：2026-07-18
 - 产品：旅迹
 
@@ -38,8 +38,9 @@
 | REQ-LOOP-001 | 在不重写业务程序的前提下，将工程接入固定版本 LoopAny 并形成可审计的本地影子闭环 | 已完成 | PR #19 已按 deepbarin 规范补齐 ExecutionSpec/Outcome、分阶段恢复、隔离 Backup/Restore 与可执行手册；L0 和 L1 Phase 1 G0—G3 通过，业务反馈、治理进化和 L2/L3 保持 `NOT READY` |
 | REQ-LOOP-002 | 将 Loop 工程推进到持续可验证的 L1 Phase 2，并以脱敏 Release Outcome 和稳定 Shadow 证据完成 L2 Proposal-only 准入 | 已完成 | PR #22–#31 受保护合并、不可变发布/恢复、目标机断网回归及公开 Cohort 10/10 严格审计通过；仅 Proposal 可用，Mutation/L3 继续阻断 |
 | REQ-LOOP-003 | 以失败关闭、隔离工作树和受保护审批链建立 Loop L3A Draft PR 自动化 | 已完成 | PR #36/#37/#39 受保护合入；真实试点 PR #40 完成固定 Patch、隔离 Worktree、Profile、Commit、Push 与机器人 Draft PR，自动审批、合并和部署均关闭 |
-| REQ-LOOP-004 | 仅在精确 Head 的必需检查全绿且人工批准有效后执行 L3B 受控合并 | 实施中 | 默认关闭 Engine 已通过 G2；待 Engine PR、独立 activation PR 与真实文档合并试点，自动审批、管理员绕过、force-push 和自动部署继续禁止 |
-| REQ-LOOP-005 | 以不可变制品、专项环境批准和可验证回滚建立 L3C 受控部署 | 待准入 | 必须先完成 L3B；正式制品、Tag/摘要、环境审批、迁移、健康、回滚和生产恢复证据不得由 L3A/L3B 推导 |
+| REQ-LOOP-004 | 仅在精确 Head 的必需检查全绿且人工批准有效后执行 L3B 受控合并 | 已终止 | 默认关闭 Engine 由 PR #43 合入 `3e9265e`；activation PR #44 关闭未合入、GitHub #41 为 `not_planned`，Policy 与合并权限保持关闭 |
+| REQ-LOOP-005 | 以不可变制品、专项环境批准和可验证回滚建立合并后受控部署 | 待准入 | 若未来以人工 Merge 触发发布，必须独立证明制品、Tag/摘要、环境、迁移、健康、回滚和生产恢复，不从 L3A 或休眠 L3B Engine 推导 |
+| REQ-LOOP-006 | 在人工 Review/Merge 边界下建立可审计的自主任务入口与 PR 生命周期 | 实施中 | `TASK-LOOP-007` 先交付只读 Issue 准入、终态消阻与零写权限合同；自动提单、PR 续写和自动转 Ready 分阶段独立验收 |
 
 ## 范围说明
 

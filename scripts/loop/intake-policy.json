@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "repository": "cyhui555/deeptrail-open",
+  "executableLabel": "agent-ready",
+  "trustedRequesters": [
+    "cyhui555"
+  ],
+  "requiredSections": [
+    "目标",
+    "验收标准",
+    "范围外",
+    "回滚"
+  ],
+  "budgets": {
+    "maxTitleChars": 200,
+    "maxBodyBytes": 65536,
+    "maxLabels": 20
+  },
+  "permissions": {
+    "readIssue": true,
+    "createIssue": false,
+    "updateIssue": false,
+    "executeCommands": false,
+    "mutateGit": false,
+    "createPullRequest": false,
+    "markReady": false,
+    "submitReview": false,
+    "mergePullRequest": false,
+    "deploy": false
+  }
+}
