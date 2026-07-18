@@ -24,6 +24,7 @@ import {
   verifyPublishedL3State
 } from "../l3-worktree.mjs";
 import { acquireWriteLock, quarantineStaleWriteLock } from "../lock.mjs";
+import { recoverLoop } from "../operations.mjs";
 import { requireSuccess, runProcess } from "../process.mjs";
 import { validateLegacyReceiptPolicy, verifyReceiptSet } from "../receipt-integrity.mjs";
 import { assertAllowedLoopAnyArgs, sanitizedEnvironment } from "../runtime.mjs";
@@ -114,6 +115,51 @@ test("活进程写锁和错误 Token 均不能被清理", async () => {
     (error) => error instanceof LoopGatewayError && error.code === "LOCK_OWNER_ALIVE"
   );
   await lock.release();
+});
+
+test("严格 Cohort Recovery 只忽略当前进程精确拥有的 L3 事务", async () => {
+  const config = await fakeConfig("l3-recovery-scope");
+  const gitCommit = "a".repeat(40);
+  const lock = await acquireWriteLock(config, "l3:preflight", { gitCommit });
+  const transaction = await beginTransaction(config, "l3:preflight", { expectedRevision: gitCommit });
+  let other;
+  await transaction.checkpoint("applying");
+  const activeOperation = {
+    operation: "l3:preflight",
+    transactionId: transaction.id,
+    lockToken: lock.record.token
+  };
+  try {
+    assert.equal((await recoverLoop(config)).ok, false);
+    await assert.rejects(
+      recoverLoop(config, {
+        activeOperation: {
+          ...activeOperation,
+          lockToken: "00000000-0000-4000-8000-000000000000"
+        }
+      }),
+      (error) => error instanceof LoopGatewayError
+        && error.code === "RECOVERY_ACTIVE_SCOPE_INVALID"
+    );
+    const owned = await recoverLoop(config, { activeOperation });
+    assert.equal(owned.ok, true);
+    assert.equal(owned.lock, null);
+    assert.deepEqual(owned.activeOperation, {
+      operation: "l3:preflight",
+      transactionId: transaction.id
+    });
+
+    other = await beginTransaction(config, "shadow", { expectedRevision: gitCommit });
+    await other.checkpoint("applying");
+    const blocked = await recoverLoop(config, { activeOperation });
+    assert.equal(blocked.ok, false);
+    assert.deepEqual(blocked.incomplete.map(({ id }) => id), [other.id]);
+  } finally {
+    if (other?.status === "applying") await other.checkpoint("failed");
+    if (transaction.status === "applying") await transaction.checkpoint("failed");
+    await lock.release();
+  }
+  assert.equal((await recoverLoop(config)).ok, true);
 });
 
 test("子进程环境不继承未批准 Secret", () => {

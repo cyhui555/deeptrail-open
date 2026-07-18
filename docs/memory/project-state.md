@@ -1,9 +1,9 @@
 # 当前项目状态
 
 - 最后核对：2026-07-18
-- 当前阶段：历史 Receipt 兼容与 L3A 引擎已受保护合入，正在以独立 PR 激活 Proposal-only Draft 执行
-- 当前检查门：公开 `main@c81c5cc` 与远端一致；PR #36 所有者批准、五项 Required Checks 和额外 full E2E 均通过；严格 Cohort 49/49 v2
-- 活动工作项：`BUG-20260718-001`、`TASK-LOOP-004`、`TASK-LOOP-005`、`TASK-RELEASE-003`、`TASK-OPS-002`
+- 当前阶段：L3A activation 已以 PR #37 受保护合入；首次真实 preflight 暴露严格 Cohort Recovery 自冲突，正在修复
+- 当前检查门：公开 `main@5c0cb33` 与远端一致；失败事务已终结、无 Writer/未终结事务；严格 Cohort 50/50 v2 且准入摘要不变
+- 活动工作项：`BUG-20260718-001`、`BUG-20260718-002`、`TASK-LOOP-004`、`TASK-LOOP-005`、`TASK-RELEASE-003`、`TASK-OPS-002`
 - 最近完成：`TASK-LOOP-003`、`TASK-GOV-001`、`TASK-WORKSPACE-001`、`TASK-LOOP-002`、`TASK-LOOP-001`
 
 ## 当前事实
@@ -31,4 +31,4 @@
 
 ## 下一项唯一动作
 
-由机器人机制发布独立 activation PR，经人工批准和五项 Required Checks 合入后，执行 `TASK-LOOP-005` 免费 L3A Draft PR 试点。
+将 `BUG-20260718-002` 经机器人作者、人工批准和五项 Required Checks 合入，再以原固定 ChangePlan 重跑 `TASK-LOOP-005` 免费 L3A Draft PR 试点。

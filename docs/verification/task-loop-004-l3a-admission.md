@@ -25,5 +25,6 @@
 ## G3 剩余门禁
 
 1. [x] 机器人作者 PR #36 绑定 `340e729`，五项 Required Checks 通过并由唯一人工所有者批准，以 `c81c5cc` 合入。
-2. [ ] 独立 activation PR 登记批准/合入 Revision、上述 Cohort 摘要与 Review URL，再次人工批准合入。
-3. [ ] 使用免费、无业务数据 ChangePlan 完成首个 Draft PR；不自动合并或部署。
+2. [x] 独立 activation PR 登记批准/合入 Revision、上述 Cohort 摘要与 Review URL，并再次由人工所有者批准。
+3. [x] activation PR #37 已受保护合入为 `5c0cb33`。
+4. [ ] 修复 [BUG-20260718-002](../issues/bug-20260718-002-l3-cohort-self-conflict.md) 后，以原免费、无业务数据 ChangePlan 完成首个 Draft PR；不自动合并或部署。

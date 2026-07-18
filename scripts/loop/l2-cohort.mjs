@@ -214,7 +214,7 @@ export async function verifyStaticCohort(manifest, repoRoot = process.cwd()) {
   };
 }
 
-export async function verifyRuntimeCohort(config, manifest) {
+export async function verifyRuntimeCohort(config, manifest, options = {}) {
   const receiptIntegrity = await verifyReceiptSet(config);
   const receipts = receiptIntegrity.documents;
   const shadowReceipts = receipts.filter((receipt) => receipt.operation === "shadow"
@@ -237,7 +237,7 @@ export async function verifyRuntimeCohort(config, manifest) {
   }
 
   const workspace = await verifyWorkspaceContract(config);
-  const recovery = await recoverLoop(config);
+  const recovery = await recoverLoop(config, options.recovery);
   assert(recovery.ok, "L2_COHORT_RECOVERY_REQUIRED", "Loop Workspace 存在残留锁或未终结事务");
   const evaluation = evaluateCohort(
     registrations, manifest.thresholds, manifest.targetWorkItems

@@ -85,7 +85,7 @@ export async function preflightL3Change(config, options = {}) {
   }
 
   const verifyCohort = options.verifyCohort ?? defaultCohortVerifier;
-  const cohort = await verifyCohort(config);
+  const cohort = await verifyCohort(config, { recovery: options.cohortRecovery });
   assert(cohort.report?.cohortReady === true,
     "L3_L2_COHORT_NOT_READY", "L3 前置 L2 Cohort 未通过");
   if (policy.activation.enabled) {
@@ -349,14 +349,14 @@ export async function readL3RepositoryControls(repoRoot) {
   };
 }
 
-async function defaultCohortVerifier(config) {
+async function defaultCohortVerifier(config, options = {}) {
   // 动态导入避免 operations -> L3 -> Cohort -> operations 的初始化环。
   const {
     cohortAdmissionDigest,
     loadL2CohortManifest,
     verifyRuntimeCohort
   } = await import("./l2-cohort.mjs");
-  const report = await verifyRuntimeCohort(config, await loadL2CohortManifest());
+  const report = await verifyRuntimeCohort(config, await loadL2CohortManifest(), options);
   return { report, digest: cohortAdmissionDigest(report) };
 }
 
