@@ -1,8 +1,8 @@
 # ADR：以分阶段权限模型推进 Loop L3
 
-- 状态：Accepted for implementation；受保护 PR 合入后生效
+- 状态：Accepted；L3A 已验收，L3B/L3C 独立准入
 - 日期：2026-07-18
-- 关联：`REQ-LOOP-003`、`TASK-LOOP-004`
+- 关联：`REQ-LOOP-003`、`REQ-LOOP-004`、`REQ-LOOP-005`
 
 ## 背景
 
@@ -18,7 +18,7 @@ L3 按不可越级的权限阶段推进：
 | L3B | L3A + 必需检查和人工批准后的受控合并 | 绕过保护、force-push、自动部署 |
 | L3C | L3B + 不可变制品和专项批准后的受控部署 | 现场改码、移动 Tag、无回滚部署 |
 
-本任务只激活 L3A。L3B/L3C 必须分别提供新准入证据，不能从 L3A 自动推导。
+`REQ-LOOP-003` 只激活 L3A，交付证据见 [L3A 摘要](../archive/task-loop-004-l3a-controlled-execution.md)。L3B 由 [独立 ADR](adr-loop-l3b-controlled-merge.md) 与 `TASK-LOOP-006` 准入；L3C 必须另行提供证据，均不能从 L3A 自动推导。
 
 ## L3A 不变量
 

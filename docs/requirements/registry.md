@@ -1,6 +1,6 @@
 # 需求注册与追踪矩阵
 
-- 文档状态：旅迹 v0.1.0 已封板；后台运营第一期已交付
+- 文档状态：旅迹 v0.1.0 已封板；后台运营第一期与 Loop L3A 已交付，L3B 进入 G0/G1
 - 最近更新：2026-07-18
 - 产品：旅迹
 
@@ -37,7 +37,9 @@
 | REQ-DEPLOY-002 | 将当前旅迹版本可追溯地部署到目标 Linux 主机并沉淀后续发版脚本 | 已完成 | `v0.2.0` 已以不可变 release 发布到受控目标主机的 `30301` 端口；备份、迁移、健康、重启、外网、管理员认证和浏览器验收通过，见[目标环境发布报告](../archive/task-release-002-production-deployment.md)；远程 CI、TLS、独立 Restore 等仍阻断完整生产放行 |
 | REQ-LOOP-001 | 在不重写业务程序的前提下，将工程接入固定版本 LoopAny 并形成可审计的本地影子闭环 | 已完成 | PR #19 已按 deepbarin 规范补齐 ExecutionSpec/Outcome、分阶段恢复、隔离 Backup/Restore 与可执行手册；L0 和 L1 Phase 1 G0—G3 通过，业务反馈、治理进化和 L2/L3 保持 `NOT READY` |
 | REQ-LOOP-002 | 将 Loop 工程推进到持续可验证的 L1 Phase 2，并以脱敏 Release Outcome 和稳定 Shadow 证据完成 L2 Proposal-only 准入 | 已完成 | PR #22–#31 受保护合并、不可变发布/恢复、目标机断网回归及公开 Cohort 10/10 严格审计通过；仅 Proposal 可用，Mutation/L3 继续阻断 |
-| REQ-LOOP-003 | 以失败关闭、隔离工作树和受保护审批链将 Loop 推进到分阶段 L3 自动化 | 实施中 | L3A 仅允许固定 Patch/Profile、隔离 Worktree、Commit 与 Draft PR；L3B 自动合并和 L3C 自动部署必须另行准入 |
+| REQ-LOOP-003 | 以失败关闭、隔离工作树和受保护审批链建立 Loop L3A Draft PR 自动化 | 已完成 | PR #36/#37/#39 受保护合入；真实试点 PR #40 完成固定 Patch、隔离 Worktree、Profile、Commit、Push 与机器人 Draft PR，自动审批、合并和部署均关闭 |
+| REQ-LOOP-004 | 仅在精确 Head 的必需检查全绿且人工批准有效后执行 L3B 受控合并 | 实施中 | `TASK-LOOP-006` 已建立独立 ADR 与 ExecPlan；默认关闭，禁止自动审批、管理员绕过、force-push 和自动部署 |
+| REQ-LOOP-005 | 以不可变制品、专项环境批准和可验证回滚建立 L3C 受控部署 | 待准入 | 必须先完成 L3B；正式制品、Tag/摘要、环境审批、迁移、健康、回滚和生产恢复证据不得由 L3A/L3B 推导 |
 
 ## 范围说明
 

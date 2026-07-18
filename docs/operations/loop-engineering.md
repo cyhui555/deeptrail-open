@@ -1,9 +1,9 @@
 # Loop Engineering 本地操作手册
 
-- 当前能力：正式公开 L2 Proposal-only；L3A 隔离 Draft PR 引擎默认关闭，待独立 activation 准入
+- 当前能力：正式公开 L2 Proposal-only；L3A 隔离 Worktree、固定 Commit/Push 与机器人 Draft PR 已激活并通过真实试点
 - 不包含：业务写入、Daemon/Cron、自动 Skill Apply、自动审批/合并/部署和未准入的 L3B/L3C
 - 架构：[Loop Engineering 落地方案](../architecture/loop-engineering-adoption-proposal.md)
-- 验收：[TASK-LOOP-002 验收记录](../verification/task-loop-002-loop-contract-hardening.md) / [TASK-LOOP-003 交付摘要](../archive/task-loop-003-l2-proposal-admission.md) / [TASK-LOOP-004](../issues/task-loop-004-l3a-controlled-execution.md)
+- 验收：[TASK-LOOP-002 验收记录](../verification/task-loop-002-loop-contract-hardening.md) / [TASK-LOOP-003 交付摘要](../archive/task-loop-003-l2-proposal-admission.md) / [L3A 交付摘要](../archive/task-loop-004-l3a-controlled-execution.md) / [L3B 活动项](../issues/task-loop-006-l3b-controlled-merge.md)
 
 ## 1. 运行边界
 
@@ -233,7 +233,7 @@ pnpm build
 $env:DEEPTRAIL_LOOP_MUTATION_ROOT = 'E:\deep\deeplog\deeptrail-open-l3-worktrees'
 ```
 
-ChangePlan 与固定 Hash 的 `.patch` 必须同处 `$env:DEEPTRAIL_LOOP_HOME\proposals`。默认 `l3-policy.json` 关闭全部 Mutation/Remote 权限；只可通过机器人作者、所有者批准并合入的独立 activation PR，登记最终批准 Head、对应 main 合入 Revision、稳定 L2 Cohort 摘要和 Review URL。运行时会通过 GitHub API 复核这些事实，任一漂移都拒绝。
+ChangePlan 与固定 Hash 的 `.patch` 必须同处 `$env:DEEPTRAIL_LOOP_HOME\proposals`。当前 `l3-policy.json` 的 L3A activation 由机器人 Engine PR #36 和独立 activation PR #37 建立，绑定最终批准 Head、对应 main 合入 Revision、稳定 L2 Cohort 摘要和 Review URL；运行时通过 GitHub API 复核这些事实，任一漂移都拒绝。任何权限变化仍必须先回到默认关闭，并经新的 Engine 与 activation 审批链。
 
 ```powershell
 pnpm loop:l3:preflight -- --plan task-example-l3.json
@@ -243,6 +243,8 @@ pnpm loop:l3:run-draft -- --plan task-example-l3.json
 L3A 只接受 `apps/`、非治理 `docs/`、`evals/`、`tests/` 的普通文本变更；禁止 `scripts/`、治理文档、CI、依赖、部署、迁移、Secret 和生产配置。Profile 使用空 Home/AppData、离线 Store、禁用 dependency lifecycle scripts；提交不运行 Git Hooks。严格 Cohort 在 recorded-operation 内只忽略同进程、同操作、精确 Token/Transaction ID 与 Revision 一致的当前 L3 事务，其他 Writer 或未终结事务继续阻断。发布只推送新 `agent/l3/*` 分支并触发 `automation-pr-author.yml` 创建 `github-actions[bot]` Draft PR，实际 Head 必须等于隔离 Commit。
 
 失败后不要删除现场或重推。先执行 `pnpm loop:recover`：`prepared/applying` 按失败终结并保留 Worktree/分支；已完成发布但 Postcheck 中断时才允许 `resume-postcheck`。自动审批、合并和部署始终为 `false`。
+
+L3B 当前仅有 [准入设计](../architecture/adr-loop-l3b-controlled-merge.md)，CLI 没有合并权限。人工使用 `gh pr merge` 不属于 Loop L3B 试点；在 Engine 与独立 activation 受保护合入前，不得用脚本、auto-merge 或管理员命令模拟通过。
 
 ## 11. 脱敏公开主仓启动
 
