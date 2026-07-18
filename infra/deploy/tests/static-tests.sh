@@ -23,6 +23,7 @@ export DEEPTRAIL_DEPLOY_ROOT="${temporary_root}/deploy"
 source "${DEPLOY_DIR}/common.sh"
 
 cleanup_test() {
+  rm -f -- "${env_contract_file:-}"
   if [[ -n "${release_directory:-}" && "${release_directory}" == "${temporary_root}/"* ]]; then
     rm -f -- "${release_directory}/compose.production.yml" "${release_directory}/production.env" "${manifest_path:-}"
     rmdir -- "${release_directory}" 2>/dev/null || true
@@ -59,6 +60,21 @@ validate_release_id 'v0.2.0-20260716-220000-5becf81206a5'
 if (validate_release_id '../escape') >/dev/null 2>&1; then die '非法 release ID 未被拒绝。'; fi
 validate_port 30301
 if (validate_port 30401) >/dev/null 2>&1; then die '越界端口未被拒绝。'; fi
+
+env_contract_file="${temporary_root}/web.env"
+printf 'AMAP_REST_KEY=test-rest-key\n' >"${env_contract_file}"
+validate_required_env_key "${env_contract_file}" 'AMAP_REST_KEY'
+printf 'AMAP_REST_KEY=\n' >"${env_contract_file}"
+if (validate_required_env_key "${env_contract_file}" 'AMAP_REST_KEY') >/dev/null 2>&1; then
+  die '空的必需部署配置未被拒绝。'
+fi
+printf 'AMAP_REST_KEY=first\nAMAP_REST_KEY=second\n' >"${env_contract_file}"
+if (validate_required_env_key "${env_contract_file}" 'AMAP_REST_KEY') >/dev/null 2>&1; then
+  die '重复的必需部署配置未被拒绝。'
+fi
+grep -Fq "validate_required_env_key \"\${WEB_BUILD_ENV}\" 'NEXT_PUBLIC_AMAP_KEY'" "${DEPLOY_DIR}/build-images.sh"
+grep -Fq "validate_required_env_key \"\${WEB_ENV_FILE}\" 'AMAP_REST_KEY'" "${DEPLOY_DIR}/deploy.sh"
+grep -Fq -- '--map-smoke' "${DEPLOY_DIR}/deploy.sh"
 
 zero_digest="$(printf '0%.0s' {1..64})"
 one_digest="$(printf '1%.0s' {1..64})"

@@ -51,8 +51,8 @@ if (-not $DeployHost) { throw '请先设置 DEEPTRAIL_DEPLOY_HOST' }
 首次发布由 `prepare-host.sh --initialize-server-secret` 生成强随机 `JWT_SECRET`，值不输出。可由管理员在目标机补充：
 
 - `/etc/deeptrail/server.env`：`SPRING_AI_OPENAI_API_KEY`、Provider URL/模型、`GAODE_API_KEY` 等 Server Secret。
-- `/etc/deeptrail/web.env`：`AMAP_REST_KEY` 等仅供 Next Server 使用的 Secret。
-- `/etc/deeptrail/web-build.env`：只允许 `NEXT_PUBLIC_AMAP_KEY`、`NEXT_PUBLIC_AMAP_SECURITY_CODE`；二者会进入浏览器产物，因此不能视为服务端 Secret，BuildKit 仅避免其出现在构建参数和历史中。
+- `/etc/deeptrail/web.env`：必须唯一配置非空 `AMAP_REST_KEY`，仅供 Next Server 使用。
+- `/etc/deeptrail/web-build.env`：必须唯一配置非空 `NEXT_PUBLIC_AMAP_KEY`、`NEXT_PUBLIC_AMAP_SECURITY_CODE`；二者会进入浏览器产物，因此不能视为服务端 Secret，BuildKit 仅避免其出现在构建参数和历史中。
 
 三个文件必须是 `root:root`、`0600/0400`。任何 Secret 都不得写入 `production.env`、release、命令行、Git 或报告。
 
@@ -64,7 +64,7 @@ Server 继续使用只读根文件系统；仅为 SQLite JDBC 原生库保留一
 
 ```bash
 sudo bash infra/deploy/verify.sh --current \
-  --public-url 'http://<public-host>:<port>' --restart
+  --public-url 'http://<public-host>:<port>' --restart --map-smoke
 ```
 
 发布机再执行真实浏览器认证边界验收；密码使用 `SecureString` 交互读取，不进入命令行、脚本或报告：
@@ -74,7 +74,7 @@ sudo bash infra/deploy/verify.sh --current \
   -BaseUrl "http://${DeployHost}:<port>" -Username admin
 ```
 
-该探针依次验证管理员登录、HttpOnly Cookie、`/me`、退出清 Cookie、退出后 401 与公开注册 404。
+`--map-smoke` 只产生一次真实高德静态地图调用并验证图片类型，不输出 Key 或响应正文。认证探针依次验证管理员登录、HttpOnly Cookie、`/me`、退出清 Cookie、退出后 401 与公开注册 404。
 
 ```bash
 sudo bash infra/deploy/rollback.sh \

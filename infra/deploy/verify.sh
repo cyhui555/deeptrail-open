@@ -9,13 +9,16 @@ source "${SCRIPT_DIR}/common.sh"
 RELEASE_DIRECTORY=''
 PUBLIC_URL=''
 RESTART=0
+MAP_SMOKE=0
 
 usage() {
   cat <<'EOF'
 用法：
-  sudo bash infra/deploy/verify.sh --current [--public-url URL] [--restart]
-  sudo bash infra/deploy/verify.sh --release-id RELEASE_ID [--public-url URL] [--restart]
-  sudo bash infra/deploy/verify.sh --release-dir PATH [--public-url URL] [--restart]
+  sudo bash infra/deploy/verify.sh --current [--public-url URL] [--restart] [--map-smoke]
+  sudo bash infra/deploy/verify.sh --release-id RELEASE_ID [--public-url URL] [--restart] [--map-smoke]
+  sudo bash infra/deploy/verify.sh --release-dir PATH [--public-url URL] [--restart] [--map-smoke]
+
+--map-smoke  发起一次真实高德静态地图请求，仅校验 HTTP 与图片类型，不输出密钥或响应正文。
 EOF
 }
 
@@ -26,6 +29,7 @@ while (($# > 0)); do
     --release-dir) RELEASE_DIRECTORY="${2:-}"; shift 2 ;;
     --public-url) PUBLIC_URL="${2:-}"; shift 2 ;;
     --restart) RESTART=1; shift ;;
+    --map-smoke) MAP_SMOKE=1; shift ;;
     -h | --help) usage; exit 0 ;;
     *) die "未知参数：$1" ;;
   esac
@@ -37,7 +41,8 @@ for command_name in curl docker grep python3 readlink realpath sed sort stat; do
 RELEASE_DIRECTORY="$(readlink -f "${RELEASE_DIRECTORY}")"
 validate_release_directory "${RELEASE_DIRECTORY}"
 validate_secret_file "${SERVER_ENV_FILE}" 1
-validate_secret_file "${WEB_ENV_FILE}" 0
+validate_secret_file "${WEB_ENV_FILE}" 1
+validate_required_env_key "${WEB_ENV_FILE}" 'AMAP_REST_KEY'
 run_compose "${RELEASE_DIRECTORY}" config --quiet
 ensure_compose_images_present "${RELEASE_DIRECTORY}"
 validate_release_image_metadata "${RELEASE_DIRECTORY}"
@@ -58,6 +63,11 @@ while true; do
   sleep 2
 done
 
+# 容器必须实际收到运行时 REST Key；只检查存在性，禁止把值带入日志或报告。
+run_compose "${RELEASE_DIRECTORY}" exec -T web node -e \
+  'if (!process.env.AMAP_REST_KEY) process.exit(1)' \
+  || die '运行中 Web 容器缺少 AMAP_REST_KEY。'
+
 for service in server web; do
   container_id="$(run_compose "${RELEASE_DIRECTORY}" ps -q "${service}")"
   deadline=$((SECONDS + 180))
@@ -73,6 +83,13 @@ published="$(run_compose "${RELEASE_DIRECTORY}" port web 3000)"
 [[ "${published}" == *":${port}" ]] || die "Web 实际映射与批准端口不一致：${published}"
 wait_for_http "http://127.0.0.1:${port}/login"
 wait_for_http "http://127.0.0.1:${port}/api/health"
+if [[ "${MAP_SMOKE}" -eq 1 ]]; then
+  map_url="http://127.0.0.1:${port}/api/static-map?location=116.397428,39.90923&zoom=10&size=100%2A100"
+  map_content_type="$(curl --fail --silent --show-error --connect-timeout 5 --max-time 30 \
+    --output /dev/null --write-out '%{content_type}' "${map_url}")" \
+    || die '真实静态地图冒烟失败。'
+  [[ "${map_content_type}" == image/* ]] || die "静态地图返回的 Content-Type 不是图片：${map_content_type:-<empty>}"
+fi
 release_info="$(run_compose "${RELEASE_DIRECTORY}" exec -T server \
   curl --fail --silent http://127.0.0.1:8080/actuator/info)"
 python3 - "${RELEASE_DIRECTORY}/release.json" "${release_info}" <<'PY'
