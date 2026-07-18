@@ -1,4 +1,5 @@
 import { lstat, readdir } from "node:fs/promises";
+import path from "node:path";
 
 import {
   addRef,
@@ -16,11 +17,17 @@ import { readGitState } from "./git-state.mjs";
 import { ensureIdentity, MISSION_ID, verifyIdentity } from "./identity.mjs";
 import { installProjectKinds, verifyProjectKinds } from "./kinds.mjs";
 import {
+  executeL3Draft,
+  preflightL3Change,
+  verifyPublishedL3State
+} from "./l3-worktree.mjs";
+import {
   acquireWriteLock,
   inspectWriteLock,
   quarantineStaleWriteLock
 } from "./lock.mjs";
 import { runRecordedOperation } from "./recorded-operation.mjs";
+import { summarizeReceiptIntegrity, verifyReceiptSet } from "./receipt-integrity.mjs";
 import { runLoopAny, verifyRuntime } from "./runtime.mjs";
 import { verifyRunClosure } from "./shadow.mjs";
 import { syncSkills, verifySkills } from "./skills.mjs";
@@ -169,13 +176,21 @@ export async function doctorLoop(config, options = {}) {
       faultAfter: options.faultAfter,
       apply: async () => {
         const report = await verifyWorkspaceContract(config);
+        const receipts = await verifyReceiptSet(config);
         return {
           report,
-          receipt: summarizeWorkspaceVerification(report),
+          receipts,
+          receipt: {
+            ...summarizeWorkspaceVerification(report),
+            receipts: summarizeReceiptIntegrity(receipts)
+          },
           recovery: { doctorOk: report.loopany.ok }
         };
       },
-      postcheck: async (applied) => summarizeWorkspaceVerification(applied.report)
+      postcheck: async (applied) => ({
+        ...summarizeWorkspaceVerification(applied.report),
+        receipts: summarizeReceiptIntegrity(await verifyReceiptSet(config))
+      })
     });
     return {
       ok: true,
@@ -186,6 +201,84 @@ export async function doctorLoop(config, options = {}) {
       loopany: recorded.applied.report.loopany,
       audit: recorded.applied.report.audit,
       capabilities: recorded.applied.report.capabilities,
+      receipts: summarizeReceiptIntegrity(recorded.applied.receipts),
+      transactionId: recorded.transactionId,
+      receiptFile: recorded.receiptFile,
+      receiptSha256: recorded.receiptSha256
+    };
+  } finally {
+    await lock.release();
+  }
+}
+
+export async function preflightL3Loop(config, planFile, options = {}) {
+  const runtime = await verifyRuntime(config);
+  const git = await readGitState(config);
+  const lock = await acquireWriteLock(config, "l3:preflight", git);
+  try {
+    const recorded = await runRecordedOperation(config, {
+      operation: "l3:preflight",
+      expectedRevision: git.gitCommit,
+      targets: ["l3-proposal", "loop-workspace-audit"],
+      rollback: "预检不创建 Worktree 或远程状态；失败只保留事务与诊断。",
+      input: { planFile: planFile ? path.basename(planFile) : null },
+      faultAfter: options.faultAfter,
+      controlledFailure: (error) => error instanceof LoopGatewayError,
+      apply: async () => {
+        const context = await preflightL3Change(config, { ...options, planFile });
+        const summary = summarizeL3Preflight(context);
+        return { context, receipt: summary, recovery: { summary } };
+      },
+      postcheck: async (applied) => summarizeL3Preflight(applied.context)
+    });
+    return {
+      ok: true,
+      operation: "l3:preflight",
+      runtime: summarizeRuntime(runtime),
+      ...summarizeL3Preflight(recorded.applied.context),
+      transactionId: recorded.transactionId,
+      receiptFile: recorded.receiptFile,
+      receiptSha256: recorded.receiptSha256
+    };
+  } finally {
+    await lock.release();
+  }
+}
+
+export async function runL3DraftLoop(config, planFile, options = {}) {
+  const runtime = await verifyRuntime(config);
+  const git = await readGitState(config);
+  const lock = await acquireWriteLock(config, "l3:run-draft", git);
+  try {
+    const recorded = await runRecordedOperation(config, {
+      operation: "l3:run-draft",
+      expectedRevision: git.gitCommit,
+      targets: ["l3-mutation-root", "git-worktree-metadata", "remote-draft-pr"],
+      rollback: "失败 Worktree、Commit、远程源分支与 Draft PR 保留审计；禁止自动删除或 force-push。",
+      input: { planFile: planFile ? path.basename(planFile) : null },
+      faultAfter: options.faultAfter,
+      controlledFailure: (error) => error instanceof LoopGatewayError
+        && !error.details?.recovery,
+      apply: async () => {
+        const result = await executeL3Draft(config, { ...options, planFile });
+        const receipt = summarizeL3Execution(result);
+        return {
+          result,
+          receipt,
+          recovery: { staged: result.staged, published: result.published }
+        };
+      },
+      postcheck: async (applied) => await verifyPublishedL3State(
+        applied.result.staged,
+        applied.result.published,
+        options
+      )
+    });
+    return {
+      ok: true,
+      operation: "l3:run-draft",
+      runtime: summarizeRuntime(runtime),
+      ...summarizeL3Execution(recorded.applied.result),
       transactionId: recorded.transactionId,
       receiptFile: recorded.receiptFile,
       receiptSha256: recorded.receiptSha256
@@ -516,9 +609,43 @@ async function resumeCandidatePostcheck(config, candidate) {
         (await verifyBackup(config, candidate.latest.input.backupId)).manifest,
         { skipPayloadComparison: true }
       );
+    case "l3:run-draft":
+      return await verifyPublishedL3State(recovery.staged, recovery.published);
     default:
       throw new LoopGatewayError("RECOVERY_OPERATION_UNSUPPORTED", `不支持恢复操作：${candidate.latest.operation}`);
   }
+}
+
+function summarizeL3Preflight(context) {
+  return {
+    stage: context.policy.stage,
+    activationEnabled: context.policy.activation.enabled,
+    changeId: context.plan.changeId,
+    workItemId: context.plan.workItemId,
+    baseRevision: context.plan.baseRevision,
+    profile: context.plan.profile,
+    planDigest: context.planDigest,
+    patchDigest: context.patchDigest,
+    cohortDigest: context.cohortDigest,
+    approval: context.approval,
+    permissions: context.policy.permissions
+  };
+}
+
+function summarizeL3Execution(result) {
+  return {
+    ...summarizeL3Preflight(result.context),
+    worktree: path.basename(result.staged.worktreePath),
+    commit: result.staged.commit,
+    tree: result.staged.tree,
+    diff: result.staged.diff,
+    sourceBranch: result.published.sourceBranch,
+    targetBranch: result.published.targetBranch,
+    pullRequest: result.published.pullRequest,
+    autoApprove: false,
+    autoMerge: false,
+    autoDeploy: false
+  };
 }
 
 async function finalizeCandidateArtifacts(config, candidate) {

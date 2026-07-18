@@ -1,9 +1,9 @@
 # Loop Engineering 本地操作手册
 
-- 当前能力：L0 LoopAny 记忆侧车 + L1 Phase 2 可复现只读质量 Profile；L2 Proposal-only 已实现但尚未正式准入
-- 不包含：业务写入、Daemon/Cron、自动 Skill Apply、远程 Git、服务器和 L3
+- 当前能力：正式公开 L2 Proposal-only；L3A 隔离 Draft PR 引擎默认关闭，待独立 activation 准入
+- 不包含：业务写入、Daemon/Cron、自动 Skill Apply、自动审批/合并/部署和未准入的 L3B/L3C
 - 架构：[Loop Engineering 落地方案](../architecture/loop-engineering-adoption-proposal.md)
-- 验收：[TASK-LOOP-002 验收记录](../verification/task-loop-002-loop-contract-hardening.md) / [TASK-LOOP-003 L2 准入报告](../verification/task-loop-003-m4-l2-admission.md)
+- 验收：[TASK-LOOP-002 验收记录](../verification/task-loop-002-loop-contract-hardening.md) / [TASK-LOOP-003 交付摘要](../archive/task-loop-003-l2-proposal-admission.md) / [TASK-LOOP-004](../issues/task-loop-004-l3a-controlled-execution.md)
 
 ## 1. 运行边界
 
@@ -16,11 +16,13 @@ LoopAny CLI 的读操作也会追加上游 `audit.jsonl`，所以 `init`、`doct
 四个目录必须是绝对路径。Loop Home、Backup Root 和 Git 工作树不能互相包含：
 
 ```powershell
-$env:DEEPTRAIL_LOOP_HOME = 'E:\deep\deeplog\deeptrail-loop'
-$env:DEEPTRAIL_LOOP_BACKUP_ROOT = 'E:\deep\deeplog\deeptrail-loop-backups'
+$env:DEEPTRAIL_LOOP_HOME = 'E:\deep\deeplog\deeptrail-open-loop'
+$env:DEEPTRAIL_LOOP_BACKUP_ROOT = 'E:\deep\deeplog\deeptrail-open-loop-backups'
 $env:LOOPANY_SOURCE_ROOT = 'E:\local-tools\loopany-src'
 $env:LOOPANY_BUN = 'E:\local-tools\bun-1.3.14\npm\node_modules\@oven\bun-windows-x64\bin\bun.exe'
 ```
+
+`E:\deep\deeplog\deeptrail-loop` 是旧私有仓的历史审计 Home，只用于兼容核验，不得作为公开 Cohort 运行目录。混用 Home 会把不同仓库的 Receipt/Evidence 错判为当前运行事实。
 
 确认当前仓库和 Runtime：
 
@@ -118,11 +120,14 @@ Task/Execution/Run 终态、Evidence/Outcome/Receipt 摘要和 LoopAny 引用由
 ```powershell
 pnpm loop:status
 pnpm loop:recover
+pnpm loop:receipts:verify
 pnpm loop:skills:verify
 pnpm loop:doctor
 ```
 
-健康状态应同时满足：`writer: null`、`incompleteTransactions: []`、Skill Manifest 摘要稳定、Doctor `ok: true`。`loop:recover` 在发现未完成项时会以退出码 1 返回，这是诊断结果，不代表应删除现场。
+健康状态应同时满足：`writer: null`、`incompleteTransactions: []`、`unattestedLegacy: 0`、Skill Manifest 摘要稳定、Doctor `ok: true`。正式公开 Home 应全部为 v2；历史 Home 只允许 `receipt-compatibility.json` 精确登记且由固定 Backup 证明的 v1。`loop:recover` 在发现未完成项时会以退出码 1 返回，这是诊断结果，不代表应删除现场。
+
+`pnpm loop:cohort:l2:strict` 成功时返回稳定 `admissionDigest`；它绑定 Cohort 样本、阈值与结果，但不包含持续追加的 Doctor Receipt/Audit 计数，供 L3 activation 精确登记。
 
 ## 7. Backup 与隔离 Restore
 
@@ -139,7 +144,7 @@ $backup.payloadDigest
 Restore 只能写入一个不存在的新目录：
 
 ```powershell
-$restoreTarget = "E:\deep\deeplog\deeptrail-loop-restore-$($backup.backupId)"
+$restoreTarget = "E:\deep\deeplog\deeptrail-open-loop-restore-$($backup.backupId)"
 if (Test-Path -LiteralPath $restoreTarget) { throw "Restore 目标已存在：$restoreTarget" }
 pnpm loop:restore -- --backup $backup.backupId --target $restoreTarget
 ```
@@ -220,7 +225,26 @@ pnpm test
 pnpm build
 ```
 
-## 10. 脱敏公开主仓启动
+## 10. L3A 隔离 Draft PR
+
+先额外设置项目外 Mutation Root；它不能与仓库、Loop Home 或 Backup Root 互相包含：
+
+```powershell
+$env:DEEPTRAIL_LOOP_MUTATION_ROOT = 'E:\deep\deeplog\deeptrail-open-l3-worktrees'
+```
+
+ChangePlan 与固定 Hash 的 `.patch` 必须同处 `$env:DEEPTRAIL_LOOP_HOME\proposals`。默认 `l3-policy.json` 关闭全部 Mutation/Remote 权限；只可通过机器人作者、所有者批准并合入的独立 activation PR，登记最终批准 Head、对应 main 合入 Revision、稳定 L2 Cohort 摘要和 Review URL。运行时会通过 GitHub API 复核这些事实，任一漂移都拒绝。
+
+```powershell
+pnpm loop:l3:preflight -- --plan task-example-l3.json
+pnpm loop:l3:run-draft -- --plan task-example-l3.json
+```
+
+L3A 只接受 `apps/`、非治理 `docs/`、`evals/`、`tests/` 的普通文本变更；禁止 `scripts/`、治理文档、CI、依赖、部署、迁移、Secret 和生产配置。Profile 使用空 Home/AppData、离线 Store、禁用 dependency lifecycle scripts；提交不运行 Git Hooks。发布只推送新 `agent/l3/*` 分支并触发 `automation-pr-author.yml` 创建 `github-actions[bot]` Draft PR，实际 Head 必须等于隔离 Commit。
+
+失败后不要删除现场或重推。先执行 `pnpm loop:recover`：`prepared/applying` 按失败终结并保留 Worktree/分支；已完成发布但 Postcheck 中断时才允许 `resume-postcheck`。自动审批、合并和部署始终为 `false`。
+
+## 11. 脱敏公开主仓启动
 
 现私有仓历史不得直接公开。只有源工作树 clean、治理总门禁通过且输出目录不存在时，才生成不带远端、旧引用或不可达对象的单根公开基线：
 
@@ -232,10 +256,10 @@ pnpm security:public-prepare -- --output $publicBaselinePath
 
 公开主仓已建立并应用 `.github/branch-protection-main.json`。仓库只有一名人工维护者：受信任的手工工作流把锁定 SHA 复制为 `github-actions[bot]` 作者的 Draft PR，唯一人工所有者负责批准，证明 PR 作者外审批门禁；这只是账号级职责分离，不等价于第二位人员审计。PR #22 已完成首个实证并关闭 `TASK-GOV-001`；原私有仓继续保留为审计档案，两个仓库不得互设 Remote 或推送旧历史。
 
-## 11. 停止、回退与禁止事项
+## 12. 停止、回退与禁止事项
 
 - 停止：不再调用 pnpm Loop 命令即可；本实现没有常驻进程。
 - 回退前：确认无 Writer，创建并验证 Backup，在新目录 Restore + Doctor；不要把旧代码直接写入新 Schema Workspace。
 - 禁止：直接使用全局 `loopany`、覆盖 Backup、递归删除未知事务、自动重放 `applying`、把 Restore 切换为活动目录、把 Shadow 失败改写成成功。
 - 禁止：在 Loop Artifact、Receipt、文档或 Git 中保存 `.env`、Token、Cookie、完整日志、业务数据库、媒体或真实用户内容。
-- L2 Proposal-only 必须满足 `TASK-LOOP-003` 准入报告；业务 Mutation、服务器、远程 Git 和 L3 仍需新 Requirement、ADR、权限实测与独立验收，不能由本手册推导授权。
+- L2 Proposal-only 必须持续满足严格 Cohort；L3 权限按 [ADR](../architecture/adr-loop-l3-staged-automation.md) 分段准入，L3A 不能推导自动合并、部署或生产授权。

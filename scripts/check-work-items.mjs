@@ -8,6 +8,12 @@ const boardPath = path.join(issuesRoot, "board.md");
 const registryPath = path.join(root, "docs", "requirements", "registry.md");
 const loopRoot = path.join(root, "scripts", "loop");
 const failures = [];
+const historicalWorkItems = new Map([
+  [
+    "docs/issues/task-loop-003-l1-phase2-to-l2.md",
+    "docs/archive/task-loop-003-l2-proposal-admission.md"
+  ]
+]);
 
 const board = await readFile(boardPath, "utf8");
 const registry = await readFile(registryPath, "utf8");
@@ -57,6 +63,17 @@ for (const file of await collectFiles(loopRoot, ".mjs")) {
     try {
       await readFile(absolute, "utf8");
     } catch {
+      const archived = historicalWorkItems.get(relative);
+      if (archived) {
+        try {
+          // L2 Cohort 的排除项绑定历史 baseRevision；只在对应归档仍存在时接受旧路径。
+          await readFile(path.join(root, ...archived.split("/")), "utf8");
+          continue;
+        } catch {
+          failures.push(`${relative} 的历史归档不存在：${archived}`);
+          continue;
+        }
+      }
       failures.push(`${path.relative(root, file)} 硬编码引用不存在的 Work Item：${relative}`);
     }
   }

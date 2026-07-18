@@ -4,11 +4,28 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
+import { canonicalSha256 } from "../canonical.mjs";
 import { resolveGatewayConfig } from "../config.mjs";
 import { LoopGatewayError } from "../errors.mjs";
 import { sha256 } from "../fs-safe.mjs";
-import { evaluateCohort, validateManifestShape } from "../l2-cohort.mjs";
+import { readGitState } from "../git-state.mjs";
+import { cohortAdmissionDigest, evaluateCohort, validateManifestShape } from "../l2-cohort.mjs";
+import {
+  assertPathAllowed,
+  loadL3Policy,
+  validateL3ChangePlan,
+  validateL3Policy
+} from "../l3-plan.mjs";
+import {
+  publishL3Draft,
+  readL3RepositoryControls,
+  stagePreparedL3Change,
+  validateL3ApprovalEvidence,
+  verifyPublishedL3State
+} from "../l3-worktree.mjs";
 import { acquireWriteLock, quarantineStaleWriteLock } from "../lock.mjs";
+import { requireSuccess, runProcess } from "../process.mjs";
+import { validateLegacyReceiptPolicy, verifyReceiptSet } from "../receipt-integrity.mjs";
 import { assertAllowedLoopAnyArgs, sanitizedEnvironment } from "../runtime.mjs";
 import { detectUnexpectedProcessError, stableRunIdentity } from "../shadow.mjs";
 import { generateProposal } from "../proposal.mjs";
@@ -19,6 +36,7 @@ import {
   verifyReceiptFile,
   writeReceipt
 } from "../transactions.mjs";
+import { manifestDigest } from "../tree.mjs";
 
 const staticConfig = {
   schemaVersion: 1,
@@ -187,6 +205,48 @@ test("Receipt 原子创建并可识别联合篡改", async () => {
   );
 });
 
+test("历史 v1 Receipt 只接受固定 Backup 的逐字节证明", async () => {
+  const fixture = await legacyReceiptFixture("receipt-v1");
+  const report = await verifyReceiptSet(fixture.config, { policy: fixture.policy });
+  assert.equal(report.total, 1);
+  assert.equal(report.v2Verified, 0);
+  assert.equal(report.legacyAttested, 1);
+  assert.equal(report.unattestedLegacy, 0);
+
+  await writeFile(fixture.currentFile, fixture.raw.replace('"outcome": "passed"', '"outcome": "failed"'));
+  await assert.rejects(
+    verifyReceiptSet(fixture.config, { policy: fixture.policy }),
+    (error) => error instanceof LoopGatewayError && error.code === "LEGACY_RECEIPT_TAMPERED"
+  );
+
+  await writeFile(fixture.currentFile, fixture.raw);
+  await writeFile(fixture.backupFile, fixture.raw.replace('"outcome": "passed"', '"outcome": "failed"'));
+  await assert.rejects(
+    verifyReceiptSet(fixture.config, { policy: fixture.policy }),
+    (error) => error instanceof LoopGatewayError && error.code === "BACKUP_PAYLOAD_TAMPERED"
+  );
+});
+
+test("未知 v1 Receipt 与兼容策略放宽均失败关闭", async () => {
+  const fixture = await legacyReceiptFixture("receipt-v1-unknown");
+  const unknown = fixture.fileName.replace("11111111-1111-4111-8111-111111111111",
+    "22222222-2222-4222-8222-222222222222");
+  await writeFile(path.join(fixture.config.receiptRoot, unknown), fixture.raw.replace(
+    fixture.document.receiptId, unknown.slice(0, -5)
+  ));
+  await assert.rejects(
+    verifyReceiptSet(fixture.config, { policy: fixture.policy }),
+    (error) => error instanceof LoopGatewayError && error.code === "LEGACY_RECEIPT_UNATTESTED"
+  );
+
+  const widened = structuredClone(fixture.policy);
+  widened.receipts.push(widened.receipts[0]);
+  assert.throws(
+    () => validateLegacyReceiptPolicy(widened),
+    (error) => error instanceof LoopGatewayError && error.code === "LEGACY_RECEIPT_POLICY_INVALID"
+  );
+});
+
 test("Backup Root 不得与 Loop Home 重叠", async () => {
   const root = await temporary("backup-overlap");
   await assert.rejects(
@@ -313,6 +373,100 @@ test("L2 Cohort 新 Evidence 必须引用上一版 main 已登记的样本", () 
   );
 });
 
+test("L2 准入摘要忽略追加诊断计数但绑定 Cohort 事实", () => {
+  const evaluated = evaluateCohort(Array.from({ length: 10 }, (_, index) =>
+    cohortRegistration(index + 1, "verified")));
+  const report = {
+    schemaVersion: 1,
+    cohortId: "stable-cohort",
+    repository: "cyhui555/deeptrail-open",
+    baseRevision: "a".repeat(40),
+    integrity: { receiptsVerified: 10 },
+    ...evaluated
+  };
+  const digest = cohortAdmissionDigest(report);
+  assert.equal(cohortAdmissionDigest({
+    ...report,
+    integrity: { receiptsVerified: 999, auditEntries: 999 }
+  }), digest);
+  assert.notEqual(cohortAdmissionDigest({
+    ...report,
+    metrics: { ...report.metrics, lastConsecutivePasses: 11 }
+  }), digest);
+});
+
+test("L3 Policy 默认关闭并拒绝预算、路径和权限漂移", async () => {
+  const policy = await loadL3Policy();
+  assert.equal(policy.stage, "preflight-disabled");
+  assert.equal(policy.permissions.isolatedWorktreeMutation, false);
+  assert.throws(
+    () => validateL3Policy({
+      ...policy,
+      permissions: { ...policy.permissions, isolatedWorktreeMutation: true }
+    }),
+    (error) => error instanceof LoopGatewayError && error.code === "L3_POLICY_PREMATURE_ENABLE"
+  );
+  assert.throws(
+    () => assertPathAllowed("scripts/loop/cli.mjs", policy),
+    (error) => error instanceof LoopGatewayError && error.code === "L3_PATH_ROOT_DENIED"
+  );
+  assert.throws(
+    () => assertPathAllowed("docs/issues/task-l3-001-fixture.md", policy),
+    (error) => error instanceof LoopGatewayError && error.code === "L3_PATH_DENIED"
+  );
+  assert.equal(assertPathAllowed("docs/product/pilot.md", policy), "docs/product/pilot.md");
+});
+
+test("L3A 人工批准同时绑定最终 Review Head 与 main 合入 Revision", async () => {
+  const policy = enabledL3Policy(await loadL3Policy(), "a".repeat(40));
+  const evidence = {
+    approvalUrl: policy.activation.approvalUrl,
+    pullRequest: 1,
+    reviewId: 1,
+    author: "cyhui555",
+    state: "APPROVED",
+    reviewedRevision: policy.activation.approvedRevision,
+    headRevision: policy.activation.approvedRevision,
+    mergedRevision: policy.activation.mergedRevision,
+    merged: true,
+    baseBranch: "main"
+  };
+  assert.equal(validateL3ApprovalEvidence(policy, evidence), evidence);
+  assert.throws(
+    () => validateL3ApprovalEvidence(policy, { ...evidence, headRevision: "c".repeat(40) }),
+    (error) => error instanceof LoopGatewayError
+      && error.code === "L3_APPROVAL_EVIDENCE_INVALID"
+  );
+});
+
+test("L3A 在隔离 Worktree 应用 Patch、提交并仅发布机器人 Draft PR", async () => {
+  const fixture = await l3Fixture();
+  const staged = await stagePreparedL3Change(fixture.config, fixture.context);
+  assert.equal(staged.diff.addedLines, 1);
+  assert.equal(staged.diff.deletedLines, 1);
+  assert.equal(staged.verification.profile, "docs");
+  assert.equal((await readGitState(fixture.config)).gitStatus, "");
+
+  const published = await publishL3Draft(fixture.config, fixture.context, staged, {
+    createDraftPullRequest: async ({ plan }) => ({
+      url: "https://github.com/cyhui555/deeptrail-open/pull/999",
+      draft: true,
+      author: "github-actions[bot]",
+      head: plan.pullRequest.targetBranch,
+      base: plan.baseBranch,
+      commit: staged.commit
+    })
+  });
+  assert.equal(published.autoMerge, false);
+  assert.equal((await gitTest(fixture.repoRoot, [
+    "ls-remote", "--heads", "origin", `refs/heads/${fixture.plan.sourceBranch}`
+  ])).split(/\s+/, 1)[0], staged.commit);
+  assert.equal((await gitTest(fixture.repoRoot, ["config", "user.name"])).trim(), "L3 Test");
+  assert.equal((await verifyPublishedL3State(staged, published, {
+    verifyPullRequest: async () => published.pullRequest
+  })).ok, true);
+});
+
 async function fakeConfig(name) {
   const root = await temporary(name);
   const repoRoot = path.join(root, "repo");
@@ -325,10 +479,190 @@ async function fakeConfig(name) {
     repoRoot,
     env: {
       DEEPTRAIL_LOOP_HOME: loopHome,
+      DEEPTRAIL_LOOP_BACKUP_ROOT: path.join(root, "backups"),
       LOOPANY_SOURCE_ROOT: sourceRoot,
       LOOPANY_BUN: path.join(root, "bun.exe")
     }
   });
+}
+
+async function legacyReceiptFixture(name) {
+  const config = await fakeConfig(name);
+  const fileName = "20260716180000-11111111-1111-4111-8111-111111111111.json";
+  const document = {
+    schemaVersion: 1,
+    receiptId: fileName.slice(0, -5),
+    recordedAt: "2026-07-16T18:00:00.000Z",
+    operation: "shadow",
+    outcome: "passed"
+  };
+  const raw = `${JSON.stringify(document, null, 2)}\n`;
+  const receiptSha256 = sha256(raw);
+  const portableReceipt = `receipts/${fileName}`;
+  const files = [{ path: portableReceipt, size: Buffer.byteLength(raw), sha256: receiptSha256 }];
+  const payloadDigest = manifestDigest(files);
+  const backupId = `backup-20260716194349-${payloadDigest.slice(0, 12)}`;
+  const manifest = {
+    schemaVersion: 1,
+    backupId,
+    projectId: config.projectId,
+    createdAt: "2026-07-16T19:43:49.645Z",
+    sourceRevision: "a".repeat(40),
+    loopany: {
+      commit: config.loopany.commit,
+      cliVersion: config.loopany.cliVersion,
+      bunVersion: config.loopany.bunVersion
+    },
+    payloadDigest,
+    files
+  };
+  const policy = {
+    schemaVersion: 1,
+    policyId: "test-legacy-receipt-v1",
+    recordedBefore: "2026-07-16T18:31:00.000Z",
+    backup: {
+      id: backupId,
+      manifestDigest: canonicalSha256(manifest),
+      payloadDigest
+    },
+    receipts: [{ file: fileName, sha256: receiptSha256 }]
+  };
+  const currentFile = path.join(config.receiptRoot, fileName);
+  const backupRoot = path.join(config.backupRoot, backupId);
+  const backupFile = path.join(backupRoot, "payload", "receipts", fileName);
+  await mkdir(config.receiptRoot, { recursive: true });
+  await mkdir(path.dirname(backupFile), { recursive: true });
+  await writeFile(currentFile, raw);
+  await writeFile(backupFile, raw);
+  await writeFile(path.join(backupRoot, "snapshot.json"), `${JSON.stringify({
+    ...manifest,
+    manifestDigest: policy.backup.manifestDigest
+  }, null, 2)}\n`);
+  return { config, fileName, document, raw, policy, currentFile, backupFile };
+}
+
+async function l3Fixture() {
+  const root = await temporary("l3-stage");
+  const repoRoot = path.join(root, "repo");
+  const bareRoot = path.join(root, "remote.git");
+  const loopHome = path.join(root, "loop-home");
+  const sourceRoot = path.join(root, "source");
+  const mutationRoot = path.join(root, "mutation");
+  const proposalRoot = path.join(loopHome, "proposals");
+  await mkdir(repoRoot);
+  await mkdir(sourceRoot);
+  await mkdir(proposalRoot, { recursive: true });
+  await gitTest(repoRoot, ["init"]);
+  await gitTest(repoRoot, ["config", "user.name", "L3 Test"]);
+  await gitTest(repoRoot, ["config", "user.email", "l3-test@example.invalid"]);
+  await gitTest(repoRoot, ["config", "core.autocrlf", "false"]);
+  await mkdir(path.join(repoRoot, "docs", "issues"), { recursive: true });
+  await writeFile(path.join(repoRoot, "docs", "issues", "task-l3-001-fixture.md"),
+    "# TASK-L3-001：隔离试点\n");
+  await writeFile(path.join(repoRoot, "docs", "pilot.md"), "before\n");
+  await writeFile(path.join(repoRoot, "package.json"), `${JSON.stringify({
+    private: true,
+    scripts: {
+      "docs:check": "node -e \"process.stdout.write('docs-ok\\\\n')\"",
+      "security:public-readiness": "node -e \"process.stdout.write('security-ok\\\\n')\""
+    }
+  }, null, 2)}\n`);
+  await writeFile(path.join(repoRoot, "pnpm-lock.yaml"),
+    "lockfileVersion: '9.0'\n\nsettings:\n  autoInstallPeers: true\n  excludeLinksFromLockfile: false\n\nimporters:\n\n  .: {}\n");
+  await writeFile(path.join(repoRoot, ".gitignore"), "node_modules/\n");
+  await writeFile(path.join(repoRoot, ".npmrc"),
+    `store-dir=${path.join(root, "initially-missing-store").replaceAll("\\", "/")}\n`);
+  await gitTest(repoRoot, ["add", "."]);
+  await gitTest(repoRoot, ["commit", "-m", "test: baseline"]);
+  await gitTest(repoRoot, ["branch", "-M", "main"]);
+  await gitTest(root, ["init", "--bare", bareRoot]);
+  await gitTest(repoRoot, ["remote", "add", "origin", bareRoot]);
+  const baseRevision = (await gitTest(repoRoot, ["rev-parse", "HEAD"])).trim();
+
+  await writeFile(path.join(repoRoot, "docs", "pilot.md"), "after\n");
+  const patch = await gitTest(repoRoot, ["diff", "--", "docs/pilot.md"]);
+  await writeFile(path.join(repoRoot, "docs", "pilot.md"), "before\n");
+  const patchFile = path.join(proposalRoot, "task-l3-001.patch");
+  await writeFile(patchFile, patch);
+  const policy = enabledL3Policy(await loadL3Policy(), baseRevision);
+  const plan = validateL3ChangePlan({
+    schemaVersion: 1,
+    changeId: "task-l3-001-pilot",
+    workItemId: "TASK-L3-001",
+    repository: policy.repository,
+    baseBranch: policy.baseBranch,
+    baseRevision,
+    workItem: "docs/issues/task-l3-001-fixture.md",
+    sourceBranch: "agent/l3/task-l3-001-pilot",
+    profile: "docs",
+    patch: {
+      file: path.basename(patchFile),
+      sha256: sha256(patch),
+      changedPaths: ["docs/pilot.md"]
+    },
+    commitMessage: "docs(TASK-L3-001): update isolated pilot",
+    pullRequest: {
+      targetBranch: "automation/l3/task-l3-001-pilot",
+      title: "TASK-L3-001：隔离试点",
+      body: "由 L3A 隔离执行器生成，等待人工所有者审核。",
+      draft: true
+    }
+  }, policy);
+  const config = await resolveGatewayConfig({
+    staticConfig,
+    repoRoot,
+    env: {
+      DEEPTRAIL_LOOP_HOME: loopHome,
+      DEEPTRAIL_LOOP_BACKUP_ROOT: path.join(root, "backups"),
+      LOOPANY_SOURCE_ROOT: sourceRoot,
+      LOOPANY_BUN: path.join(root, "bun.exe")
+    }
+  });
+  const context = {
+    policy,
+    plan,
+    patchFile,
+    remoteUrl: bareRoot,
+    paths: { mutationRoot, proposalRoot },
+    sourceBefore: await readGitState(config),
+    repositoryBefore: await readL3RepositoryControls(repoRoot),
+    planDigest: canonicalSha256(plan),
+    patchDigest: sha256(patch),
+    cohortDigest: policy.activation.l2CohortDigest
+  };
+  return { config, context, plan, repoRoot };
+}
+
+function enabledL3Policy(policy, approvedRevision) {
+  return validateL3Policy({
+    ...policy,
+    stage: "l3a-draft-pr",
+    activation: {
+      enabled: true,
+      approvedRevision,
+      mergedRevision: approvedRevision,
+      l2CohortDigest: "b".repeat(64),
+      humanApprover: "cyhui555",
+      approvalUrl: "https://github.com/cyhui555/deeptrail-open/pull/1#pullrequestreview-1"
+    },
+    permissions: {
+      isolatedWorktreeMutation: true,
+      localCommit: true,
+      remoteBranchPush: true,
+      draftPullRequest: true,
+      autoApprove: false,
+      autoMerge: false,
+      autoDeploy: false
+    }
+  });
+}
+
+async function gitTest(cwd, args) {
+  return requireSuccess(await runProcess("git", args, {
+    cwd,
+    timeoutMs: 30_000,
+    outputLimit: 4 * 1024 * 1024
+  }), `测试 Git ${args[0]}`).stdout;
 }
 
 async function temporary(name) {

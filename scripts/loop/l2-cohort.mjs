@@ -1,17 +1,17 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { requireArtifact } from "./artifacts.mjs";
-import { canonicalJson } from "./canonical.mjs";
+import { canonicalJson, canonicalSha256 } from "./canonical.mjs";
 import { resolveGatewayConfig } from "./config.mjs";
 import { LoopGatewayError, formatError } from "./errors.mjs";
 import { recoverLoop } from "./operations.mjs";
+import { verifyReceiptSet } from "./receipt-integrity.mjs";
 import { verifyRunClosure } from "./shadow.mjs";
-import { verifyReceiptFile } from "./transactions.mjs";
 import { verifyWorkspaceContract } from "./workspace-check.mjs";
 
 const execFileAsync = promisify(execFile);
@@ -215,10 +215,8 @@ export async function verifyStaticCohort(manifest, repoRoot = process.cwd()) {
 }
 
 export async function verifyRuntimeCohort(config, manifest) {
-  const receiptFiles = (await readdir(config.receiptRoot, { withFileTypes: true }))
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-    .map((entry) => path.join(config.receiptRoot, entry.name));
-  const receipts = await Promise.all(receiptFiles.map((file) => verifyReceiptFile(file)));
+  const receiptIntegrity = await verifyReceiptSet(config);
+  const receipts = receiptIntegrity.documents;
   const shadowReceipts = receipts.filter((receipt) => receipt.operation === "shadow"
     && typeof receipt.result?.runId === "string");
   const evidenceBySequence = new Map(manifest.evidence
@@ -250,7 +248,11 @@ export async function verifyRuntimeCohort(config, manifest) {
     repository: manifest.repository,
     baseRevision: manifest.baseRevision,
     integrity: {
-      receiptsVerified: receipts.length,
+      receiptsVerified: receiptIntegrity.total,
+      v2ReceiptsVerified: receiptIntegrity.v2Verified,
+      legacyReceiptsAttested: receiptIntegrity.legacyAttested,
+      unattestedLegacyReceipts: receiptIntegrity.unattestedLegacy,
+      legacyReceiptPolicy: receiptIntegrity.policyId,
       doctorOk: workspace.ok,
       recoveryOk: recovery.ok,
       remoteGitWrite: workspace.capabilities.remoteGitWrite,
@@ -258,6 +260,24 @@ export async function verifyRuntimeCohort(config, manifest) {
     },
     ...evaluation
   };
+}
+
+/** L3 只绑定稳定的 Cohort 事实；诊断 Receipt 数量和 Audit 追加不会令准入摘要漂移。 */
+export function cohortAdmissionDigest(report) {
+  assert(report?.cohortReady === true, "L2_COHORT_NOT_READY", "L2 Cohort 未达到 L3 准入门槛");
+  return canonicalSha256({
+    schemaVersion: report.schemaVersion,
+    cohortId: report.cohortId,
+    repository: report.repository,
+    baseRevision: report.baseRevision,
+    workItemCount: report.workItemCount,
+    profileRunCount: report.profileRunCount,
+    targetWorkItems: report.targetWorkItems,
+    targetMet: report.targetMet,
+    thresholdsMet: report.thresholdsMet,
+    metrics: report.metrics,
+    entries: report.entries
+  });
 }
 
 async function verifyProfileRun(config, manifest, registration, run, shadowReceipts) {
@@ -416,7 +436,7 @@ function assert(condition, code, message) {
   if (!condition) throw new LoopGatewayError(code, message);
 }
 
-async function loadManifest() {
+export async function loadL2CohortManifest() {
   return JSON.parse(await readFile(manifestFile, "utf8"));
 }
 
@@ -425,7 +445,7 @@ async function main() {
   const allowed = new Set(["--static", "--strict"]);
   assert([...args].every((argument) => allowed.has(argument)),
     "L2_COHORT_ARGUMENT_DENIED", "只允许 --static 与 --strict 参数");
-  const manifest = await loadManifest();
+  const manifest = await loadL2CohortManifest();
   const repoRoot = (await gitRequired(process.cwd(), ["rev-parse", "--show-toplevel"],
     "定位 Git 根目录")).trim();
   const staticResult = await verifyStaticCohort(manifest, repoRoot);
@@ -435,7 +455,12 @@ async function main() {
   }
   const config = await resolveGatewayConfig({ repoRoot });
   const report = await verifyRuntimeCohort(config, manifest);
-  process.stdout.write(`${JSON.stringify({ ...report, static: staticResult }, null, 2)}\n`);
+  const admissionDigest = report.cohortReady ? cohortAdmissionDigest(report) : null;
+  process.stdout.write(`${JSON.stringify({
+    ...report,
+    admissionDigest,
+    static: staticResult
+  }, null, 2)}\n`);
   if (args.has("--strict") && !report.cohortReady) process.exitCode = 1;
 }
 
