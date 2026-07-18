@@ -1,6 +1,6 @@
 # TASK-LOOP-006 L3B 执行计划
 
-- 状态：G2（Engine 验证通过、权限关闭）
+- 状态：G3（Engine 已合入、独立 activation 准入）
 - Requirement：`REQ-LOOP-004`
 - Work Item：[TASK-LOOP-006](../issues/task-loop-006-l3b-controlled-merge.md)
 - ADR：[L3B 受控合并](../architecture/adr-loop-l3b-controlled-merge.md)
@@ -68,4 +68,5 @@
 - [x] 建立 GitHub #41、Requirement、ADR、Work Item 与 ExecPlan。
 - [x] 完成 G1 威胁模型评审与可执行 Schema。
 - [x] 完成默认关闭 Engine、32/32 单测、2/2 真实集成与全工程 G2 门禁。
-- [ ] 完成 Engine PR、独立 activation PR 与真实受控合并 G3。
+- [x] 完成 Engine PR #43 的机器人作者、精确 Head 人工批准与受保护合入。
+- [ ] 完成独立 activation PR 与真实受控合并试点 G3。

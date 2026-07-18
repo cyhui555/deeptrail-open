@@ -1,6 +1,6 @@
 # ADR：L3B 仅在人工批准与必需检查后受控合并
 
-- 状态：Accepted / G2（Engine 默认关闭）
+- 状态：Accepted / G3（独立 activation 准入）
 - 日期：2026-07-18
 - 关联：`REQ-LOOP-004`、`TASK-LOOP-006`
 

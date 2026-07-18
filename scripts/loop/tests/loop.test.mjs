@@ -568,24 +568,46 @@ test("L3A 在隔离 Worktree 应用 Patch、提交并仅发布机器人 Draft PR
   })).ok, true);
 });
 
-test("L3B Engine 默认关闭并拒绝一次变更同时扩大和使用权限", async () => {
+test("L3B activation 精确绑定 Engine 证据且关闭基线继续拒绝提前扩权", async () => {
   const policy = await loadL3BPolicy();
-  assert.equal(policy.stage, "l3b-disabled");
-  assert.equal(policy.activation.enabled, false);
+  assert.equal(policy.stage, "l3b-controlled-merge");
+  assert.deepEqual(policy.activation, {
+    enabled: true,
+    engineApprovedRevision: "12ba059d7c90f03572ac94fa7999c62d849f150b",
+    engineMergedRevision: "3e9265ef21d5ef5fdc46874c5cb0215203d03b14",
+    l2CohortDigest: "0cb0880be966bbda8e9699362cc9ebee64149f5149ff72db4ceca30421ffb431",
+    humanApprover: "cyhui555",
+    approvalUrl: "https://github.com/cyhui555/deeptrail-open/pull/43#pullrequestreview-4727939298",
+    protectionDigest: "dba93e452ecae92edbb5e698116496680fdc0a247e9f137bdffdacf1d59ef471"
+  });
   assert.deepEqual(policy.permissions, {
     markReady: false,
     submitReview: false,
-    controlledSquashMerge: false,
+    controlledSquashMerge: true,
     autoApprove: false,
     adminMerge: false,
     forcePush: false,
     deleteRemoteBranch: false,
     autoDeploy: false
   });
+  const disabled = validateL3BPolicy({
+    ...policy,
+    stage: "l3b-disabled",
+    activation: {
+      enabled: false,
+      engineApprovedRevision: null,
+      engineMergedRevision: null,
+      l2CohortDigest: null,
+      humanApprover: null,
+      approvalUrl: null,
+      protectionDigest: null
+    },
+    permissions: { ...policy.permissions, controlledSquashMerge: false }
+  });
   assert.throws(
     () => validateL3BPolicy({
-      ...policy,
-      permissions: { ...policy.permissions, controlledSquashMerge: true }
+      ...disabled,
+      permissions: { ...disabled.permissions, controlledSquashMerge: true }
     }),
     (error) => error instanceof LoopGatewayError
       && error.code === "L3B_POLICY_PREMATURE_ENABLE"

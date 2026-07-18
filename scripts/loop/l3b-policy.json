@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
-  "stage": "l3b-disabled",
+  "stage": "l3b-controlled-merge",
   "repository": "cyhui555/deeptrail-open",
   "baseBranch": "main",
   "targetBranchPrefix": "automation/l3/",
   "mergeMethod": "squash",
   "activation": {
-    "enabled": false,
-    "engineApprovedRevision": null,
-    "engineMergedRevision": null,
-    "l2CohortDigest": null,
-    "humanApprover": null,
-    "approvalUrl": null,
-    "protectionDigest": null
+    "enabled": true,
+    "engineApprovedRevision": "12ba059d7c90f03572ac94fa7999c62d849f150b",
+    "engineMergedRevision": "3e9265ef21d5ef5fdc46874c5cb0215203d03b14",
+    "l2CohortDigest": "0cb0880be966bbda8e9699362cc9ebee64149f5149ff72db4ceca30421ffb431",
+    "humanApprover": "cyhui555",
+    "approvalUrl": "https://github.com/cyhui555/deeptrail-open/pull/43#pullrequestreview-4727939298",
+    "protectionDigest": "dba93e452ecae92edbb5e698116496680fdc0a247e9f137bdffdacf1d59ef471"
   },
   "requiredChecks": [
     {
@@ -60,7 +60,7 @@
   "permissions": {
     "markReady": false,
     "submitReview": false,
-    "controlledSquashMerge": false,
+    "controlledSquashMerge": true,
     "autoApprove": false,
     "adminMerge": false,
     "forcePush": false,
