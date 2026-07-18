@@ -71,7 +71,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
     const body = (await res.json()) as ApiResponse<T>;
     if (!body.success) {
-      // 后端通过 HTTP 200 + errorCode 返回业务错误；UNAUTHORIZED 当作 401 处理，触发前端登出
+      // 多数业务错误仍使用 HTTP 200 + errorCode；无权限等传输层错误会在上方按真实状态码处理。
       if (body.errorCode === 'UNAUTHORIZED') {
         throw new ApiError(body.message || '请先登录', 401);
       }
