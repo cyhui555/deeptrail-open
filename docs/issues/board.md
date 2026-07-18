@@ -4,7 +4,7 @@
 
 ## Verification
 
-- `TASK-LOOP-006`：L3B 默认关闭 Engine 已通过 G2 威胁矩阵与真实临时远端验证；待 Engine PR、独立 activation 和真实文档合并试点，见[活动 Work Item](task-loop-006-l3b-controlled-merge.md)、[执行计划](../plans/task-loop-006-l3b-exec-plan.md)与 [GitHub #41](https://github.com/cyhui555/deeptrail-open/issues/41)。
+- `TASK-LOOP-007`：在人工 Review/Merge 边界下建立只读 Issue 准入合同，先消除终态事项阻塞，再推进自动提单与 PR 生命周期，见[活动 Work Item](task-loop-007-autonomous-intake.md)与[执行计划](../plans/task-loop-007-autonomous-intake-exec-plan.md)。
 - `BUG-20260717-006`：身份贡献器、不可变发布及健康后故障注入自动恢复均通过，见[活动 Work Item](bug-20260717-006-release-identity-recovery.md)。
 - `TASK-RELEASE-003`：目标机 117/117 固定回归、Release 身份与恢复演练通过，见[活动 Work Item](task-release-003-target-release-validation.md)。
 - `TASK-OPS-002`：零付费、无生产密钥且固定回归阶段断网的目标机回归已固化，见[活动 Work Item](task-ops-002-no-cost-target-regressions.md)。
@@ -17,6 +17,7 @@
 
 ## Closed
 
+- `TASK-LOOP-006`：默认关闭 Engine 已由 PR #43 合入；activation PR #44 关闭未合入，GitHub #41 以 `not_planned` 终止，见[L3B 终止摘要](../archive/task-loop-006-l3b-controlled-merge.md)。
 - `TASK-LOOP-004` / `TASK-LOOP-005` / `BUG-20260718-001` / `BUG-20260718-002`：Receipt 兼容、L3A Engine/activation、Recovery 修复与机器人 Draft PR #40 真实试点均完成，见 [L3A 交付摘要](../archive/task-loop-004-l3a-controlled-execution.md)。
 - `TASK-GOV-001`：机器人作者 PR #22 经唯一人工所有者批准、五项 Required Checks 全绿后合并，直推例外已关闭，见[治理记录](task-gov-001-rapid-iteration-direct-main.md)。
 - `TASK-LOOP-003`：L1 Phase 2 与 L2 Proposal-only 准入完成，见[交付摘要](../archive/task-loop-003-l2-proposal-admission.md)。

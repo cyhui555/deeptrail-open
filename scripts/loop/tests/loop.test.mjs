@@ -9,6 +9,11 @@ import { resolveGatewayConfig } from "../config.mjs";
 import { LoopGatewayError } from "../errors.mjs";
 import { sha256 } from "../fs-safe.mjs";
 import { readGitState } from "../git-state.mjs";
+import {
+  evaluateIssueIntake,
+  loadIntakePolicy,
+  validateIntakePolicy
+} from "../intake.mjs";
 import { cohortAdmissionDigest, evaluateCohort, validateManifestShape } from "../l2-cohort.mjs";
 import {
   assertPathAllowed,
@@ -452,6 +457,93 @@ test("L2 准入摘要忽略追加诊断计数但绑定 Cohort 事实", () => {
     ...report,
     metrics: { ...report.metrics, lastConsecutivePasses: 11 }
   }), digest);
+});
+
+test("Issue Intake 只接受可信请求者提交的完整 agent-ready 合同", async () => {
+  const policy = await loadIntakePolicy();
+  const marker = "不得出现在 Intake 输出中的正文标记";
+  const accepted = evaluateIssueIntake(intakeIssue({ marker }), policy);
+  assert.equal(accepted.decision, "executable");
+  assert.equal(accepted.executable, true);
+  assert.equal(accepted.terminal, false);
+  assert.equal(accepted.queueDisposition, "candidate");
+  assert.equal(accepted.contractDigest.length, 64);
+  assert.equal(accepted.issue.bodySha256.length, 64);
+  assert.equal("body" in accepted.issue, false);
+  assert.equal(JSON.stringify(accepted).includes(marker), false);
+  assert.deepEqual(accepted.permissions, {
+    readIssue: true,
+    createIssue: false,
+    updateIssue: false,
+    executeCommands: false,
+    mutateGit: false,
+    createPullRequest: false,
+    markReady: false,
+    submitReview: false,
+    mergePullRequest: false,
+    deploy: false
+  });
+});
+
+test("Issue Intake 缺标签、章节或可信请求者时只生成 Proposal", async () => {
+  const policy = await loadIntakePolicy();
+  const rejected = evaluateIssueIntake(intakeIssue({
+    requester: "untrusted-user",
+    labels: [],
+    body: "## 目标\n修复问题。\n\n## 回滚\n恢复原提交。"
+  }), policy);
+  assert.equal(rejected.decision, "proposal-only");
+  assert.equal(rejected.executable, false);
+  assert.equal(rejected.queueDisposition, "awaiting-contract");
+  assert.deepEqual(rejected.missingSections, ["验收标准", "范围外"]);
+  assert.deepEqual(rejected.reasons, [
+    "UNTRUSTED_REQUESTER",
+    "AGENT_READY_LABEL_MISSING",
+    "REQUIRED_SECTION_MISSING:验收标准",
+    "REQUIRED_SECTION_MISSING:范围外"
+  ]);
+});
+
+test("Issue Intake 将 Closed 与 not_planned 判为不阻塞队列的终态", async () => {
+  const policy = await loadIntakePolicy();
+  const terminal = evaluateIssueIntake(intakeIssue({
+    state: "closed",
+    stateReason: "not_planned",
+    requester: "untrusted-user",
+    labels: [],
+    body: ""
+  }), policy);
+  assert.equal(terminal.decision, "terminal");
+  assert.equal(terminal.terminal, true);
+  assert.equal(terminal.queueDisposition, "ignore-terminal");
+  assert.deepEqual(terminal.missingSections, []);
+  assert.deepEqual(terminal.reasons, ["ISSUE_CLOSED:not_planned"]);
+});
+
+test("Issue Intake 拒绝 PR、超预算正文与权限放宽", async () => {
+  const policy = await loadIntakePolicy();
+  assert.throws(
+    () => evaluateIssueIntake({ ...intakeIssue(), pull_request: { url: "redacted" } }, policy),
+    (error) => error instanceof LoopGatewayError && error.code === "INTAKE_PULL_REQUEST_DENIED"
+  );
+  assert.throws(
+    () => evaluateIssueIntake(intakeIssue({ body: "x".repeat(65_537) }), policy),
+    (error) => error instanceof LoopGatewayError
+      && error.code === "INTAKE_BODY_BUDGET_EXCEEDED"
+  );
+  assert.throws(
+    () => validateIntakePolicy({
+      ...policy,
+      permissions: { ...policy.permissions, createIssue: true }
+    }),
+    (error) => error instanceof LoopGatewayError
+      && error.code === "INTAKE_POLICY_PERMISSION_DRIFT"
+  );
+  assert.throws(
+    () => validateIntakePolicy({ ...policy, unknown: true }),
+    (error) => error instanceof LoopGatewayError
+      && error.code === "INTAKE_POLICY_UNKNOWN_FIELD"
+  );
 });
 
 test("L3 Policy 保留关闭基线并拒绝预算、路径和权限漂移", async () => {
@@ -1214,6 +1306,34 @@ async function gitTest(cwd, args) {
 
 async function temporary(name) {
   return await mkdtemp(path.join(os.tmpdir(), `deeptrail-loop-${name}-`));
+}
+
+function intakeIssue(options = {}) {
+  const number = options.number ?? 77;
+  const marker = options.marker ?? "执行合同正文";
+  return {
+    number,
+    html_url: `https://github.com/cyhui555/deeptrail-open/issues/${number}`,
+    title: options.title ?? "REQ：建立自主任务入口",
+    body: options.body ?? [
+      "## 目标",
+      marker,
+      "",
+      "## 验收标准",
+      "固定测试通过。",
+      "",
+      "## 范围外",
+      "不自动合并。",
+      "",
+      "## 回滚",
+      "移除只读入口。"
+    ].join("\n"),
+    state: options.state ?? "open",
+    state_reason: options.stateReason ?? null,
+    user: { login: options.requester ?? "cyhui555" },
+    labels: (options.labels ?? ["agent-ready"]).map((name) => ({ name })),
+    updated_at: options.updatedAt ?? "2026-07-18T08:30:00.000Z"
+  };
 }
 
 function cohortRegistration(sequence, status, boundaryViolation = false) {

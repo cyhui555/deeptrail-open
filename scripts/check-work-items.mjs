@@ -12,6 +12,10 @@ const historicalWorkItems = new Map([
   [
     "docs/issues/task-loop-003-l1-phase2-to-l2.md",
     "docs/archive/task-loop-003-l2-proposal-admission.md"
+  ],
+  [
+    "docs/issues/task-loop-006-l3b-controlled-merge.md",
+    "docs/archive/task-loop-006-l3b-controlled-merge.md"
   ]
 ]);
 
