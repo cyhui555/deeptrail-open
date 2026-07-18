@@ -2,7 +2,7 @@
 
 - 最后核对：2026-07-18
 - 当前阶段：L3A activation 已以 PR #37 受保护合入；首次真实 preflight 暴露严格 Cohort Recovery 自冲突，正在修复
-- 当前检查门：公开 `main@5c0cb33` 与远端一致；失败事务已终结、无 Writer/未终结事务；严格 Cohort 50/50 v2 且准入摘要不变
+- 当前检查门：公开 `main@5c0cb33` 与远端一致；失败事务已终结、无 Writer/未终结事务；修复后原 Proposal 真实 preflight 与 Runtime 集成 1/1 通过，严格 Cohort 摘要不变
 - 活动工作项：`BUG-20260718-001`、`BUG-20260718-002`、`TASK-LOOP-004`、`TASK-LOOP-005`、`TASK-RELEASE-003`、`TASK-OPS-002`
 - 最近完成：`TASK-LOOP-003`、`TASK-GOV-001`、`TASK-WORKSPACE-001`、`TASK-LOOP-002`、`TASK-LOOP-001`
 

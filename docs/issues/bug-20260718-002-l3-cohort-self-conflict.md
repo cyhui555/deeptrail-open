@@ -14,6 +14,7 @@
 - [x] 首次失败事务进入 `failed`，rejected Receipt 保留；未创建 Worktree、Commit、分支或 PR。
 - [x] 只忽略同进程、同 L3 operation、精确 Lock Token/Transaction ID 且 Revision 一致的当前事务。
 - [x] 错误 Token、其他 Writer、其他未终结事务和非 L3 operation 继续失败关闭。
+- [x] 原固定 ChangePlan 真实 preflight 与 Runtime 集成 1/1 通过；passed Receipt SHA-256 为 `478fa459522b67aa9d6928ad2e95911cbf357523bb882092cceb6c83df61cd5f`。
 - [ ] 修复经机器人作者、人工所有者批准与五项 Required Checks 合入后，原固定 ChangePlan 完成 Draft PR。
 
 ## 回滚
