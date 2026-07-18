@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "stage": "l3b-disabled",
+  "repository": "cyhui555/deeptrail-open",
+  "baseBranch": "main",
+  "targetBranchPrefix": "automation/l3/",
+  "mergeMethod": "squash",
+  "activation": {
+    "enabled": false,
+    "engineApprovedRevision": null,
+    "engineMergedRevision": null,
+    "l2CohortDigest": null,
+    "humanApprover": null,
+    "approvalUrl": null,
+    "protectionDigest": null
+  },
+  "requiredChecks": [
+    {
+      "name": "Backend E2E",
+      "appId": 15368
+    },
+    {
+      "name": "Backend quality",
+      "appId": 15368
+    },
+    {
+      "name": "Frontend quality and Eval",
+      "appId": 15368
+    },
+    {
+      "name": "Frontend smoke",
+      "appId": 15368
+    },
+    {
+      "name": "Governance and Loop quality",
+      "appId": 15368
+    }
+  ],
+  "protectionContract": {
+    "requiredStatusChecks": {
+      "strict": true
+    },
+    "requiredPullRequestReviews": {
+      "dismissStaleReviews": true,
+      "requireLastPushApproval": true,
+      "requiredApprovingReviewCount": 1,
+      "requireCodeOwnerReviews": false
+    },
+    "enforceAdmins": true,
+    "requiredLinearHistory": true,
+    "requiredConversationResolution": true,
+    "allowForcePushes": false,
+    "allowDeletions": false,
+    "repositoryMergeSettings": {
+      "allowSquashMerge": true,
+      "allowAutoMerge": false,
+      "deleteBranchOnMerge": false
+    }
+  },
+  "permissions": {
+    "markReady": false,
+    "submitReview": false,
+    "controlledSquashMerge": false,
+    "autoApprove": false,
+    "adminMerge": false,
+    "forcePush": false,
+    "deleteRemoteBranch": false,
+    "autoDeploy": false
+  },
+  "failurePolicy": {
+    "preservePullRequest": true,
+    "retryMergeWithoutReadback": false,
+    "closePullRequest": false,
+    "deleteRemoteBranch": false
+  }
+}
