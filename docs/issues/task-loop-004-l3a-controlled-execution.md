@@ -1,6 +1,6 @@
 # TASK-LOOP-004：L3A 隔离 Worktree 与 Draft PR 闭环
 
-- 状态：In Progress / G1
+- 状态：In Progress / G3 activation
 - 优先级：P0
 - 关联 Requirement：`REQ-LOOP-003`
 - GitHub：[#34](https://github.com/cyhui555/deeptrail-open/issues/34)
@@ -22,6 +22,7 @@
 ## 验收
 
 - [x] `BUG-20260718-001` 本地修复完成，正式公开 L2 严格 Cohort 为绿。
+- [x] 引擎 PR #36 经所有者批准、五项 Required Checks 通过并以 `c81c5cc` 合入受保护主干。
 - [x] 权限策略默认全关；activation 双重绑定最终批准 Head、main 合入 Revision、稳定 L2 摘要与所有者 Review。
 - [x] 路径逃逸、治理目录、Symlink、二进制、超预算、基线漂移、脏源树、凭据目录继承和非 Draft PR 全部失败关闭。
 - [ ] 免费、无业务数据的试点完成隔离 Patch、固定 Profile、Commit 与 Draft PR。

@@ -1,9 +1,9 @@
 # 当前项目状态
 
 - 最后核对：2026-07-18
-- 当前阶段：正式公开 L2 Proposal-only 严格 Cohort 持续为绿；历史 v1 Receipt 已本地兼容，L3A 默认关闭引擎正在 G2 验证
-- 当前检查门：公开 `main@020638c` 与远端一致、CI 成功；公开 Home Doctor 与严格 Cohort 49/49 v2、10 Work Items / 17 Profiles 通过；当前分支 Loop 单测 23/23
-- 活动工作项：`BUG-20260718-001`、`TASK-LOOP-004`、`TASK-RELEASE-003`、`TASK-OPS-002`
+- 当前阶段：历史 Receipt 兼容与 L3A 引擎已受保护合入，正在以独立 PR 激活 Proposal-only Draft 执行
+- 当前检查门：公开 `main@c81c5cc` 与远端一致；PR #36 所有者批准、五项 Required Checks 和额外 full E2E 均通过；严格 Cohort 49/49 v2
+- 活动工作项：`BUG-20260718-001`、`TASK-LOOP-004`、`TASK-LOOP-005`、`TASK-RELEASE-003`、`TASK-OPS-002`
 - 最近完成：`TASK-LOOP-003`、`TASK-GOV-001`、`TASK-WORKSPACE-001`、`TASK-LOOP-002`、`TASK-LOOP-001`
 
 ## 当前事实
@@ -12,8 +12,8 @@
 - LoopAny 固定为 `cdd1d08f4d3d5a09a49443ef1d7a698363ef06f5`、CLI `0.2.0`、Bun `1.3.14`，使用项目外 Workspace、单写锁、Transaction v2、Receipt、Backup/隔离 Restore 与固定 Profile。
 - `REQ-LOOP-002` 已以 PR #22—#32、公开 Cohort 10/10、目标机断网回归和不可变 Release/恢复完成 L2 Proposal-only 准入，历史结论见 [TASK-LOOP-003 摘要](../archive/task-loop-003-l2-proposal-admission.md)。
 - 旧手册曾把公开仓指向历史私有 Home；该 Home 的 35 份 v2 + 五份 v1 已由固定 Backup 逐字节证明，正式公开 `deeptrail-open-loop` 未发生 Cohort 回退。
-- `BUG-20260718-001` 已实现版本化证明清单和 Doctor/Cohort 共享校验器，不补写、删除或迁移原证据；未知 v1 继续失败关闭。
-- `REQ-LOOP-003` 采用 L3A/L3B/L3C 分段模型；L3A 引擎只实施隔离凭据 Runtime/Worktree、固定 Patch/Profile、Commit 和机器人 Draft PR，Policy 默认关闭。
+- `BUG-20260718-001` 与 L3A 引擎已由 PR #36 合入；批准 Head `340e729`、main 合入 Revision `c81c5cc` 和所有者 Review 均可远程复核。
+- `REQ-LOOP-003` 采用 L3A/L3B/L3C 分段模型；本次 activation 只开放隔离 Worktree、Commit、新分支 Push 和机器人 Draft PR。
 
 ## 当前约束
 
@@ -31,4 +31,4 @@
 
 ## 下一项唯一动作
 
-完成全量本地门禁并由机器人机制创建受保护 Draft PR；人工批准合入后，用独立 activation PR 绑定批准/合入 Revision 与 Cohort 摘要，再执行免费 L3A 试点。
+由机器人机制发布独立 activation PR，经人工批准和五项 Required Checks 合入后，执行 `TASK-LOOP-005` 免费 L3A Draft PR 试点。
