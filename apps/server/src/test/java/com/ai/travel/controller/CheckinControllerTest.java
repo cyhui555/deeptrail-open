@@ -197,6 +197,24 @@ class CheckinControllerTest {
   }
 
   @Test
+  @DisplayName("空白行程添加首个自定义打卡项应走行程级持久化入口")
+  void addFirstCustomItem_returnsItemId() throws Exception {
+    when(checkinTaskService.addCustomItemToPlan(any(), any(), any())).thenReturn(43L);
+
+    mockMvc.perform(post("/api/itineraries/checkin/trips/plan-blank/custom-item")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {"name":"第一个地点","period":"上午"}
+                """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data").value(43));
+
+    verify(checkinTaskService).addCustomItemToPlan(
+        eq("plan-blank"), argThat(request -> "第一个地点".equals(request.getName())), eq(1L));
+  }
+
+  @Test
   @DisplayName("编辑自定义打卡项应返回成功")
   void editCustomItem_returnsOk() throws Exception {
     doNothing().when(checkinTaskService).editCustomItem(any(), any(), any());
