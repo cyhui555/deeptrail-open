@@ -71,9 +71,10 @@ class MediaControllerTest {
         .thenThrow(new ForbiddenException("无权访问该打卡项"));
 
     mockMvc.perform(get("/api/media/2"))
-        .andExpect(status().isOk())
+        .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.errorCode").value("FORBIDDEN"));
+        .andExpect(jsonPath("$.errorCode").value("FORBIDDEN"))
+        .andExpect(jsonPath("$.data").isEmpty());
   }
 
   @Test

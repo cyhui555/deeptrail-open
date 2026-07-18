@@ -89,9 +89,11 @@ class GlobalExceptionHandlerTest {
             .content("""
                 {"departureLocation":"北京","departureTime":"2026-07-01 09:00:00","destination":"西安","days":3,"peopleCount":2}
                 """))
-        .andExpect(status().isOk())
+        .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.errorCode").value("FORBIDDEN"));
+        .andExpect(jsonPath("$.errorCode").value("FORBIDDEN"))
+        .andExpect(jsonPath("$.message").value("禁止访问"))
+        .andExpect(jsonPath("$.data").isEmpty());
   }
 
   @Test
