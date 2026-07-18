@@ -94,6 +94,9 @@ export async function runRecordedOperation(config, definition) {
       recovery: applied?.recovery ?? error?.details?.recovery ?? {},
       error: error instanceof Error ? error.message : String(error)
     }).catch(() => {});
+    if (error && typeof error === "object") {
+      error.details = { ...(error.details ?? {}), transactionId: transaction.id };
+    }
     throw error;
   }
 }

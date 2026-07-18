@@ -1,6 +1,6 @@
 # TASK-LOOP-006：L3B 人工批准后的受控合并闭环
 
-- 状态：In Progress / G0
+- 状态：In Progress / G2（Engine 默认关闭）
 - 优先级：P0
 - GitHub：[#41](https://github.com/cyhui555/deeptrail-open/issues/41)
 - 关联 Requirement：`REQ-LOOP-004`
@@ -21,8 +21,8 @@
 ## 验收
 
 - [x] GitHub #41、`REQ-LOOP-004`、ADR 与 ExecPlan 建立并明确范围外。
-- [ ] 默认关闭的 L3B Policy、MergePlan、远端事实校验与事务恢复实现完成。
-- [ ] Draft、审批缺失/过期/驳回、Head/Base 漂移、检查失败、保护变化和并发合并全部失败关闭。
+- [x] 默认关闭的 L3B Policy、MergePlan、远端事实校验与事务恢复实现完成。
+- [x] Draft、审批缺失/过期/驳回、Head/Base 漂移、检查失败、保护变化和并发合并全部失败关闭。
 - [ ] Engine PR 经机器人作者、必需检查和人工批准后受保护合入。
 - [ ] 独立 activation PR 精确绑定 Engine 证据并再次人工批准。
 - [ ] 免费、无业务数据的全新文档试点完成真实受控 squash merge；`autoApprove=false`、`autoDeploy=false`。

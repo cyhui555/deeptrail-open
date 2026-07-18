@@ -4,7 +4,7 @@
 
 ## Verification
 
-- `TASK-LOOP-006`：L3A 已完成真实 Draft PR 试点；L3B 只增加必需检查与人工批准后的普通受控 squash merge，默认关闭且不含自动审批/部署，见[活动 Work Item](task-loop-006-l3b-controlled-merge.md)、[执行计划](../plans/task-loop-006-l3b-exec-plan.md)与 [GitHub #41](https://github.com/cyhui555/deeptrail-open/issues/41)。
+- `TASK-LOOP-006`：L3B 默认关闭 Engine 已通过 G2 威胁矩阵与真实临时远端验证；待 Engine PR、独立 activation 和真实文档合并试点，见[活动 Work Item](task-loop-006-l3b-controlled-merge.md)、[执行计划](../plans/task-loop-006-l3b-exec-plan.md)与 [GitHub #41](https://github.com/cyhui555/deeptrail-open/issues/41)。
 - `BUG-20260717-006`：身份贡献器、不可变发布及健康后故障注入自动恢复均通过，见[活动 Work Item](bug-20260717-006-release-identity-recovery.md)。
 - `TASK-RELEASE-003`：目标机 117/117 固定回归、Release 身份与恢复演练通过，见[活动 Work Item](task-release-003-target-release-validation.md)。
 - `TASK-OPS-002`：零付费、无生产密钥且固定回归阶段断网的目标机回归已固化，见[活动 Work Item](task-ops-002-no-cost-target-regressions.md)。

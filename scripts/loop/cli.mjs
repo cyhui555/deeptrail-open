@@ -6,12 +6,14 @@ import {
   backupLoop,
   clearStaleLockRecovery,
   initializeLoop,
+  preflightL3BLoop,
   preflightL3Loop,
   doctorLoop,
   finalizeFailedRecovery,
   recoverLoop,
   restoreLoop,
   runL3DraftLoop,
+  runL3BMergeLoop,
   resumePostcheckRecovery,
   statusLoop,
   syncSkillsRecorded
@@ -49,6 +51,12 @@ async function main() {
   } else if (args[0] === "l3" && args[1] === "run-draft") {
     const flags = parseFlags(args.slice(2), new Set(["--plan"]));
     result = await runL3DraftLoop(config, requireFlag(flags, "--plan"));
+  } else if (args[0] === "l3" && args[1] === "merge-preflight") {
+    const flags = parseFlags(args.slice(2), new Set(["--plan"]));
+    result = await preflightL3BLoop(config, requireFlag(flags, "--plan"));
+  } else if (args[0] === "l3" && args[1] === "merge-approved") {
+    const flags = parseFlags(args.slice(2), new Set(["--plan"]));
+    result = await runL3BMergeLoop(config, requireFlag(flags, "--plan"));
   } else if (args[0] === "backup" && args.length === 1) {
     result = await backupLoop(config);
   } else if (args[0] === "restore") {
@@ -68,7 +76,7 @@ async function main() {
   } else {
     throw new LoopGatewayError(
       "USAGE",
-      "用法：loop <init|doctor|status|receipts verify|l3 preflight --plan <file>|l3 run-draft --plan <file>|backup|restore --backup <id> --target <path>|recover [--finalize-failed|--resume-postcheck|--clear-stale-lock <id>]|skills sync|skills verify|shadow --work-item <path> [--profile docs|gateway]>"
+      "用法：loop <init|doctor|status|receipts verify|l3 preflight --plan <file>|l3 run-draft --plan <file>|l3 merge-preflight --plan <file>|l3 merge-approved --plan <file>|backup|restore --backup <id> --target <path>|recover [--finalize-failed|--resume-postcheck|--clear-stale-lock <id>]|skills sync|skills verify|shadow --work-item <path> [--profile docs|gateway]>"
     );
   }
 

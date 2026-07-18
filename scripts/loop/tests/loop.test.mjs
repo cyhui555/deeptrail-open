@@ -17,6 +17,19 @@ import {
   validateL3Policy
 } from "../l3-plan.mjs";
 import {
+  loadL3BPolicy,
+  normalizeL3BProtectionSnapshot,
+  validateL3BMergePlan,
+  validateL3BPolicy
+} from "../l3-merge-plan.mjs";
+import {
+  executePreparedL3BMerge,
+  recoverL3BMerge,
+  validateL3BActivationEvidence,
+  validateL3BMergedFacts,
+  validateL3BPreMergeFacts
+} from "../l3-merge.mjs";
+import {
   publishL3Draft,
   readL3RepositoryControls,
   stagePreparedL3Change,
@@ -555,6 +568,237 @@ test("L3A 在隔离 Worktree 应用 Patch、提交并仅发布机器人 Draft PR
   })).ok, true);
 });
 
+test("L3B Engine 默认关闭并拒绝一次变更同时扩大和使用权限", async () => {
+  const policy = await loadL3BPolicy();
+  assert.equal(policy.stage, "l3b-disabled");
+  assert.equal(policy.activation.enabled, false);
+  assert.deepEqual(policy.permissions, {
+    markReady: false,
+    submitReview: false,
+    controlledSquashMerge: false,
+    autoApprove: false,
+    adminMerge: false,
+    forcePush: false,
+    deleteRemoteBranch: false,
+    autoDeploy: false
+  });
+  assert.throws(
+    () => validateL3BPolicy({
+      ...policy,
+      permissions: { ...policy.permissions, controlledSquashMerge: true }
+    }),
+    (error) => error instanceof LoopGatewayError
+      && error.code === "L3B_POLICY_PREMATURE_ENABLE"
+  );
+});
+
+test("L3B activation 绑定机器人 Engine PR 的最终批准 Head 与合入 Revision", async () => {
+  const fixture = await l3bFactsFixture();
+  const policy = fixture.policy;
+  const evidence = {
+    approvalUrl: policy.activation.approvalUrl,
+    pullRequest: 88,
+    reviewId: 8800,
+    author: "cyhui555",
+    state: "APPROVED",
+    reviewedRevision: policy.activation.engineApprovedRevision,
+    headRevision: policy.activation.engineApprovedRevision,
+    mergedRevision: policy.activation.engineMergedRevision,
+    merged: true,
+    baseBranch: "main",
+    pullRequestAuthor: "github-actions[bot]"
+  };
+  assert.equal(validateL3BActivationEvidence(policy, evidence), evidence);
+  assert.throws(
+    () => validateL3BActivationEvidence(policy, {
+      ...evidence,
+      reviewedRevision: "f".repeat(40)
+    }),
+    (error) => error instanceof LoopGatewayError
+      && error.code === "L3B_APPROVAL_EVIDENCE_INVALID"
+  );
+});
+
+test("L3B MergePlan 与保护快照精确绑定 Required Checks、Review 和拒绝权限", async () => {
+  const fixture = await l3bFactsFixture();
+  const plan = validateL3BMergePlan(fixture.plan, fixture.policy);
+  assert.equal(plan.merge.admin, false);
+  assert.equal(plan.merge.auto, false);
+  assert.equal(plan.merge.deploy, false);
+  assert.equal(fixture.protection.digest, plan.protectionDigest);
+
+  const relaxed = structuredClone(fixture.rawProtection);
+  relaxed.branch.enforce_admins.enabled = false;
+  assert.throws(
+    () => normalizeL3BProtectionSnapshot(relaxed, fixture.policy),
+    (error) => error instanceof LoopGatewayError && error.code === "L3B_PROTECTION_DRIFT"
+  );
+  assert.throws(
+    () => validateL3BMergePlan({
+      ...plan,
+      merge: { ...plan.merge, admin: true }
+    }, fixture.policy),
+    (error) => error instanceof LoopGatewayError && error.code === "L3B_PLAN_MERGE_INVALID"
+  );
+});
+
+test("L3B 只接受 Ready、精确 Head、最新人工批准和全部成功 Check", async () => {
+  const fixture = await l3bFactsFixture();
+  const accepted = validateL3BPreMergeFacts(
+    fixture.policy, fixture.plan, fixture.snapshot, fixture.l3a
+  );
+  assert.equal(accepted.headRevision, fixture.head);
+  assert.equal(accepted.checks.length, 5);
+
+  assert.throws(
+    () => validateL3BPreMergeFacts(fixture.policy, fixture.plan, {
+      ...fixture.snapshot,
+      pullRequest: { ...fixture.snapshot.pullRequest, draft: true }
+    }, fixture.l3a),
+    (error) => error instanceof LoopGatewayError && error.code === "L3B_PR_DRIFT"
+  );
+  const skipped = structuredClone(fixture.snapshot);
+  skipped.checkRuns[0].conclusion = "skipped";
+  assert.throws(
+    () => validateL3BPreMergeFacts(fixture.policy, fixture.plan, skipped, fixture.l3a),
+    (error) => error instanceof LoopGatewayError && error.code === "L3B_CHECK_INVALID"
+  );
+  const staleApproval = structuredClone(fixture.snapshot);
+  staleApproval.reviews.push({
+    ...staleApproval.reviews[0],
+    id: staleApproval.reviews[0].id + 1,
+    state: "CHANGES_REQUESTED",
+    submittedAt: "2026-07-18T05:11:00.000Z"
+  });
+  assert.throws(
+    () => validateL3BPreMergeFacts(
+      fixture.policy, fixture.plan, staleApproval, fixture.l3a
+    ),
+    (error) => error instanceof LoopGatewayError && error.code === "L3B_REVIEW_REJECTED"
+  );
+});
+
+test("L3B 合并前二次取证阻断竞态，未知响应进入只读恢复", async () => {
+  const source = await l3Fixture();
+  const fixture = await l3bFactsFixture();
+  const preMerge = validateL3BPreMergeFacts(
+    fixture.policy, fixture.plan, fixture.snapshot, fixture.l3a
+  );
+  const context = {
+    policy: fixture.policy,
+    plan: fixture.plan,
+    planFile: "fixture.json",
+    planDigest: canonicalSha256(fixture.plan),
+    activation: {},
+    cohortDigest: fixture.plan.cohortDigest,
+    l3a: fixture.l3a,
+    sourceBefore: await readGitState(source.config),
+    repositoryBefore: await readL3RepositoryControls(source.repoRoot),
+    preMerge
+  };
+  let mergeCalls = 0;
+  await assert.rejects(
+    executePreparedL3BMerge(source.config, context, {
+      readRemoteSnapshot: async () => ({
+        ...fixture.snapshot,
+        mainRevision: "f".repeat(40)
+      }),
+      mergePullRequest: async () => {
+        mergeCalls += 1;
+        return { merged: true, sha: fixture.mergeCommit };
+      }
+    }),
+    (error) => error instanceof LoopGatewayError && error.code === "L3B_BASE_DRIFT"
+  );
+  assert.equal(mergeCalls, 0);
+
+  const unknown = await captureError(() => executePreparedL3BMerge(source.config, context, {
+    readRemoteSnapshot: async () => fixture.snapshot,
+    mergePullRequest: async () => { throw new Error("response lost"); }
+  }));
+  assert.equal(unknown.code, "L3B_MERGE_RESULT_UNKNOWN");
+  assert.equal(unknown.details.recovery.remoteWriteMayHaveOccurred, true);
+});
+
+test("L3B Postcheck 绑定 squash 父提交、Head Tree、main 与零部署", async () => {
+  const fixture = await l3bFactsFixture();
+  const preMerge = validateL3BPreMergeFacts(
+    fixture.policy, fixture.plan, fixture.snapshot, fixture.l3a
+  );
+  const verified = validateL3BMergedFacts(
+    fixture.policy,
+    fixture.plan,
+    preMerge,
+    fixture.mergedFacts,
+    { merged: true, sha: fixture.mergeCommit }
+  );
+  assert.equal(verified.tree, fixture.tree);
+  assert.equal(verified.parentRevision, fixture.base);
+  assert.equal(verified.autoDeploy, false);
+
+  assert.throws(
+    () => validateL3BMergedFacts(
+      fixture.policy,
+      fixture.plan,
+      preMerge,
+      { ...fixture.mergedFacts, mainRevision: "0".repeat(40) },
+      { merged: true, sha: fixture.mergeCommit }
+    ),
+    (error) => error instanceof LoopGatewayError
+      && error.code === "L3B_POSTMERGE_MAIN_DRIFT"
+  );
+});
+
+test("L3B 结果未知时先判定已合并或未合并，拒绝不一致状态", async () => {
+  const source = await l3Fixture();
+  const fixture = await l3bFactsFixture();
+  const context = {
+    policy: fixture.policy,
+    plan: fixture.plan,
+    sourceBefore: await readGitState(source.config),
+    repositoryBefore: await readL3RepositoryControls(source.repoRoot),
+    preMerge: validateL3BPreMergeFacts(
+      fixture.policy, fixture.plan, fixture.snapshot, fixture.l3a
+    )
+  };
+  const recovery = {
+    kind: "l3b-merge",
+    remoteWriteMayHaveOccurred: true,
+    context,
+    immediate: context.preMerge,
+    mergeResponse: null
+  };
+  const notMerged = await recoverL3BMerge(source.config, recovery, {
+    readMergeResult: async () => ({
+      pullRequest: {
+        ...fixture.snapshot.pullRequest,
+        mergeCommitSha: null,
+        mergedBy: null
+      },
+      mainRevision: fixture.base,
+      mergeCommit: null,
+      deployments: []
+    })
+  });
+  assert.equal(notMerged.recoveryDisposition, "not-merged");
+  assert.equal(notMerged.retryAllowedAfterNewPreflight, true);
+
+  const merged = await recoverL3BMerge(source.config, recovery, {
+    readMergeResult: async () => fixture.mergedFacts
+  });
+  assert.equal(merged.recoveryDisposition, "merged");
+  await assert.rejects(
+    recoverL3BMerge(source.config, recovery, {
+      readMergeResult: async () => ({
+        ...fixture.mergedFacts,
+        pullRequest: { ...fixture.mergedFacts.pullRequest, merged: false, state: "open" }
+      })
+    }),
+    (error) => error instanceof LoopGatewayError
+      && error.code === "L3B_RECOVERY_INCONSISTENT"
+  );
+});
+
 async function fakeConfig(name) {
   const root = await temporary(name);
   const repoRoot = path.join(root, "repo");
@@ -743,6 +987,221 @@ function enabledL3Policy(policy, approvedRevision) {
       autoDeploy: false
     }
   });
+}
+
+async function l3bFactsFixture() {
+  const disabled = await loadL3BPolicy();
+  const rawProtection = {
+    branch: {
+      required_status_checks: {
+        strict: true,
+        checks: disabled.requiredChecks.toReversed()
+          .map((item) => ({ context: item.name, app_id: item.appId }))
+      },
+      required_pull_request_reviews: {
+        dismiss_stale_reviews: true,
+        require_last_push_approval: true,
+        required_approving_review_count: 1,
+        require_code_owner_reviews: false
+      },
+      enforce_admins: { enabled: true },
+      required_linear_history: { enabled: true },
+      required_conversation_resolution: { enabled: true },
+      allow_force_pushes: { enabled: false },
+      allow_deletions: { enabled: false }
+    },
+    repository: {
+      allow_squash_merge: true,
+      allow_auto_merge: false,
+      delete_branch_on_merge: false
+    }
+  };
+  const initialProtection = normalizeL3BProtectionSnapshot(rawProtection, disabled);
+  const policy = validateL3BPolicy({
+    ...disabled,
+    stage: "l3b-controlled-merge",
+    activation: {
+      enabled: true,
+      engineApprovedRevision: "d".repeat(40),
+      engineMergedRevision: "e".repeat(40),
+      l2CohortDigest: "9".repeat(64),
+      humanApprover: "cyhui555",
+      approvalUrl:
+        "https://github.com/cyhui555/deeptrail-open/pull/88#pullrequestreview-8800",
+      protectionDigest: initialProtection.digest
+    },
+    permissions: {
+      markReady: false,
+      submitReview: false,
+      controlledSquashMerge: true,
+      autoApprove: false,
+      adminMerge: false,
+      forcePush: false,
+      deleteRemoteBranch: false,
+      autoDeploy: false
+    }
+  });
+  const protection = normalizeL3BProtectionSnapshot(rawProtection, policy);
+  const base = "a".repeat(40);
+  const head = "b".repeat(40);
+  const tree = "c".repeat(40);
+  const mergeCommit = "f".repeat(40);
+  const pullRequestNumber = 77;
+  const changedPaths = ["docs/product/l3b-merge-pilot.md"];
+  const checks = policy.requiredChecks.map((item, index) => ({
+    ...item,
+    checkRunId: 1001 + index,
+    headRevision: head,
+    completedAt: `2026-07-18T05:${String(index + 1).padStart(2, "0")}:00.000Z`,
+    detailsUrl:
+      `https://github.com/cyhui555/deeptrail-open/actions/runs/700/job/${1001 + index}`,
+    conclusion: "success"
+  }));
+  const plan = validateL3BMergePlan({
+    schemaVersion: 1,
+    mergeId: "task-loop-006-merge-pilot",
+    workItemId: "TASK-LOOP-006",
+    repository: policy.repository,
+    baseBranch: policy.baseBranch,
+    baseRevision: base,
+    workItem: "docs/issues/task-loop-006-l3b-controlled-merge.md",
+    l3a: {
+      transactionId: "20260718050000-11111111-1111-4111-8111-111111111111",
+      receiptSha256: "3".repeat(64),
+      changePlanFile: "task-loop-006-l3b-pilot.json",
+      planDigest: "1".repeat(64),
+      patchDigest: "2".repeat(64),
+      commit: head
+    },
+    pullRequest: {
+      number: pullRequestNumber,
+      url: `https://github.com/cyhui555/deeptrail-open/pull/${pullRequestNumber}`,
+      author: "github-actions[bot]",
+      headBranch: "automation/l3/task-loop-006-merge-pilot",
+      headRevision: head,
+      commitCount: 1,
+      changedPaths
+    },
+    checks,
+    humanApproval: {
+      reviewer: "cyhui555",
+      reviewId: 9001,
+      reviewUrl:
+        `https://github.com/cyhui555/deeptrail-open/pull/${pullRequestNumber}#pullrequestreview-9001`,
+      reviewedRevision: head,
+      submittedAt: "2026-07-18T05:10:00.000Z"
+    },
+    cohortDigest: policy.activation.l2CohortDigest,
+    protectionDigest: protection.digest,
+    merge: {
+      method: "squash",
+      expectedHeadSha: head,
+      commitTitle: `docs(TASK-LOOP-006): 完成 L3B 受控合并试点 (#${pullRequestNumber})`,
+      commitMessage: "由人工批准与五项必需检查授权本次受控 squash merge。",
+      admin: false,
+      auto: false,
+      deleteBranch: false,
+      deploy: false
+    }
+  }, policy);
+  const snapshot = {
+    repository: policy.repository,
+    pullRequest: {
+      number: pullRequestNumber,
+      url: plan.pullRequest.url,
+      state: "open",
+      draft: false,
+      merged: false,
+      mergeable: true,
+      mergeableState: "clean",
+      autoMerge: null,
+      author: "github-actions[bot]",
+      headRepository: policy.repository,
+      headBranch: plan.pullRequest.headBranch,
+      headRevision: head,
+      baseRepository: policy.repository,
+      baseBranch: "main",
+      baseRevision: base,
+      commitCount: 1,
+      changedFiles: changedPaths.length,
+      mergeCommitSha: null,
+      mergedBy: null
+    },
+    mainRevision: base,
+    commits: [{ sha: head, tree }],
+    files: changedPaths,
+    reviews: [{
+      id: plan.humanApproval.reviewId,
+      author: plan.humanApproval.reviewer,
+      state: "APPROVED",
+      commitId: head,
+      submittedAt: plan.humanApproval.submittedAt,
+      url: plan.humanApproval.reviewUrl
+    }],
+    checkRuns: checks.map((item) => ({
+      id: item.checkRunId,
+      name: item.name,
+      appId: item.appId,
+      headRevision: head,
+      status: "completed",
+      conclusion: item.conclusion,
+      startedAt: item.completedAt,
+      completedAt: item.completedAt,
+      detailsUrl: item.detailsUrl
+    })),
+    headCommit: { sha: head, tree, parents: [base] },
+    protection,
+    deployments: [],
+    readAt: "2026-07-18T05:12:00.000Z"
+  };
+  const l3a = {
+    transactionId: plan.l3a.transactionId,
+    receiptSha256: plan.l3a.receiptSha256,
+    planDigest: plan.l3a.planDigest,
+    patchDigest: plan.l3a.patchDigest,
+    commit: head,
+    changedPaths,
+    pullRequest: pullRequestNumber
+  };
+  const mergedFacts = {
+    pullRequest: {
+      ...snapshot.pullRequest,
+      state: "closed",
+      merged: true,
+      mergeCommitSha: mergeCommit,
+      mergedBy: "cyhui555"
+    },
+    mainRevision: mergeCommit,
+    mergeCommit: {
+      sha: mergeCommit,
+      tree,
+      parents: [base],
+      message: `${plan.merge.commitTitle}\n\n${plan.merge.commitMessage}`
+    },
+    deployments: []
+  };
+  return {
+    policy,
+    plan,
+    rawProtection,
+    protection,
+    snapshot,
+    l3a,
+    mergedFacts,
+    base,
+    head,
+    tree,
+    mergeCommit
+  };
+}
+
+async function captureError(action) {
+  try {
+    await action();
+  } catch (error) {
+    return error;
+  }
+  throw new Error("预期操作失败，但实际成功");
 }
 
 async function gitTest(cwd, args) {

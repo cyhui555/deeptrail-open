@@ -22,6 +22,12 @@ import {
   verifyPublishedL3State
 } from "./l3-worktree.mjs";
 import {
+  executePreparedL3BMerge,
+  preflightL3BMerge,
+  recoverL3BMerge,
+  verifyMergedL3BState
+} from "./l3-merge.mjs";
+import {
   acquireWriteLock,
   inspectWriteLock,
   quarantineStaleWriteLock
@@ -296,6 +302,97 @@ export async function runL3DraftLoop(config, planFile, options = {}) {
   }
 }
 
+export async function preflightL3BLoop(config, planFile, options = {}) {
+  const runtime = await verifyRuntime(config);
+  const git = await readGitState(config);
+  const lock = await acquireWriteLock(config, "l3:merge-preflight", git);
+  try {
+    const recorded = await runRecordedOperation(config, {
+      operation: "l3:merge-preflight",
+      expectedRevision: git.gitCommit,
+      targets: ["l3b-merge-plan", "github-read-only-facts", "loop-workspace-audit"],
+      rollback: "预检只读 GitHub、Receipt、Transaction 与保护事实；失败不产生远端写入。",
+      input: { planFile: planFile ? path.basename(planFile) : null },
+      faultAfter: options.faultAfter,
+      controlledFailure: (error) => error instanceof LoopGatewayError,
+      apply: async ({ transaction }) => {
+        const preflight = options.preflight ?? preflightL3BMerge;
+        const context = await preflight(config, {
+          ...options,
+          planFile,
+          cohortRecovery: activeL3RecoveryScope(lock, transaction, "l3:merge-preflight")
+        });
+        const summary = summarizeL3BPreflight(context);
+        return { context, receipt: summary, recovery: { summary } };
+      },
+      postcheck: async (applied) => summarizeL3BPreflight(applied.context)
+    });
+    return {
+      ok: true,
+      operation: "l3:merge-preflight",
+      runtime: summarizeRuntime(runtime),
+      ...summarizeL3BPreflight(recorded.applied.context),
+      transactionId: recorded.transactionId,
+      receiptFile: recorded.receiptFile,
+      receiptSha256: recorded.receiptSha256
+    };
+  } finally {
+    await lock.release();
+  }
+}
+
+export async function runL3BMergeLoop(config, planFile, options = {}) {
+  const runtime = await verifyRuntime(config);
+  const git = await readGitState(config);
+  const lock = await acquireWriteLock(config, "l3:merge-approved", git);
+  try {
+    const recorded = await runRecordedOperation(config, {
+      operation: "l3:merge-approved",
+      expectedRevision: git.gitCommit,
+      targets: ["github-protected-squash-merge", "transaction-manifest"],
+      rollback: "不回写 main、不删 PR/分支；响应不确定时必须先只读判定，禁止直接重试。",
+      input: { planFile: planFile ? path.basename(planFile) : null },
+      faultAfter: options.faultAfter,
+      controlledFailure: (error) => error instanceof LoopGatewayError
+        && error.details?.recovery?.remoteWriteMayHaveOccurred !== true,
+      apply: async ({ transaction }) => {
+        const preflight = options.preflight ?? preflightL3BMerge;
+        const executePrepared = options.executePrepared ?? executePreparedL3BMerge;
+        const context = await preflight(config, {
+          ...options,
+          planFile,
+          cohortRecovery: activeL3RecoveryScope(lock, transaction, "l3:merge-approved")
+        });
+        const applied = await executePrepared(config, context, options);
+        return {
+          context,
+          applied,
+          receipt: summarizeL3BExecution(context, applied),
+          recovery: applied.recovery
+        };
+      },
+      postcheck: async (applied) => await verifyMergedL3BState(
+        config,
+        applied.context,
+        applied.applied.mergeResponse,
+        options
+      )
+    });
+    return {
+      ok: true,
+      operation: "l3:merge-approved",
+      runtime: summarizeRuntime(runtime),
+      ...summarizeL3BExecution(recorded.applied.context, recorded.applied.applied),
+      verification: recorded.verification,
+      transactionId: recorded.transactionId,
+      receiptFile: recorded.receiptFile,
+      receiptSha256: recorded.receiptSha256
+    };
+  } finally {
+    await lock.release();
+  }
+}
+
 export async function backupLoop(config, options = {}) {
   const runtime = await verifyRuntime(config);
   const git = await readGitState(config);
@@ -407,7 +504,11 @@ export async function recoverLoop(config, options = {}) {
       status: item.latest.status,
       phase: item.recoveryPhase,
       runId: item.latest.input?.runId,
-      action: recoveryAction(item.recoveryPhase)
+      action: recoveryAction(
+        item.recoveryPhase,
+        item.latest.operation,
+        item.latest.details?.recovery ?? lastRecoveryDetails(item.history)
+      )
     }));
   return {
     ok: (lock === null || activeOperation !== null) && incomplete.length === 0,
@@ -437,7 +538,9 @@ function validateActiveRecoveryScope(config, lock, transactions, candidate) {
     ? Object.keys(candidate).sort()
     : [];
   const transaction = transactions.find((item) => item.id === candidate?.transactionId);
-  const allowedOperation = new Set(["l3:preflight", "l3:run-draft"]);
+  const allowedOperation = new Set([
+    "l3:preflight", "l3:run-draft", "l3:merge-preflight", "l3:merge-approved"
+  ]);
   const valid = JSON.stringify(keys) === JSON.stringify([
     "lockToken", "operation", "transactionId"
   ])
@@ -516,10 +619,21 @@ export async function finalizeFailedRecovery(config, identifier) {
   const runtime = await verifyRuntime(config);
   const candidate = await resolveTransaction(config, identifier);
   const phase = candidate.recoveryPhase;
+  const candidateRecovery = candidate.latest.details?.recovery
+    ?? lastRecoveryDetails(candidate.history);
+  if (candidate.latest.operation === "l3:merge-approved"
+      && candidateRecovery?.remoteWriteMayHaveOccurred === true) {
+    throw new LoopGatewayError(
+      "RECOVERY_READBACK_REQUIRED",
+      "L3B merge 结果不确定时禁止直接按失败终结；必须先执行 resume-postcheck 只读判定"
+    );
+  }
   if (!new Set(["prepared", "applying", "active"]).has(phase)) {
     throw new LoopGatewayError(
       "RECOVERY_PHASE_DENIED",
-      `事务阶段 ${phase} 不能按失败终结；${recoveryAction(phase)}`
+      `事务阶段 ${phase} 不能按失败终结；${recoveryAction(
+        phase, candidate.latest.operation, candidateRecovery
+      )}`
     );
   }
   const git = await readGitState(config);
@@ -582,13 +696,21 @@ export async function finalizeFailedRecovery(config, identifier) {
   }
 }
 
-export async function resumePostcheckRecovery(config, transactionId) {
+export async function resumePostcheckRecovery(config, transactionId, options = {}) {
   const runtime = await verifyRuntime(config);
   const candidate = await resolveTransaction(config, transactionId);
-  if (!new Set(["source_committed", "postchecking"]).has(candidate.recoveryPhase)) {
+  const candidateRecovery = candidate.latest.details?.recovery
+    ?? lastRecoveryDetails(candidate.history);
+  const uncertainL3BMerge = candidate.latest.operation === "l3:merge-approved"
+    && candidate.recoveryPhase === "applying"
+    && candidateRecovery?.remoteWriteMayHaveOccurred === true;
+  if (!uncertainL3BMerge
+      && !new Set(["source_committed", "postchecking"]).has(candidate.recoveryPhase)) {
     throw new LoopGatewayError(
       "RECOVERY_PHASE_DENIED",
-      `事务阶段 ${candidate.recoveryPhase} 不能继续 Postcheck；${recoveryAction(candidate.recoveryPhase)}`
+      `事务阶段 ${candidate.recoveryPhase} 不能继续 Postcheck；${recoveryAction(
+        candidate.recoveryPhase, candidate.latest.operation, candidateRecovery
+      )}`
     );
   }
   const git = await readGitState(config);
@@ -601,8 +723,10 @@ export async function resumePostcheckRecovery(config, transactionId) {
       rollback: "只核对已提交状态并补写 Receipt；V0/V1 不一致时保持熔断。",
       input: { candidateTransactionId: candidate.id, candidatePhase: candidate.recoveryPhase },
       apply: async ({ transaction }) => {
-        const verification = await resumeCandidatePostcheck(config, candidate);
-        if (candidate.latest.status !== "postchecking") {
+        const verification = await resumeCandidatePostcheck(config, candidate, options);
+        const candidateTerminal = verification?.recoveryDisposition === "not-merged"
+          ? "failed" : "closed";
+        if (candidateTerminal === "closed" && candidate.latest.status !== "postchecking") {
           await checkpointExistingTransaction(config, candidate.id, "postchecking", {
             resumedBy: transaction.id,
             verification
@@ -615,14 +739,16 @@ export async function resumePostcheckRecovery(config, transactionId) {
           resolvedBy: transaction.id,
           verification
         });
-        await checkpointExistingTransaction(config, candidate.id, "closed", {
+        await checkpointExistingTransaction(config, candidate.id, candidateTerminal, {
           resumedBy: transaction.id,
           receiptFile: candidateReceipt.file,
-          receiptSha256: candidateReceipt.integritySha256
+          receiptSha256: candidateReceipt.integritySha256,
+          recoveryDisposition: verification?.recoveryDisposition ?? "postcheck-completed"
         });
         return {
           verification,
           candidateReceipt,
+          candidateTerminal,
           receipt: { candidateTransactionId: candidate.id, verification },
           recovery: { candidateTransactionId: candidate.id }
         };
@@ -630,8 +756,11 @@ export async function resumePostcheckRecovery(config, transactionId) {
       postcheck: async (applied) => {
         await verifyReceiptFile(applied.candidateReceipt.file);
         const refreshed = await resolveTransaction(config, candidate.id, true);
-        if (refreshed.latest.status !== "closed") {
-          throw new LoopGatewayError("RECOVERY_POSTCHECK_FAILED", "候选事务未进入 closed");
+        if (refreshed.latest.status !== applied.candidateTerminal) {
+          throw new LoopGatewayError(
+            "RECOVERY_POSTCHECK_FAILED",
+            `候选事务未进入 ${applied.candidateTerminal}`
+          );
         }
         return { ok: true, candidateStatus: refreshed.latest.status };
       }
@@ -643,14 +772,16 @@ export async function resumePostcheckRecovery(config, transactionId) {
       runtime: summarizeRuntime(runtime),
       transactionId: recorded.transactionId,
       receiptFile: recorded.receiptFile,
-      receiptSha256: recorded.receiptSha256
+      receiptSha256: recorded.receiptSha256,
+      candidateStatus: recorded.verification.candidateStatus,
+      verification: recorded.applied.verification
     };
   } finally {
     await lock.release();
   }
 }
 
-async function resumeCandidatePostcheck(config, candidate) {
+async function resumeCandidatePostcheck(config, candidate, options = {}) {
   const recovery = candidate.latest.details?.recovery ?? lastRecoveryDetails(candidate.history);
   switch (candidate.latest.operation) {
     case "shadow":
@@ -674,6 +805,8 @@ async function resumeCandidatePostcheck(config, candidate) {
       );
     case "l3:run-draft":
       return await verifyPublishedL3State(recovery.staged, recovery.published);
+    case "l3:merge-approved":
+      return await recoverL3BMerge(config, recovery, options);
     default:
       throw new LoopGatewayError("RECOVERY_OPERATION_UNSUPPORTED", `不支持恢复操作：${candidate.latest.operation}`);
   }
@@ -707,6 +840,38 @@ function summarizeL3Execution(result) {
     pullRequest: result.published.pullRequest,
     autoApprove: false,
     autoMerge: false,
+    autoDeploy: false
+  };
+}
+
+function summarizeL3BPreflight(context) {
+  return {
+    stage: context.policy.stage,
+    activationEnabled: context.policy.activation.enabled,
+    mergeId: context.plan.mergeId,
+    workItemId: context.plan.workItemId,
+    baseRevision: context.plan.baseRevision,
+    pullRequest: context.plan.pullRequest.number,
+    headRevision: context.plan.pullRequest.headRevision,
+    planDigest: context.planDigest,
+    cohortDigest: context.cohortDigest,
+    protectionDigest: context.preMerge.protectionDigest,
+    l3a: context.l3a,
+    approval: context.preMerge.approval,
+    checks: context.preMerge.checks,
+    factDigest: context.preMerge.factDigest,
+    permissions: context.policy.permissions
+  };
+}
+
+function summarizeL3BExecution(context, applied) {
+  return {
+    ...summarizeL3BPreflight(context),
+    mergeMethod: context.plan.merge.method,
+    mergeCommit: applied.mergeResponse.sha,
+    autoApprove: false,
+    adminMerge: false,
+    forcePush: false,
     autoDeploy: false
   };
 }
@@ -879,7 +1044,9 @@ function lastRecoveryDetails(history) {
   return {};
 }
 
-function recoveryAction(phase) {
+function recoveryAction(phase, operation = undefined, recovery = undefined) {
+  if (operation === "l3:merge-approved"
+      && recovery?.remoteWriteMayHaveOccurred === true) return "resume-postcheck";
   if (new Set(["prepared", "applying", "active"]).has(phase)) return "finalize-failed";
   if (new Set(["source_committed", "postchecking"]).has(phase)) return "resume-postcheck";
   return "manual-inspection";
