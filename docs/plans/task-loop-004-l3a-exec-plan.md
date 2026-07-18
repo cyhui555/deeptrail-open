@@ -1,6 +1,6 @@
 # TASK-LOOP-004 L3A 执行计划
 
-- 状态：G1 实施中
+- 状态：G3 activation
 - Requirement：`REQ-LOOP-003`
 - Work Item：[TASK-LOOP-004](../issues/task-loop-004-l3a-controlled-execution.md)
 - 前置 Bug：[BUG-20260718-001](../issues/bug-20260718-001-legacy-receipt-v1-integrity.md)
@@ -64,4 +64,5 @@
 - [x] 登记 GitHub #33、#34 和受保护短期分支。
 - [x] 实现 Receipt 证明链；确认公开严格 Cohort 49/49 v2、10/10 Work Items 通过。
 - [x] 实现默认关闭的 L3A Policy、Plan、隔离凭据 Runtime、Worktree 与事务回执；Loop 测试 23/23。
-- [ ] 完成本地 G2、远程 PR 与首个试点 G3。
+- [x] 本地 G2 与远程引擎 PR #36 已完成，受保护主干为 `c81c5cc`。
+- [ ] 完成独立 activation PR 与 `TASK-LOOP-005` 免费试点 G3。

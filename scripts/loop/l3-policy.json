@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "stage": "preflight-disabled",
+  "stage": "l3a-draft-pr",
   "repository": "cyhui555/deeptrail-open",
   "baseBranch": "main",
   "sourceBranchPrefix": "agent/l3/",
   "targetBranchPrefix": "automation/l3/",
   "activation": {
-    "enabled": false,
-    "approvedRevision": null,
-    "mergedRevision": null,
-    "l2CohortDigest": null,
-    "humanApprover": null,
-    "approvalUrl": null
+    "enabled": true,
+    "approvedRevision": "340e729ca5ad96a6d9b23cf5099619051628cf2d",
+    "mergedRevision": "c81c5ccef87e9815383e57b0f06e7193968d93c6",
+    "l2CohortDigest": "0cb0880be966bbda8e9699362cc9ebee64149f5149ff72db4ceca30421ffb431",
+    "humanApprover": "cyhui555",
+    "approvalUrl": "https://github.com/cyhui555/deeptrail-open/pull/36#pullrequestreview-4727476962"
   },
   "budgets": {
     "maxPatchBytes": 262144,
@@ -50,10 +50,10 @@
     "(?:^|/)pom\\.xml$"
   ],
   "permissions": {
-    "isolatedWorktreeMutation": false,
-    "localCommit": false,
-    "remoteBranchPush": false,
-    "draftPullRequest": false,
+    "isolatedWorktreeMutation": true,
+    "localCommit": true,
+    "remoteBranchPush": true,
+    "draftPullRequest": true,
     "autoApprove": false,
     "autoMerge": false,
     "autoDeploy": false

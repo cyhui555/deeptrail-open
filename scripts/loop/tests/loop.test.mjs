@@ -395,8 +395,29 @@ test("L2 准入摘要忽略追加诊断计数但绑定 Cohort 事实", () => {
   }), digest);
 });
 
-test("L3 Policy 默认关闭并拒绝预算、路径和权限漂移", async () => {
-  const policy = await loadL3Policy();
+test("L3 Policy 保留关闭基线并拒绝预算、路径和权限漂移", async () => {
+  const livePolicy = await loadL3Policy();
+  const policy = validateL3Policy({
+    ...livePolicy,
+    stage: "preflight-disabled",
+    activation: {
+      enabled: false,
+      approvedRevision: null,
+      mergedRevision: null,
+      l2CohortDigest: null,
+      humanApprover: null,
+      approvalUrl: null
+    },
+    permissions: {
+      isolatedWorktreeMutation: false,
+      localCommit: false,
+      remoteBranchPush: false,
+      draftPullRequest: false,
+      autoApprove: false,
+      autoMerge: false,
+      autoDeploy: false
+    }
+  });
   assert.equal(policy.stage, "preflight-disabled");
   assert.equal(policy.permissions.isolatedWorktreeMutation, false);
   assert.throws(
@@ -415,6 +436,27 @@ test("L3 Policy 默认关闭并拒绝预算、路径和权限漂移", async () =
     (error) => error instanceof LoopGatewayError && error.code === "L3_PATH_DENIED"
   );
   assert.equal(assertPathAllowed("docs/product/pilot.md", policy), "docs/product/pilot.md");
+});
+
+test("L3A activation 精确绑定受保护合入证据与最小权限", async () => {
+  const policy = await loadL3Policy();
+  assert.deepEqual(policy.activation, {
+    enabled: true,
+    approvedRevision: "340e729ca5ad96a6d9b23cf5099619051628cf2d",
+    mergedRevision: "c81c5ccef87e9815383e57b0f06e7193968d93c6",
+    l2CohortDigest: "0cb0880be966bbda8e9699362cc9ebee64149f5149ff72db4ceca30421ffb431",
+    humanApprover: "cyhui555",
+    approvalUrl: "https://github.com/cyhui555/deeptrail-open/pull/36#pullrequestreview-4727476962"
+  });
+  assert.deepEqual(policy.permissions, {
+    isolatedWorktreeMutation: true,
+    localCommit: true,
+    remoteBranchPush: true,
+    draftPullRequest: true,
+    autoApprove: false,
+    autoMerge: false,
+    autoDeploy: false
+  });
 });
 
 test("L3A 人工批准同时绑定最终 Review Head 与 main 合入 Revision", async () => {

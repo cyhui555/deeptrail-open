@@ -2,7 +2,7 @@
 
 - 日期：2026-07-18
 - 分支：`agent/loop-l3-controlled-execution`
-- 结论：本地 G2 PASS；远程受保护合入、独立 activation 与免费试点仍待完成
+- 结论：G2 PASS，PR #36 已受保护合入；独立 activation 与免费试点仍待完成
 
 ## 证据
 
@@ -24,6 +24,6 @@
 
 ## G3 剩余门禁
 
-1. 机器人作者创建 Draft PR，五项 Required Checks 通过并由唯一人工所有者批准合入。
-2. 独立 activation PR 登记批准/合入 Revision、上述 Cohort 摘要与 Review URL，再次人工批准合入。
-3. 使用免费、无业务数据 ChangePlan 完成首个 Draft PR；不自动合并或部署。
+1. [x] 机器人作者 PR #36 绑定 `340e729`，五项 Required Checks 通过并由唯一人工所有者批准，以 `c81c5cc` 合入。
+2. [ ] 独立 activation PR 登记批准/合入 Revision、上述 Cohort 摘要与 Review URL，再次人工批准合入。
+3. [ ] 使用免费、无业务数据 ChangePlan 完成首个 Draft PR；不自动合并或部署。
