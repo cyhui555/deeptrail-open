@@ -224,8 +224,12 @@ export async function preflightL3Loop(config, planFile, options = {}) {
       input: { planFile: planFile ? path.basename(planFile) : null },
       faultAfter: options.faultAfter,
       controlledFailure: (error) => error instanceof LoopGatewayError,
-      apply: async () => {
-        const context = await preflightL3Change(config, { ...options, planFile });
+      apply: async ({ transaction }) => {
+        const context = await preflightL3Change(config, {
+          ...options,
+          planFile,
+          cohortRecovery: activeL3RecoveryScope(lock, transaction, "l3:preflight")
+        });
         const summary = summarizeL3Preflight(context);
         return { context, receipt: summary, recovery: { summary } };
       },
@@ -259,8 +263,12 @@ export async function runL3DraftLoop(config, planFile, options = {}) {
       faultAfter: options.faultAfter,
       controlledFailure: (error) => error instanceof LoopGatewayError
         && !error.details?.recovery,
-      apply: async () => {
-        const result = await executeL3Draft(config, { ...options, planFile });
+      apply: async ({ transaction }) => {
+        const result = await executeL3Draft(config, {
+          ...options,
+          planFile,
+          cohortRecovery: activeL3RecoveryScope(lock, transaction, "l3:run-draft")
+        });
         const receipt = summarizeL3Execution(result);
         return {
           result,
@@ -381,11 +389,18 @@ export async function statusLoop(config) {
   };
 }
 
-export async function recoverLoop(config) {
+export async function recoverLoop(config, options = {}) {
   const lock = await inspectWriteLock(config);
   const transactions = await inspectTransactions(config);
+  const activeOperation = validateActiveRecoveryScope(
+    config,
+    lock,
+    transactions,
+    options.activeOperation
+  );
   const incomplete = transactions
-    .filter(({ latest }) => !TERMINAL_TRANSACTION_STATES.has(latest.status))
+    .filter((item) => !TERMINAL_TRANSACTION_STATES.has(item.latest.status)
+      && item.id !== activeOperation?.transactionId)
     .map((item) => ({
       id: item.id,
       operation: item.latest.operation,
@@ -395,14 +410,62 @@ export async function recoverLoop(config) {
       action: recoveryAction(item.recoveryPhase)
     }));
   return {
-    ok: lock === null && incomplete.length === 0,
+    ok: (lock === null || activeOperation !== null) && incomplete.length === 0,
     operation: "recover",
-    lock,
+    lock: activeOperation ? null : lock,
     incomplete,
-    guidance: lock || incomplete.length > 0
+    activeOperation,
+    guidance: (!activeOperation && lock) || incomplete.length > 0
       ? "保留现场；先核验 Writer，再按 action 使用 clear-stale-lock、finalize-failed 或 resume-postcheck。"
       : "未发现残留写锁或未终结事务。"
   };
+}
+
+function activeL3RecoveryScope(lock, transaction, operation) {
+  return {
+    activeOperation: {
+      operation,
+      transactionId: transaction.id,
+      lockToken: lock.record.token
+    }
+  };
+}
+
+function validateActiveRecoveryScope(config, lock, transactions, candidate) {
+  if (candidate === undefined) return null;
+  const keys = candidate && typeof candidate === "object" && !Array.isArray(candidate)
+    ? Object.keys(candidate).sort()
+    : [];
+  const transaction = transactions.find((item) => item.id === candidate?.transactionId);
+  const allowedOperation = new Set(["l3:preflight", "l3:run-draft"]);
+  const valid = JSON.stringify(keys) === JSON.stringify([
+    "lockToken", "operation", "transactionId"
+  ])
+    && allowedOperation.has(candidate.operation)
+    && /^[a-f0-9-]{36}$/i.test(candidate.lockToken ?? "")
+    && /^[0-9]{14}-[a-f0-9-]{36}$/.test(candidate.transactionId ?? "")
+    && lock?.token === candidate.lockToken
+    && lock.operation === candidate.operation
+    && lock.pid === process.pid
+    && path.resolve(lock.repoRoot ?? "") === path.resolve(config.repoRoot)
+    && transaction?.latest.operation === candidate.operation
+    && transaction.latest.status === "applying"
+    && transaction.latest.input?.expectedRevision === lock.gitCommit;
+  if (!valid) {
+    throw new LoopGatewayError(
+      "RECOVERY_ACTIVE_SCOPE_INVALID",
+      "严格 Cohort 只允许忽略当前进程精确拥有的 L3 applying 事务与写锁",
+      {
+        requestedOperation: candidate?.operation ?? null,
+        requestedTransactionId: candidate?.transactionId ?? null,
+        lockOperation: lock?.operation ?? null,
+        lockPid: lock?.pid ?? null,
+        currentPid: process.pid
+      }
+    );
+  }
+  // Token 只用于所有权校验，不进入 Recovery 摘要或 Receipt。
+  return { operation: candidate.operation, transactionId: candidate.transactionId };
 }
 
 export async function clearStaleLockRecovery(config, token) {

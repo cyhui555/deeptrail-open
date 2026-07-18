@@ -240,7 +240,7 @@ pnpm loop:l3:preflight -- --plan task-example-l3.json
 pnpm loop:l3:run-draft -- --plan task-example-l3.json
 ```
 
-L3A 只接受 `apps/`、非治理 `docs/`、`evals/`、`tests/` 的普通文本变更；禁止 `scripts/`、治理文档、CI、依赖、部署、迁移、Secret 和生产配置。Profile 使用空 Home/AppData、离线 Store、禁用 dependency lifecycle scripts；提交不运行 Git Hooks。发布只推送新 `agent/l3/*` 分支并触发 `automation-pr-author.yml` 创建 `github-actions[bot]` Draft PR，实际 Head 必须等于隔离 Commit。
+L3A 只接受 `apps/`、非治理 `docs/`、`evals/`、`tests/` 的普通文本变更；禁止 `scripts/`、治理文档、CI、依赖、部署、迁移、Secret 和生产配置。Profile 使用空 Home/AppData、离线 Store、禁用 dependency lifecycle scripts；提交不运行 Git Hooks。严格 Cohort 在 recorded-operation 内只忽略同进程、同操作、精确 Token/Transaction ID 与 Revision 一致的当前 L3 事务，其他 Writer 或未终结事务继续阻断。发布只推送新 `agent/l3/*` 分支并触发 `automation-pr-author.yml` 创建 `github-actions[bot]` Draft PR，实际 Head 必须等于隔离 Commit。
 
 失败后不要删除现场或重推。先执行 `pnpm loop:recover`：`prepared/applying` 按失败终结并保留 Worktree/分支；已完成发布但 Postcheck 中断时才允许 `resume-postcheck`。自动审批、合并和部署始终为 `false`。
 
