@@ -4,10 +4,7 @@
 
 ## Verification
 
-- `BUG-20260718-001`：历史 Home 的五份 v1 Receipt 已由固定 Backup 证明并通过受限兼容；公开严格 Cohort 49/49 v2 为绿，修复已随 PR #36 合入，见[活动 Work Item](bug-20260718-001-legacy-receipt-v1-integrity.md)与 [GitHub #33](https://github.com/cyhui555/deeptrail-open/issues/33)。
-- `TASK-LOOP-004`：L3A 引擎已随 PR #36 经所有者批准和五项 Required Checks 合入；独立 activation 正绑定不可变证据，自动审批、合并和部署继续阻断，见[活动 Work Item](task-loop-004-l3a-controlled-execution.md)、[执行计划](../plans/task-loop-004-l3a-exec-plan.md)与 [GitHub #34](https://github.com/cyhui555/deeptrail-open/issues/34)。
-- `TASK-LOOP-005`：activation 合入后执行零成本、无业务数据的隔离 Patch 与机器人 Draft PR 试点，见[活动 Work Item](task-loop-005-l3a-free-pilot.md)。
-- `BUG-20260718-002`：首次真实 L3A preflight 暴露 recorded-operation 与严格 Cohort Recovery 自冲突；失败现场已终结且摘要未漂移，修复只允许忽略当前进程精确拥有的 L3 事务，见[活动 Work Item](bug-20260718-002-l3-cohort-self-conflict.md)与 [GitHub #38](https://github.com/cyhui555/deeptrail-open/issues/38)。
+- `TASK-LOOP-006`：L3A 已完成真实 Draft PR 试点；L3B 只增加必需检查与人工批准后的普通受控 squash merge，默认关闭且不含自动审批/部署，见[活动 Work Item](task-loop-006-l3b-controlled-merge.md)、[执行计划](../plans/task-loop-006-l3b-exec-plan.md)与 [GitHub #41](https://github.com/cyhui555/deeptrail-open/issues/41)。
 - `BUG-20260717-006`：身份贡献器、不可变发布及健康后故障注入自动恢复均通过，见[活动 Work Item](bug-20260717-006-release-identity-recovery.md)。
 - `TASK-RELEASE-003`：目标机 117/117 固定回归、Release 身份与恢复演练通过，见[活动 Work Item](task-release-003-target-release-validation.md)。
 - `TASK-OPS-002`：零付费、无生产密钥且固定回归阶段断网的目标机回归已固化，见[活动 Work Item](task-ops-002-no-cost-target-regressions.md)。
@@ -20,6 +17,7 @@
 
 ## Closed
 
+- `TASK-LOOP-004` / `TASK-LOOP-005` / `BUG-20260718-001` / `BUG-20260718-002`：Receipt 兼容、L3A Engine/activation、Recovery 修复与机器人 Draft PR #40 真实试点均完成，见 [L3A 交付摘要](../archive/task-loop-004-l3a-controlled-execution.md)。
 - `TASK-GOV-001`：机器人作者 PR #22 经唯一人工所有者批准、五项 Required Checks 全绿后合并，直推例外已关闭，见[治理记录](task-gov-001-rapid-iteration-direct-main.md)。
 - `TASK-LOOP-003`：L1 Phase 2 与 L2 Proposal-only 准入完成，见[交付摘要](../archive/task-loop-003-l2-proposal-admission.md)。
 
