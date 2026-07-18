@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { canonicalSha256 } from "./canonical.mjs";
+import { canonicalJson, canonicalSha256 } from "./canonical.mjs";
 import { LoopGatewayError } from "./errors.mjs";
 import { sha256 } from "./fs-safe.mjs";
 import { runProcess } from "./process.mjs";
@@ -17,7 +17,8 @@ const POLICY_KEYS = [
   "repository",
   "requiredSections",
   "schemaVersion",
-  "trustedRequesters"
+  "trustedRequesters",
+  "workItemProposal"
 ];
 const PERMISSION_KEYS = [
   "createIssue",
@@ -32,6 +33,14 @@ const PERMISSION_KEYS = [
   "updateIssue"
 ];
 const REQUIRED_SECTIONS = ["目标", "验收标准", "范围外", "回滚"];
+const WORK_ITEM_PROPOSAL = Object.freeze({
+  mode: "proposal-only",
+  allowedKinds: ["TASK", "BUG", "SPIKE"],
+  maxTitleChars: 120,
+  maxSectionBytes: 4096,
+  maxSectionLines: 40,
+  maxContentBytes: 24576
+});
 
 export async function loadIntakePolicy(file = policyFile) {
   try {
@@ -48,7 +57,7 @@ export async function loadIntakePolicy(file = policyFile) {
 export function validateIntakePolicy(policy) {
   assertObject(policy, "INTAKE_POLICY_INVALID", "Intake Policy 必须是 JSON Object");
   assertExactKeys(policy, POLICY_KEYS, "INTAKE_POLICY_UNKNOWN_FIELD", "Intake Policy");
-  assert(policy.schemaVersion === 1, "INTAKE_POLICY_INVALID", "仅支持 Intake Policy Schema 1");
+  assert(policy.schemaVersion === 2, "INTAKE_POLICY_INVALID", "仅支持 Intake Policy Schema 2");
   assert(policy.repository === "cyhui555/deeptrail-open",
     "INTAKE_POLICY_SCOPE_DRIFT", "Intake 仓库范围发生漂移");
   assert(policy.executableLabel === "agent-ready",
@@ -61,6 +70,11 @@ export function validateIntakePolicy(policy) {
   assert(Array.isArray(policy.requiredSections)
       && JSON.stringify(policy.requiredSections) === JSON.stringify(REQUIRED_SECTIONS),
     "INTAKE_POLICY_SECTION_DRIFT", "Intake 必需章节发生漂移");
+  assertObject(policy.workItemProposal, "INTAKE_POLICY_INVALID", "Work Item Proposal 配置缺失");
+  assertExactKeys(policy.workItemProposal, Object.keys(WORK_ITEM_PROPOSAL),
+    "INTAKE_POLICY_UNKNOWN_FIELD", "Work Item Proposal");
+  assert(canonicalJson(policy.workItemProposal) === canonicalJson(WORK_ITEM_PROPOSAL),
+    "INTAKE_POLICY_SCOPE_DRIFT", "Work Item Proposal 模式、类型或预算发生漂移");
 
   assertObject(policy.budgets, "INTAKE_POLICY_INVALID", "Intake budgets 缺失");
   assertExactKeys(policy.budgets, ["maxBodyBytes", "maxLabels", "maxTitleChars"],
@@ -86,12 +100,19 @@ export function validateIntakePolicy(policy) {
 }
 
 export async function inspectIssueIntake(issueNumber, options = {}) {
+  return (await readIssueIntakeSource(issueNumber, options)).intake;
+}
+
+/** 仅供受控派生合同复用原始响应；普通 Intake CLI 永不返回 raw。 */
+export async function readIssueIntakeSource(issueNumber, options = {}) {
   assert(Number.isInteger(issueNumber) && issueNumber > 0,
     "INTAKE_ISSUE_NUMBER_INVALID", "Issue 编号必须是正整数");
   const policy = validateIntakePolicy(options.policy ?? await loadIntakePolicy());
   const reader = options.readIssue ?? readGitHubIssue;
   const raw = await reader(policy.repository, issueNumber);
-  return evaluateIssueIntake(raw, policy);
+  assert(raw?.number === issueNumber,
+    "INTAKE_ISSUE_NUMBER_MISMATCH", "GitHub Issue 响应编号与请求编号不一致");
+  return { policy, raw, intake: evaluateIssueIntake(raw, policy) };
 }
 
 export function evaluateIssueIntake(raw, policyInput) {
@@ -162,7 +183,7 @@ export function evaluateIssueIntake(raw, policyInput) {
   });
 }
 
-async function readGitHubIssue(repository, issueNumber) {
+export async function readGitHubIssue(repository, issueNumber) {
   const response = await runProcess("gh", [
     "api", `repos/${repository}/issues/${issueNumber}`
   ], {

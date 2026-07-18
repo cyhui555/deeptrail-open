@@ -4,7 +4,7 @@
 
 ## Verification
 
-- `TASK-LOOP-007`：在人工 Review/Merge 边界下建立只读 Issue 准入合同，先消除终态事项阻塞，再推进自动提单与 PR 生命周期，见[活动 Work Item](task-loop-007-autonomous-intake.md)与[执行计划](../plans/task-loop-007-autonomous-intake-exec-plan.md)。
+- `TASK-LOOP-008`：把合格公开 Issue 转换为确定性、Proposal-only 的 Work Item 草案，见[活动 Work Item](task-loop-008-work-item-proposal.md)与[执行计划](../plans/task-loop-008-work-item-proposal-exec-plan.md)。
 - `BUG-20260717-006`：身份贡献器、不可变发布及健康后故障注入自动恢复均通过，见[活动 Work Item](bug-20260717-006-release-identity-recovery.md)。
 - `TASK-RELEASE-003`：目标机 117/117 固定回归、Release 身份与恢复演练通过，见[活动 Work Item](task-release-003-target-release-validation.md)。
 - `TASK-OPS-002`：零付费、无生产密钥且固定回归阶段断网的目标机回归已固化，见[活动 Work Item](task-ops-002-no-cost-target-regressions.md)。
@@ -17,6 +17,7 @@
 
 ## Closed
 
+- `TASK-LOOP-007`：只读 Intake 已由 PR #46 受保护合入并接入每小时 Automation，见[交付摘要](../archive/task-loop-007-autonomous-intake.md)。
 - `TASK-LOOP-006`：默认关闭 Engine 已由 PR #43 合入；activation PR #44 关闭未合入，GitHub #41 以 `not_planned` 终止，见[L3B 终止摘要](../archive/task-loop-006-l3b-controlled-merge.md)。
 - `TASK-LOOP-004` / `TASK-LOOP-005` / `BUG-20260718-001` / `BUG-20260718-002`：Receipt 兼容、L3A Engine/activation、Recovery 修复与机器人 Draft PR #40 真实试点均完成，见 [L3A 交付摘要](../archive/task-loop-004-l3a-controlled-execution.md)。
 - `TASK-GOV-001`：机器人作者 PR #22 经唯一人工所有者批准、五项 Required Checks 全绿后合并，直推例外已关闭，见[治理记录](task-gov-001-rapid-iteration-direct-main.md)。

@@ -1,6 +1,6 @@
 # Loop Engineering 本地操作手册
 
-- 当前能力：正式公开 L2 Proposal-only；L3A 已激活并通过真实试点；只读 Issue Intake 可判定执行资格；L3B Engine 保持休眠
+- 当前能力：正式公开 L2 Proposal-only；L3A 已激活并通过真实试点；Issue Intake 与 Work Item Proposal 均只读；L3B Engine 保持休眠
 - 不包含：自动创建 Issue、任意代码生成、Daemon/Cron、自动 Skill Apply、自动审批/合并/部署和 L3C
 - 架构：[Loop Engineering 落地方案](../architecture/loop-engineering-adoption-proposal.md)
 - 验收：[TASK-LOOP-002 验收记录](../verification/task-loop-002-loop-contract-hardening.md) / [TASK-LOOP-003 交付摘要](../archive/task-loop-003-l2-proposal-admission.md) / [L3A 交付摘要](../archive/task-loop-004-l3a-controlled-execution.md) / [L3B 终止摘要](../archive/task-loop-006-l3b-controlled-merge.md)
@@ -136,6 +136,14 @@ pnpm loop:intake -- --issue 41
 ```
 
 Intake 只通过 GitHub GET 读取固定仓库的单个 Issue。Open Issue 只有同时满足可信请求者、`agent-ready` 标签，以及非空的“目标 / 验收标准 / 范围外 / 回滚”章节时才返回 `executable`；缺项返回 `proposal-only`，Closed 或 `not_planned` 返回 `terminal` 且不阻塞队列。输出只包含规范化元数据、缺项代码和正文 Hash，不返回正文，也不创建或修改 Issue、Git、PR、Loop Home 或部署。
+
+### 6.2 Work Item Proposal
+
+```powershell
+pnpm loop:work-item-proposal -- --issue 77
+```
+
+该命令只在 clean `origin/main` 上处理 `executable` Issue，并额外要求标题含稳定 TASK/BUG/SPIKE ID、正文引用已登记 Requirement，且活动/归档中没有同 ID。四个必需章节被固定渲染为引用数据；输出只携带 Base64、内容 Hash、Issue Contract、主干 Revision、Registry 与现有 Work Item 摘要，不写文件、Git、PR 或 Loop Home。自动落盘和机器人 Draft PR 必须另行激活。
 
 ## 7. Backup 与隔离 Restore
 

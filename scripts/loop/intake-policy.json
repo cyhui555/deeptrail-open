@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "repository": "cyhui555/deeptrail-open",
   "executableLabel": "agent-ready",
   "trustedRequesters": [
@@ -15,6 +15,18 @@
     "maxTitleChars": 200,
     "maxBodyBytes": 65536,
     "maxLabels": 20
+  },
+  "workItemProposal": {
+    "mode": "proposal-only",
+    "allowedKinds": [
+      "TASK",
+      "BUG",
+      "SPIKE"
+    ],
+    "maxTitleChars": 120,
+    "maxSectionBytes": 4096,
+    "maxSectionLines": 40,
+    "maxContentBytes": 24576
   },
   "permissions": {
     "readIssue": true,

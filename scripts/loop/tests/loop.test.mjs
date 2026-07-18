@@ -12,8 +12,10 @@ import { readGitState } from "../git-state.mjs";
 import {
   evaluateIssueIntake,
   loadIntakePolicy,
+  readIssueIntakeSource,
   validateIntakePolicy
 } from "../intake.mjs";
+import { evaluateIssueWorkItemProposal } from "../work-item-proposal.mjs";
 import { cohortAdmissionDigest, evaluateCohort, validateManifestShape } from "../l2-cohort.mjs";
 import {
   assertPathAllowed,
@@ -522,6 +524,14 @@ test("Issue Intake 将 Closed 与 not_planned 判为不阻塞队列的终态", a
 
 test("Issue Intake 拒绝 PR、超预算正文与权限放宽", async () => {
   const policy = await loadIntakePolicy();
+  await assert.rejects(
+    readIssueIntakeSource(77, {
+      policy,
+      readIssue: async () => intakeIssue({ number: 78 })
+    }),
+    (error) => error instanceof LoopGatewayError
+      && error.code === "INTAKE_ISSUE_NUMBER_MISMATCH"
+  );
   assert.throws(
     () => evaluateIssueIntake({ ...intakeIssue(), pull_request: { url: "redacted" } }, policy),
     (error) => error instanceof LoopGatewayError && error.code === "INTAKE_PULL_REQUEST_DENIED"
@@ -543,6 +553,155 @@ test("Issue Intake 拒绝 PR、超预算正文与权限放宽", async () => {
     () => validateIntakePolicy({ ...policy, unknown: true }),
     (error) => error instanceof LoopGatewayError
       && error.code === "INTAKE_POLICY_UNKNOWN_FIELD"
+  );
+  assert.throws(
+    () => validateIntakePolicy({
+      ...policy,
+      workItemProposal: { ...policy.workItemProposal, maxSectionLines: 41 }
+    }),
+    (error) => error instanceof LoopGatewayError
+      && error.code === "INTAKE_POLICY_SCOPE_DRIFT"
+  );
+});
+
+test("Work Item Proposal 对合格 Issue 生成确定性不透明草案", async () => {
+  const policy = await loadIntakePolicy();
+  const marker = "只应出现在 Base64 解码内容中的需求标记";
+  const raw = intakeIssue({
+    title: "[TASK-LOOP-008] 建立确定性 Work Item 草案",
+    body: proposalBody(marker)
+  });
+  const context = {
+    registry: "| REQ-LOOP-006 | 自主任务入口 | 实施中 | 测试 |",
+    existingWorkItems: [],
+    baseRevision: "a".repeat(40)
+  };
+  const first = evaluateIssueWorkItemProposal(raw, policy, context);
+  const second = evaluateIssueWorkItemProposal(raw, policy, context);
+  assert.deepEqual(second, first);
+  assert.equal(first.decision, "proposal-only");
+  assert.equal(first.workItem.id, "TASK-LOOP-008");
+  assert.equal(first.workItem.path,
+    ["docs", "issues", "task-loop-008-github-77.md"].join("/"));
+  assert.equal(first.workItem.encoding, "base64");
+  assert.equal(first.workItem.contentSha256.length, 64);
+  assert.equal(first.contractDigest.length, 64);
+  assert.equal(JSON.stringify(first).includes(marker), false);
+  const markdown = Buffer.from(first.workItem.contentBase64, "base64").toString("utf8");
+  assert.match(markdown, /^# TASK-LOOP-008：建立确定性 Work Item 草案/m);
+  assert.match(markdown, /- 关联 Requirement：`REQ-LOOP-006`/);
+  assert.match(markdown, new RegExp(`>     ${marker}`));
+  assert.equal(first.permissions.writeWorkItem, false);
+  assert.equal(first.permissions.createPullRequest, false);
+  assert.equal(first.permissions.mergePullRequest, false);
+});
+
+test("Work Item Proposal 不为非 executable、活动或归档 ID 重复提案", async () => {
+  const policy = await loadIntakePolicy();
+  const context = {
+    registry: "| REQ-LOOP-006 | 自主任务入口 | 实施中 | 测试 |",
+    existingWorkItems: [],
+    baseRevision: "a".repeat(40)
+  };
+  const notReady = evaluateIssueWorkItemProposal(intakeIssue({
+    title: "[TASK-LOOP-008] 建立草案",
+    labels: [],
+    body: proposalBody("未就绪")
+  }), policy, context);
+  assert.equal(notReady.decision, "not-proposable");
+  assert.deepEqual(notReady.reasons.slice(0, 2), [
+    "INTAKE_DECISION:proposal-only",
+    "AGENT_READY_LABEL_MISSING"
+  ]);
+
+  const active = evaluateIssueWorkItemProposal(intakeIssue({
+    title: "[TASK-LOOP-008] 建立草案",
+    body: proposalBody("已登记")
+  }), policy, {
+    ...context,
+    existingWorkItems: [{
+      id: "TASK-LOOP-008",
+      path: ["docs", "issues", "task-loop-008-existing.md"].join("/"),
+      lifecycle: "active"
+    }]
+  });
+  assert.equal(active.decision, "already-registered");
+  assert.deepEqual(active.reasons, ["WORK_ITEM_ALREADY_REGISTERED"]);
+
+  const archived = evaluateIssueWorkItemProposal(intakeIssue({
+    title: "[TASK-LOOP-008] 建立草案",
+    body: proposalBody("已归档")
+  }), policy, {
+    ...context,
+    existingWorkItems: [{
+      id: "TASK-LOOP-008",
+      path: "docs/archive/task-loop-008.md",
+      lifecycle: "archived"
+    }]
+  });
+  assert.equal(archived.decision, "not-proposable");
+  assert.deepEqual(archived.reasons, ["WORK_ITEM_ID_ARCHIVED"]);
+});
+
+test("Work Item Proposal 对 ID、Requirement、重复登记和控制字符失败关闭", async () => {
+  const policy = await loadIntakePolicy();
+  const context = {
+    registry: "| REQ-LOOP-006 | 自主任务入口 | 实施中 | 测试 |",
+    existingWorkItems: [],
+    baseRevision: "a".repeat(40)
+  };
+  assert.throws(
+    () => evaluateIssueWorkItemProposal(intakeIssue({
+      title: "没有稳定 ID",
+      body: proposalBody("无 ID")
+    }), policy, context),
+    (error) => error instanceof LoopGatewayError && error.code === "WORK_ITEM_ID_MISSING"
+  );
+  assert.throws(
+    () => evaluateIssueWorkItemProposal(intakeIssue({
+      title: "[TASK-LOOP-008] 未知需求",
+      body: proposalBody("未知 REQ", "REQ-UNKNOWN-999")
+    }), policy, context),
+    (error) => error instanceof LoopGatewayError && error.code === "WORK_ITEM_REQUIREMENT_UNKNOWN"
+  );
+  assert.throws(
+    () => evaluateIssueWorkItemProposal(intakeIssue({
+      title: "TASK-LOOP-008：缺少需求",
+      body: [
+        "## 目标", "缺少 Requirement。", "## 验收标准", "测试通过。",
+        "## 范围外", "不自动合并。", "## 回滚", "移除入口。"
+      ].join("\n")
+    }), policy, context),
+    (error) => error instanceof LoopGatewayError && error.code === "WORK_ITEM_REQUIREMENT_MISSING"
+  );
+  assert.throws(
+    () => evaluateIssueWorkItemProposal(intakeIssue({
+      title: "[TASK-LOOP-008] 重复 ID",
+      body: proposalBody("重复")
+    }), policy, {
+      ...context,
+      existingWorkItems: [
+        { id: "TASK-LOOP-008", path: "docs/issues/a.md", lifecycle: "active" },
+        { id: "TASK-LOOP-008", path: "docs/archive/b.md", lifecycle: "archived" }
+      ]
+    }),
+    (error) => error instanceof LoopGatewayError && error.code === "WORK_ITEM_ID_DUPLICATE"
+  );
+  assert.throws(
+    () => evaluateIssueWorkItemProposal(intakeIssue({
+      title: "[TASK-LOOP-008] 控制字符",
+      body: proposalBody("危险\u0007字符")
+    }), policy, context),
+    (error) => error instanceof LoopGatewayError
+      && error.code === "WORK_ITEM_SECTION_CONTROL_CHARACTER"
+  );
+  assert.throws(
+    () => evaluateIssueWorkItemProposal(intakeIssue({
+      title: "[TASK-LOOP-008] 超预算章节",
+      body: proposalBody("x".repeat(4097))
+    }), policy, context),
+    (error) => error instanceof LoopGatewayError
+      && error.code === "WORK_ITEM_SECTION_BUDGET_EXCEEDED"
   );
 });
 
@@ -1334,6 +1493,24 @@ function intakeIssue(options = {}) {
     labels: (options.labels ?? ["agent-ready"]).map((name) => ({ name })),
     updated_at: options.updatedAt ?? "2026-07-18T08:30:00.000Z"
   };
+}
+
+function proposalBody(marker, requirement = "REQ-LOOP-006") {
+  return [
+    `关联 ${requirement}`,
+    "",
+    "## 目标",
+    marker,
+    "",
+    "## 验收标准",
+    "固定测试通过。",
+    "",
+    "## 范围外",
+    "不自动合并。",
+    "",
+    "## 回滚",
+    "移除只读草案入口。"
+  ].join("\n");
 }
 
 function cohortRegistration(sequence, status, boundaryViolation = false) {

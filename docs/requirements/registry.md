@@ -1,6 +1,6 @@
 # 需求注册与追踪矩阵
 
-- 文档状态：旅迹 v0.1.0 已封板；后台运营第一期与 Loop L3A 已交付，自主任务入口进入 G1
+- 文档状态：旅迹 v0.1.0 已封板；后台运营第一期与 Loop L3A 已交付，Work Item 草案合同进入 G1
 - 最近更新：2026-07-18
 - 产品：旅迹
 
@@ -40,7 +40,7 @@
 | REQ-LOOP-003 | 以失败关闭、隔离工作树和受保护审批链建立 Loop L3A Draft PR 自动化 | 已完成 | PR #36/#37/#39 受保护合入；真实试点 PR #40 完成固定 Patch、隔离 Worktree、Profile、Commit、Push 与机器人 Draft PR，自动审批、合并和部署均关闭 |
 | REQ-LOOP-004 | 仅在精确 Head 的必需检查全绿且人工批准有效后执行 L3B 受控合并 | 已终止 | 默认关闭 Engine 由 PR #43 合入 `3e9265e`；activation PR #44 关闭未合入、GitHub #41 为 `not_planned`，Policy 与合并权限保持关闭 |
 | REQ-LOOP-005 | 以不可变制品、专项环境批准和可验证回滚建立合并后受控部署 | 待准入 | 若未来以人工 Merge 触发发布，必须独立证明制品、Tag/摘要、环境、迁移、健康、回滚和生产恢复，不从 L3A 或休眠 L3B Engine 推导 |
-| REQ-LOOP-006 | 在人工 Review/Merge 边界下建立可审计的自主任务入口与 PR 生命周期 | 实施中 | `TASK-LOOP-007` 先交付只读 Issue 准入、终态消阻与零写权限合同；自动提单、PR 续写和自动转 Ready 分阶段独立验收 |
+| REQ-LOOP-006 | 在人工 Review/Merge 边界下建立可审计的自主任务入口与 PR 生命周期 | 实施中 | `TASK-LOOP-007` 已交付只读 Intake；`TASK-LOOP-008` 建立确定性 Work Item 草案，自动写入与 Draft PR 仍需独立激活 |
 
 ## 范围说明
 
