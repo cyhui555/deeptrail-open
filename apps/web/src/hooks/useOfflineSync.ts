@@ -16,9 +16,7 @@ export function useOfflineSync(): {
   manualSync: () => Promise<void>;
 } {
   const [syncing, setSyncing] = useState(false);
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator !== 'undefined' ? navigator.onLine : true,
-  );
+  const [isOnline, setIsOnline] = useState(true);
   const [lastSyncResult, setLastSyncResult] = useState<{ checkins: number; tracks: number } | null>(null);
 
   // 使用 ref 追踪同步锁，避免将 syncing 作为 useCallback 依赖导致 effect 循环触发。
@@ -48,8 +46,10 @@ export function useOfflineSync(): {
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    // 页面加载时尝试一次同步
-    sync();
+    // SSR 与浏览器首帧统一按在线渲染；挂载后再读取真实状态，避免 navigator.onLine 造成水合差异。
+    const onlineOnMount = navigator.onLine;
+    setIsOnline(onlineOnMount);
+    if (onlineOnMount) sync();
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
