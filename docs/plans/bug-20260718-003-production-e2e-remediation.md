@@ -1,5 +1,5 @@
 # BUG-20260718-003 生产 E2E 缺陷修复 ExecPlan
-- 状态：G1
+- 状态：G3
 - Work Item：[BUG-20260718-003](../issues/bug-20260718-003-production-e2e-remediation.md)
 
 ## 成功定义

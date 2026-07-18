@@ -1,5 +1,5 @@
 # BUG-20260718-003 生产 E2E 五项缺陷修复
-- 状态：In Progress / G1
+- 状态：Ready for Review / G3
 - 关联 Requirement：`REQ-PERF-002`、`REQ-UX-003`、`REQ-QUALITY-003`、`REQ-DEPLOY-002`
 - ExecPlan：[生产 E2E 缺陷修复计划](../plans/bug-20260718-003-production-e2e-remediation.md)
 
