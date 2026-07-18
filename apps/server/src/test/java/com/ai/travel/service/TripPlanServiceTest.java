@@ -111,6 +111,10 @@ class TripPlanServiceTest {
     var result = tripPlanService.listUserTrips(null, 1, 20);
 
     assertThat(result.getRecords()).hasSize(1);
+    assertThat(result.getTotal()).isEqualTo(1);
+    assertThat(result.getPage()).isEqualTo(1);
+    assertThat(result.getSize()).isEqualTo(20);
+    assertThat(result.getTotalPages()).isEqualTo(1);
     verify(tripPlanMapper).selectPage(any(Page.class), any(LambdaQueryWrapper.class));
     verify(checkinTaskMapper).summarizeProgressByPlanIds(List.of("plan-1"));
     verify(checkinTaskMapper, never()).selectList(any());

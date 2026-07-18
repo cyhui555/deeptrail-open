@@ -7,6 +7,7 @@ import com.ai.travel.dto.request.SetActiveTaskRequest;
 import com.ai.travel.dto.request.UpdateTripPlanRequest;
 import com.ai.travel.dto.response.CheckinTaskResponse;
 import com.ai.travel.dto.response.ItineraryResponse;
+import com.ai.travel.dto.response.PageResult;
 import com.ai.travel.dto.response.TaskVersionResponse;
 import com.ai.travel.dto.response.TripPlanResponse;
 import com.ai.travel.dto.response.TripPlanSummaryResponse;
@@ -116,7 +117,7 @@ public class TripPlanService {
    * @param size 每页条数
    * @return 分页结果
    */
-  public Page<TripPlanSummaryResponse> listUserTrips(String status, int page, int size) {
+  public PageResult<TripPlanSummaryResponse> listUserTrips(String status, int page, int size) {
     Long userId = currentUserId();
 
     LambdaQueryWrapper<TripPlan> wrapper = new LambdaQueryWrapper<>();
@@ -144,9 +145,8 @@ public class TripPlanService {
         .map(plan -> toSummaryResponse(plan, progressByPlanId.get(plan.getId())))
         .collect(Collectors.toList());
 
-    Page<TripPlanSummaryResponse> result = new Page<>(page, size, planPage.getTotal());
-    result.setRecords(records);
-    return result;
+    return new PageResult<>(records, planPage.getTotal(), page, size,
+        (int) planPage.getPages());
   }
 
   /**
