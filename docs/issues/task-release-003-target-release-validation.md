@@ -1,5 +1,5 @@
 # TASK-RELEASE-003：不可变 Release 目标机验证与恢复演练
-- 状态：Verification / G3
+- 状态：Closed / G3
 - 关联需求：`REQ-DEPLOY-002`、`REQ-LOOP-002`
 ## 目标
 以受保护 `main@bc1ed2d` 重建并发布不可变 Release，使用固定样例关闭 AI/地图竞态风险，并实证失败发布自动恢复，不调用付费服务。

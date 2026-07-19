@@ -57,7 +57,7 @@ if (-not $DeployHost) { throw '请先设置 DEEPTRAIL_DEPLOY_HOST' }
 7. 验证 DB、登录页、同源 `/api/health` 和一次不记录响应正文的真实静态地图图片探针，通过后原子切换 current。
 8. 只开放批准端口，重启容器并再次验收；最后从发布机执行外部 HTTP 检查。
 
-目标机现场构建不等于远程 CI。正式流水线应改用 `build-images.sh --push`，生产 Compose 只引用 Registry digest。
+目标机现场构建不等于远程 CI。[远程制品链](remote-artifact-chain.md)由 `TASK-RELEASE-004` 使用 `build-images.sh --push` 生成 GHCR digest、SBOM/provenance 与证据包；当前只制作制品，不连接或更新目标机。后续生产 Compose 迁移到 Registry digest 必须另行授权。
 
 ## 升级、备份与回滚
 
@@ -77,5 +77,6 @@ sudo bash infra/deploy/rollback.sh \
 ## 放行口径
 
 - `目标环境 G3 通过`：镜像/manifest、迁移、DB、健康、外网、重启和同机备份验证通过。
-- `完整生产放行`：还必须补齐干净远程 CI/Registry、TLS、凭据轮换、独立介质复制与 Restore、上一 release 回滚和最终审计。
+- `远程制品 G3`：手动 Workflow 从精确受保护 `main` 成功生成两项 GHCR digest、SBOM/provenance 与校验通过的证据包；不代表已部署。
+- `完整生产放行`：还必须把已验收 Registry digest 纳入受控部署，并补齐 TLS、凭据轮换、独立介质复制与 Restore、上一 release 回滚和最终审计。
 - `BLOCKED`：SSH、主机身份、端口/数据归属或关键凭据边界无法确认。

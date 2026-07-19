@@ -1,6 +1,6 @@
 # BUG-20260717-001 行程优化超时竞态与迟到结果丢弃
 
-- 状态：Verification / G3（已发布并完成目标机 117 项固定样例复验）
+- 状态：Closed / G3（已发布并完成目标机 117 项固定样例复验）
 - 优先级：P1
 - GitHub Issue：[cyhui555/deeptrail#21](https://github.com/cyhui555/deeptrail/issues/21)
 - ExecPlan：[行程优化超时修复计划](../plans/bug-20260717-001-optimize-timeout-fix.md)
@@ -87,4 +87,4 @@
 - 定向回归 137/137（含 TaskScheduler 16/16）通过；覆盖取消传播、48 POI 熔断、迟到成功丢弃与 DB 终态竞态。
 - `pnpm verify:server`：655/655、Checkstyle 0、JaCoCo 门槛通过。
 - `pnpm test:e2e:server`：37/37；`pnpm test:e2e:smoke`：11/11。
-- `pnpm lint`、`pnpm typecheck` 与文档预算检查通过；Commit `6495d3e` 已 fast-forward 合入 `main`，生产环境尚未复验。
+- `pnpm lint`、`pnpm typecheck` 与文档预算检查通过；Commit `6495d3e` 已合入并随 v0.2.0 发布，目标机 117/117 固定样例复验通过，旧私库 GitHub #21 已关闭。

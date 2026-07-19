@@ -1,6 +1,6 @@
 # BUG-20260717-005 开发态 PWA 边界被 Production E2E 错误执行
 
-- 状态：Verification
+- 状态：Closed / G3（Required Checks 已通过）
 - 优先级：P1
 - 关联需求：`REQ-PERF-002`、`REQ-QUALITY-003`
 - 发现环境：公开主仓 Full E2E workflow `29577848547`
