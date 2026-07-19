@@ -161,10 +161,7 @@ export function validateWorkflowText(content, relativePath = "") {
   const isReadOnly = /^permissions:\s*\r?\n\s+contents:\s*read\s*$/m.test(content);
   const isConstrainedAuthor = normalizePath(relativePath) === ".github/workflows/automation-pr-author.yml"
     && validateAutomationAuthorWorkflow(content).length === 0;
-  const isConstrainedArchiveFinalizer = normalizePath(relativePath)
-      === ".github/workflows/archive-pr-finalizer.yml"
-    && validateArchiveFinalizerWorkflow(content).length === 0;
-  if (!isReadOnly && !isConstrainedAuthor && !isConstrainedArchiveFinalizer) {
+  if (!isReadOnly && !isConstrainedAuthor) {
     violations.push("workflow-permissions-not-read-only");
   }
   if (/\bsecrets\.[A-Za-z_][A-Za-z0-9_]*/.test(content)) {
@@ -174,54 +171,6 @@ export function validateWorkflowText(content, relativePath = "") {
     violations.push("raw-runtime-artifact-upload");
   }
   return violations;
-}
-
-export function validateArchiveFinalizerWorkflow(content) {
-  const failures = [];
-  const requiredFragments = [
-    /^on:\s*\r?\n  workflow_run:\s*$/m,
-    /^    workflows: \[CI\]\s*$/m,
-    /^    types: \[completed\]\s*$/m,
-    /^permissions:\s*\{\}\s*$/m,
-    /^    if: github\.repository == 'cyhui555\/deeptrail-open' && github\.event\.workflow_run\.name == 'CI' && github\.event\.workflow_run\.event == 'pull_request' && github\.event\.workflow_run\.conclusion == 'success' && github\.event\.workflow_run\.head_repository\.full_name == github\.repository\s*$/m,
-    /^      contents: write\s*$/m,
-    /^      pull-requests: write\s*$/m,
-    /^      checks: read\s*$/m,
-    /^        uses: actions\/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0\s+# v7\s*$/m,
-    /^          ref: main\s*$/m,
-    /^          persist-credentials: false\s*$/m,
-    /^          GH_TOKEN: \$\{\{ github\.token \}\}\s*$/m,
-    /^          WORKFLOW_RUN_ID: \$\{\{ github\.event\.workflow_run\.id \}\}\s*$/m,
-    /^          EXPECTED_HEAD_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \}\}\s*$/m,
-    /^        run: node scripts\/github\/archive-pr-finalizer\.mjs\s*$/m,
-  ];
-  if (requiredFragments.some((pattern) => !pattern.test(content))) {
-    failures.push("archive-finalizer-workflow-contract-missing");
-  }
-  const triggerBlock = content.match(/^on:\s*\r?\n(?<body>(?:^ {2,}.*(?:\r?\n|$))*)/m)?.groups?.body ?? "";
-  const triggers = [...triggerBlock.matchAll(/^ {2}([a-z_]+):/gm)].map((match) => match[1]);
-  if ([...content.matchAll(/^on:/gm)].length !== 1
-      || triggers.length !== 1 || triggers[0] !== "workflow_run") {
-    failures.push("archive-finalizer-workflow-trigger-too-broad");
-  }
-  const rootPermissions = [...content.matchAll(/^permissions:/gm)].length;
-  const jobPermissions = [...content.matchAll(/^ {4}permissions:/gm)].length;
-  if (rootPermissions !== 1 || jobPermissions !== 1) {
-    failures.push("archive-finalizer-workflow-permissions-duplicated");
-  }
-  const writePermissions = [...content.matchAll(/^\s+[a-z-]+:\s*write\s*$/gm)]
-    .map((match) => match[0].trim());
-  if (writePermissions.join("|") !== "contents: write|pull-requests: write") {
-    failures.push("archive-finalizer-workflow-permissions-drift");
-  }
-  if ([...content.matchAll(/^\s+run:/gm)].length !== 1
-      || [...content.matchAll(/^\s+uses:/gm)].length !== 1) {
-    failures.push("archive-finalizer-workflow-step-drift");
-  }
-  if ([...content.matchAll(/^\s+GH_TOKEN:/gm)].length !== 1) {
-    failures.push("archive-finalizer-workflow-token-drift");
-  }
-  return failures;
 }
 
 export function validateAutomationAuthorWorkflow(content) {

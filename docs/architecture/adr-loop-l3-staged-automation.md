@@ -18,7 +18,7 @@ L3 按不可越级的权限阶段推进：
 | L3B | L3A + 必需检查和人工批准后的受控合并 | 绕过保护、force-push、自动部署 |
 | L3C | L3B + 不可变制品和专项批准后的受控部署 | 现场改码、移动 Tag、无回滚部署 |
 
-`REQ-LOOP-003` 只激活 L3A，交付证据见 [L3A 摘要](../archive/task-loop-004-l3a-controlled-execution.md)。L3B 默认关闭 Engine 已由 PR #43 合入，但 activation PR #44 关闭未合入，路线结论见 [TASK-LOOP-006 摘要](../archive/task-loop-006-l3b-controlled-merge.md)。后续 `REQ-LOOP-006` 只增强人工 Merge 之前的任务入口和 PR 生命周期，不授予合并权限；L3C 仍须独立提供证据。
+`REQ-LOOP-003` 只激活 L3A，交付证据见 [L3A 摘要](../archive/task-loop-004-l3a-controlled-execution.md)。L3B 默认关闭 Engine 已由 PR #43 合入，但 activation PR #44 关闭未合入，路线结论见 [TASK-LOOP-006 摘要](../archive/task-loop-006-l3b-controlled-merge.md)。`REQ-LOOP-006` 仅由 PR #46 交付只读 Issue 准入，后续自动提单与 PR 生命周期已暂停；L3C 仍须独立提供证据。
 
 ## L3A 不变量
 

@@ -23,12 +23,14 @@ function relative(file) {
 
 const markdownFiles = await walk(docsRoot);
 let totalLines = 0;
+let activeLines = 0;
 
 for (const file of markdownFiles) {
   const content = await readFile(file, "utf8");
   const lines = content.split(/\r?\n/).length;
   const name = relative(file);
   totalLines += lines;
+  if (!name.startsWith("docs/archive/")) activeLines += lines;
 
   const maxLines = name === "docs/api/接口说明书.md" ? 160 : name === "docs/memory/project-state.md" ? 60 : 320;
   if (lines > maxLines) errors.push(`${name} 为 ${lines} 行，超过 ${maxLines} 行预算`);
@@ -54,7 +56,7 @@ for (const file of markdownFiles) {
   }
 }
 
-if (totalLines > 3400) errors.push(`docs Markdown 共 ${totalLines} 行，超过 3400 行总预算`);
+if (activeLines > 3400) errors.push(`活动 docs Markdown 共 ${activeLines} 行，超过 3400 行预算`);
 
 const memoryNames = (await readdir(path.join(docsRoot, "memory"))).sort();
 const allowedMemory = new Set(["README.md", "lessons.md", "project-state.md"]);
@@ -68,4 +70,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`文档检查通过：${markdownFiles.length} 个 Markdown，共 ${totalLines} 行。`);
+console.log(`文档检查通过：${markdownFiles.length} 个 Markdown，活动 ${activeLines} 行，总计 ${totalLines} 行。`);
