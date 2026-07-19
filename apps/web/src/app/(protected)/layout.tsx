@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Compass, Map, ShieldCheck, UserRound } from 'lucide-react';
+import { Compass, Download, Map, ShieldCheck, UserRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { Brand } from '@/components/Brand';
 import { FeedbackProvider } from '@/components/FeedbackProvider';
+import { useAppInstall } from '@/components/AppInstallProvider';
 import { useAuth } from '@/contexts/AuthContext';
 
 const tabs: Array<{ href: string; label: string; icon: LucideIcon }> = [
@@ -18,6 +19,7 @@ const tabs: Array<{ href: string; label: string; icon: LucideIcon }> = [
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { canInstall, install } = useAppInstall();
   const visibleTabs = user?.role === 'ADMIN'
     ? [...tabs, { href: '/admin/users', label: '管理', icon: ShieldCheck }]
     : tabs;
@@ -57,7 +59,18 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
               })}
             </nav>
 
-            <p className="mt-auto px-3 text-xs leading-5 text-gray-500">
+            {canInstall && (
+              <button
+                type="button"
+                onClick={() => void install()}
+                className="button-secondary mt-auto w-full gap-2 px-3 py-2.5 text-xs"
+                aria-label="安装旅迹 App"
+              >
+                <Download aria-hidden="true" className="h-4 w-4" strokeWidth={1.9} />
+                安装 App
+              </button>
+            )}
+            <p className={`${canInstall ? 'mt-3' : 'mt-auto'} px-3 text-xs leading-5 text-gray-500`}>
               把计划与沿途记忆，收进同一条轨迹。
             </p>
           </aside>
@@ -68,9 +81,21 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
                 <Link href="/" aria-label="返回旅迹首页" className="rounded-xl">
                   <Brand compact />
                 </Link>
-                <span className="hidden text-sm text-gray-500 sm:inline">
-                  把下一段路，安排得更从容
-                </span>
+                {canInstall ? (
+                  <button
+                    type="button"
+                    onClick={() => void install()}
+                    className="button-secondary min-h-9 gap-1.5 px-3 py-2 text-xs"
+                    aria-label="安装旅迹 App"
+                  >
+                    <Download aria-hidden="true" className="h-4 w-4" strokeWidth={1.9} />
+                    安装 App
+                  </button>
+                ) : (
+                  <span className="hidden text-sm text-gray-500 sm:inline">
+                    把下一段路，安排得更从容
+                  </span>
+                )}
               </div>
             </header>
 

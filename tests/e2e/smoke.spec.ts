@@ -85,6 +85,33 @@ test.describe('CI smoke without external AI', () => {
     await expect(page.getByRole('banner')).toContainText('旅迹');
   });
 
+  test('shows install action only after the browser reports app installability', async ({ page }) => {
+    await gotoHomeAndWaitForTasks(page);
+    const installButton = page.getByRole('button', { name: '安装旅迹 App' });
+    await expect(installButton).toHaveCount(0);
+
+    await page.evaluate(() => {
+      const installState = window as unknown as { __deeptrailInstallPromptCalled?: boolean };
+      const event = new Event('beforeinstallprompt', { cancelable: true });
+      Object.defineProperties(event, {
+        prompt: {
+          value: async () => { installState.__deeptrailInstallPromptCalled = true; },
+        },
+        userChoice: {
+          value: Promise.resolve({ outcome: 'accepted', platform: 'web' }),
+        },
+      });
+      window.dispatchEvent(event);
+    });
+
+    await expect(installButton).toBeVisible();
+    await installButton.click();
+    await expect.poll(() => page.evaluate(() => (
+      window as unknown as { __deeptrailInstallPromptCalled?: boolean }
+    ).__deeptrailInstallPromptCalled)).toBe(true);
+    await expect(installButton).toHaveCount(0);
+  });
+
   test('switches three planner tabs without external calls', async ({ page }) => {
     await gotoHomeAndWaitForTasks(page);
 

@@ -5,7 +5,7 @@
 
 ## In Progress
 
-- `TASK-RELEASE-004`：只制作远程不可变制品链，不部署，不扩展 TLS、凭据轮换、Restore 或回滚，见[活动 Work Item](task-release-004-remote-artifact-chain.md)与[执行计划](../plans/task-release-004-remote-artifact-chain.md)。
+- `TASK-APP-001`：只开发 Android 基础安装与启动切片，复用现有 H5/PWA，不扩展 iOS 或其他原生能力，见[活动 Work Item](task-app-001-android-basic.md)。
 
 ## Maintenance Trial
 
@@ -13,7 +13,11 @@
 
 ## Review Queue（不计入 WIP）
 
-- PR #64 与 #65 在 #60/#63 合入后需要更新到最新 `main` 并解决冲突；均不自动合并或部署。
+- PR #64 仍需更新到最新 `main` 并解决冲突；PR #65 已同步 `main@b21c373`，等待必需检查与所有者人工复核。两者均不自动合并或部署。
+
+## Operational Follow-up（不计入 WIP）
+
+- [`TASK-RELEASE-004`](task-release-004-remote-artifact-chain.md) 已由 PR #62 合入 `main@88b5092`；首次真实远程制品运行仍等待环境配置，不部署，也不占用产品 WIP。
 
 ## Closed
 

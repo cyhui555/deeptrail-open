@@ -1,0 +1,71 @@
+plugins {
+    id 'com.android.application'
+}
+
+def rawTestUrl = providers.environmentVariable('DEEPTRAIL_TEST_APP_URL').orElse('').get().trim()
+def testUri
+try {
+    testUri = new URI(rawTestUrl)
+} catch (Exception ignored) {
+    throw new GradleException('DEEPTRAIL_TEST_APP_URL 必须是合法的 HTTP 或 HTTPS URL')
+}
+
+if (!(testUri.scheme in ['http', 'https'])
+        || !testUri.host
+        || testUri.userInfo
+        || testUri.fragment
+        || rawTestUrl.any { Character.isISOControl(it as char) }) {
+    throw new GradleException('DEEPTRAIL_TEST_APP_URL 只允许无凭据、无片段的 HTTP 或 HTTPS URL')
+}
+
+def javaStringLiteral = '"' + rawTestUrl.replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+android {
+    namespace 'com.deeptrail.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.deeptrail.app'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0-test'
+        buildConfigField 'String', 'DEEPTRAIL_TEST_URL', javaStringLiteral
+        manifestPlaceholders = [usesCleartextTraffic: 'false']
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+            debuggable true
+            // 当前线上 H5 仍是 HTTP；仅 debug 变体按构建 URL 显式开启明文访问。
+            manifestPlaceholders = [usesCleartextTraffic: String.valueOf(testUri.scheme == 'http')]
+        }
+        release {
+            debuggable false
+            manifestPlaceholders = [usesCleartextTraffic: 'false']
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError true
+        checkReleaseBuilds false
+    }
+}
+
+androidComponents {
+    // 这是一次性测试壳；禁止误产出带测试 URL 或临时签名的 release 变体。
+    beforeVariants(selector().withBuildType('release')) { variantBuilder ->
+        variantBuilder.enable = false
+    }
+}
