@@ -29,10 +29,10 @@
 ```powershell
 $DeployHost = $env:DEEPTRAIL_DEPLOY_HOST
 if (-not $DeployHost) { throw '请先设置 DEEPTRAIL_DEPLOY_HOST' }
-& .\infra\deploy\publish.ps1 \
-  -HostName $DeployHost \
-  -SshUser root \
-  -IdentityFile "$env:USERPROFILE/.ssh/deeptrail_release_ed25519" \
+& .\infra\deploy\publish.ps1 `
+  -HostName $DeployHost `
+  -SshUser root `
+  -IdentityFile "$env:USERPROFILE/.ssh/deeptrail_release_ed25519" `
   -AppPort 0
 ```
 
