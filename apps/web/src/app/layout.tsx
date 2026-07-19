@@ -3,6 +3,7 @@ import { Noto_Sans_SC } from 'next/font/google';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ScenicBackdrop } from '@/components/ScenicBackdrop';
 import { WebVitalsReporter } from '@/components/WebVitalsReporter';
+import { AppInstallProvider } from '@/components/AppInstallProvider';
 import './globals.css';
 
 const notoSansSc = Noto_Sans_SC({
@@ -88,7 +89,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${notoSansSc.variable} min-h-[100dvh] bg-surface-subtle`}>
         <WebVitalsReporter />
         <ScenicBackdrop />
-        <AuthProvider>{children}</AuthProvider>
+        <AppInstallProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </AppInstallProvider>
       </body>
     </html>
   );

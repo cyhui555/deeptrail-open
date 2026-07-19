@@ -1,6 +1,6 @@
 # TASK-RELEASE-004：远程不可变制品链
 
-- 状态：In Progress / G2
+- 状态：Awaiting Operator / G2（PR #62 已合入，等待首次真实远程运行）
 - 优先级：P0
 - 关联 Requirement：`REQ-RELEASE-002`
 - ExecPlan：[远程制品链计划](../plans/task-release-004-remote-artifact-chain.md)

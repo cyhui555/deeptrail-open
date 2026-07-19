@@ -8,6 +8,8 @@ const nextConfig = {
   async rewrites() {
     const backendUrl = process.env.BACKEND_INTERNAL_URL || 'http://localhost:8080';
     return [
+      // Android 必须从标准路径读取站点关联；实际内容由失败关闭的 Route Handler 生成。
+      { source: '/.well-known/assetlinks.json', destination: '/api/android/assetlinks' },
       // 浏览器始终访问同源 /api；Next 服务端再转发到后端，保证 HttpOnly Cookie 可用。
       { source: '/api/health', destination: `${backendUrl}/api/health` },
       { source: '/api/auth/:path*', destination: `${backendUrl}/api/auth/:path*` },

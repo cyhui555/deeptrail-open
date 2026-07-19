@@ -19,6 +19,7 @@ const requiredActions = new Map([
   ["actions/setup-node", { sha: "820762786026740c76f36085b0efc47a31fe5020", version: "v7" }],
   ["actions/setup-java", { sha: "03ad4de0992f5dab5e18fcb136590ce7c4a0ac95", version: "v5" }],
   ["actions/upload-artifact", { sha: "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a", version: "v7" }],
+  ["gradle/actions/setup-gradle", { sha: "0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d", version: "v4" }],
   ["pnpm/action-setup", { sha: "0ebf47130e4866e96fce0953f49152a61190b271", version: "v6" }],
 ]);
 
