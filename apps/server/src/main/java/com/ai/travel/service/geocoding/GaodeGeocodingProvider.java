@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -42,6 +43,13 @@ public class GaodeGeocodingProvider implements GeocodingProvider {
 
   /** 重试间隔基数（ms），实际采用 1.5x 固定退避（避免惊群）。 */
   private static final long RETRY_BACKOFF_BASE_MS = 800L;
+
+  /** 高德按秒统计 QPS；远端明确拒绝后等待完整窗口再重试一次。 */
+  private static final long THROTTLE_BACKOFF_MS = 1_000L;
+
+  /** 高德官方错误码中明确属于 QPS 限制的可恢复类别。 */
+  private static final Set<String> THROTTLE_INFO_CODES = Set.of(
+      "10014", "10015", "10019", "10020", "10021", "10029");
 
   private final AppGeocodingProperties properties;
   private final ObjectMapper objectMapper;
@@ -95,7 +103,7 @@ public class GaodeGeocodingProvider implements GeocodingProvider {
       url.append("&city=").append(urlEncode(request.getRegion()));
       url.append("&citylimit=true");
     }
-    return parseResponse(executeRateLimited(url.toString(), timeoutMs));
+    return executeRateLimited(url.toString(), timeoutMs, this::parseResponse);
   }
 
   private GeoResult executePoiSearch(GeoRequest request, int timeoutMs)
@@ -109,13 +117,24 @@ public class GaodeGeocodingProvider implements GeocodingProvider {
     }
     url.append("&city_limit=false&page_size=10&page_num=1&output=JSON");
     url.append("&key=").append(properties.getGaodeApiKey());
-    return parsePoiSearchResponse(executeRateLimited(url.toString(), timeoutMs));
+    return executeRateLimited(url.toString(), timeoutMs, this::parsePoiSearchResponse);
   }
 
-  private String executeRateLimited(String url, int timeoutMs) throws GeocodingException {
-    // 每一次真实 HTTP 调用都重新获取令牌；fallback 不能绕过全局 QPS 约束。
-    RateLimiters.waitFor("gaode");
-    return executeWithRetry(url, timeoutMs, RETRY_ON_IO_ERROR);
+  private GeoResult executeRateLimited(
+      String url, int timeoutMs, ResponseParser parser) throws GeocodingException {
+    for (int attempt = 1; attempt <= 2; attempt++) {
+      try {
+        return parser.parse(executeWithRetry(url, timeoutMs, RETRY_ON_IO_ERROR));
+      } catch (GeocodingException exception) {
+        if (!exception.isThrottled() || attempt == 2) {
+          throw exception;
+        }
+        log.warn("Gaode QPS throttled on attempt {}/2, retrying after {}ms",
+            attempt, THROTTLE_BACKOFF_MS);
+        sleepBeforeRetry(THROTTLE_BACKOFF_MS, "Gaode throttle retry interrupted");
+      }
+    }
+    throw new GeocodingException("Gaode throttle retry exhausted");
   }
 
   /**
@@ -140,17 +159,14 @@ public class GaodeGeocodingProvider implements GeocodingProvider {
     int attempts = retryOnIo ? 2 : 1;
     for (int attempt = 1; attempt <= attempts; attempt++) {
       try {
+        // 每次真实 HTTP 尝试都领取令牌；I/O 重试不能绕过全局 5 QPS 节奏。
+        acquireRateLimitPermit();
         return executeHttpGet(url, timeoutMs);
       } catch (Exception e) {
         if (isIoError(e) && attempt < attempts) {
           log.warn("Gaode HTTP IOException on attempt {}/{}, will retrying in {}ms: {}",
               attempt, attempts, RETRY_BACKOFF_BASE_MS, e.getMessage());
-          try {
-            Thread.sleep(RETRY_BACKOFF_BASE_MS);
-          } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            throw new GeocodingException("Gaode retry interrupted", ie);
-          }
+          sleepBeforeRetry(RETRY_BACKOFF_BASE_MS, "Gaode retry interrupted");
           lastException = new GeocodingException("Gaode HTTP error: " + e.getMessage(), e);
         } else {
           throw new GeocodingException("Gaode HTTP error: " + e.getMessage(), e);
@@ -161,6 +177,23 @@ public class GaodeGeocodingProvider implements GeocodingProvider {
     throw lastException != null
         ? lastException
         : new GeocodingException("Gaode HTTP error: exhausted attempts");
+  }
+
+  /** 测试可覆盖该边界，以验证每次真实 HTTP 尝试都重新领取令牌。 */
+  void acquireRateLimitPermit() {
+    RateLimiters.waitFor("gaode");
+    if (Thread.currentThread().isInterrupted()) {
+      throw new GeocodingException("Gaode rate limit wait interrupted");
+    }
+  }
+
+  private void sleepBeforeRetry(long delayMs, String interruptedMessage) {
+    try {
+      Thread.sleep(delayMs);
+    } catch (InterruptedException exception) {
+      Thread.currentThread().interrupt();
+      throw new GeocodingException(interruptedMessage, exception);
+    }
   }
 
   /**
@@ -210,8 +243,7 @@ public class GaodeGeocodingProvider implements GeocodingProvider {
       JsonNode root = objectMapper.readTree(json);
       String status = root.path("status").asText("0");
       if (!"1".equals(status)) {
-        String info = root.path("info").asText("unknown");
-        throw new GeocodingException("Gaode API error: " + info);
+        throw buildApiException("Gaode API error", root);
       }
 
       JsonNode geocodes = root.path("geocodes");
@@ -250,8 +282,7 @@ public class GaodeGeocodingProvider implements GeocodingProvider {
       JsonNode root = objectMapper.readTree(json);
       String status = root.path("status").asText("0");
       if (!"1".equals(status)) {
-        String info = root.path("info").asText("unknown");
-        throw new GeocodingException("Gaode POI API error: " + info);
+        throw buildApiException("Gaode POI API error", root);
       }
 
       JsonNode pois = root.path("pois");
@@ -285,6 +316,21 @@ public class GaodeGeocodingProvider implements GeocodingProvider {
     } catch (Exception e) {
       throw new GeocodingException("Gaode POI parse error: " + e.getMessage(), e);
     }
+  }
+
+  private GeocodingException buildApiException(String prefix, JsonNode root) {
+    String info = root.path("info").asText("unknown");
+    String infoCode = root.path("infocode").asText("");
+    String detail = StrUtil.isBlank(infoCode) ? info : info + " (" + infoCode + ")";
+    if (THROTTLE_INFO_CODES.contains(infoCode) || info.contains("QPS_HAS_EXCEEDED")) {
+      return GeocodingException.throttled(prefix + ": " + detail);
+    }
+    return new GeocodingException(prefix + ": " + detail);
+  }
+
+  @FunctionalInterface
+  private interface ResponseParser {
+    GeoResult parse(String json) throws GeocodingException;
   }
 
   private Double parseDoubleSafe(String s) {

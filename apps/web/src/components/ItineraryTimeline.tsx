@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import type { DayPlan, NodeRevision, ScheduleItem } from '@/types';
 
 interface Props {
@@ -101,46 +102,31 @@ export function getPeriodStyle(period: string): PeriodStyle {
 }
 
 /**
- * 提取一天的摘要文本（用于折叠态展示）。
+ * 提取一天的路线摘要（用于折叠态展示）。
  *
- * <p>取每个时段 description 的前 30 个字 + 餐饮数量 + 小贴士标记，
- * 让用户在不展开的情况下快速了解当天安排。
+ * <p>折叠态只保留最多三个地点，避免把完整日程再次压缩成难读的长段落。
  */
 function buildDaySummary(day: DayPlan): string {
-  const parts: string[] = [];
-
-  if (day.schedule && day.schedule.length > 0) {
-    const highlights = day.schedule
-      .map((s) => {
-        const fragments: string[] = [];
-        if (s.period) fragments.push(s.period);
-        if (s.poi?.name) fragments.push(s.poi.name);
-        if (s.description) {
-          const brief = s.description.length > 20
-            ? s.description.slice(0, 20) + '…'
-            : s.description;
-          fragments.push(brief);
-        }
-        return fragments.join(' · ');
-      })
-      .filter(Boolean)
-      .join(' | ');
-    if (highlights) parts.push(highlights);
+  const stops = Array.from(new Set(
+    (day.schedule ?? [])
+      .map((item) => item.poi?.name?.trim())
+      .filter((name): name is string => Boolean(name)),
+  ));
+  if (stops.length > 0) {
+    const visibleStops = stops.slice(0, 3).join(' → ');
+    return stops.length > 3 ? `${visibleStops}，另有 ${stops.length - 3} 处` : visibleStops;
   }
 
-  if (day.meals && day.meals.length > 0) {
-    parts.push(`${day.meals.length} 餐`);
-  }
+  const description = day.schedule?.find((item) => item.description?.trim())?.description?.trim();
+  if (!description) return '展开查看当天详细安排';
+  return description.length > 52 ? `${description.slice(0, 52)}…` : description;
+}
 
-  if (day.accommodation && day.accommodation.name) {
-    parts.push(`🏨 ${day.accommodation.name}`);
-  }
-
-  if (day.tip) {
-    parts.push(`💡 ${day.tip.length > 30 ? day.tip.slice(0, 30) + '…' : day.tip}`);
-  }
-
-  return parts.join('  ·  ');
+/** 将完整日期压缩为适合移动端标题的月日格式。 */
+function formatCompactDate(date: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(date);
+  if (!match) return date;
+  return `${Number(match[2])}月${Number(match[3])}日`;
 }
 
 /**
@@ -213,33 +199,42 @@ export function ItineraryTimeline({
     }
   };
 
+  const allExpanded = days.every((day) => expandedDays.has(day.day));
+  const allCollapsed = days.every((day) => !expandedDays.has(day.day));
+
   return (
     <div className="relative">
       {/* 左侧竖线 */}
-      <div className="absolute bottom-2 left-5 top-2 w-0.5 rounded-full bg-gradient-to-b from-primary-200 via-primary-100 to-primary-200" />
+      <div className={`absolute bottom-2 left-[17px] w-0.5 rounded-full bg-gradient-to-b from-primary-200 via-primary-100 to-primary-200 sm:left-5 ${
+        days.length > 3 ? 'top-14' : 'top-6'
+      }`} />
 
       {/* 全部展开/折叠工具栏 */}
       {days.length > 3 && (
-        <div className="flex items-center justify-end gap-2 mb-4">
-          <button
-            type="button"
-            onClick={expandAll}
-            className="text-xs text-blue-600 hover:text-blue-700 active:opacity-60 px-2 py-1"
-          >
-            全部展开
-          </button>
-          <span className="text-gray-300">|</span>
-          <button
-            type="button"
-            onClick={collapseAll}
-            className="text-xs text-gray-500 hover:text-gray-700 active:opacity-60 px-2 py-1"
-          >
-            全部折叠
-          </button>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold text-primary-900">每日行程</h2>
+          <div role="group" aria-label="行程展开控制" className="flex shrink-0 items-center gap-0.5 rounded-xl border border-white/70 bg-surface/80 p-0.5 shadow-sm">
+            <button
+              type="button"
+              onClick={expandAll}
+              disabled={allExpanded}
+              className="whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-50 active:bg-primary-100 disabled:text-gray-300"
+            >
+              全部展开
+            </button>
+            <button
+              type="button"
+              onClick={collapseAll}
+              disabled={allCollapsed}
+              className="whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-white active:bg-gray-50 disabled:text-gray-300"
+            >
+              全部折叠
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="space-y-0">
+      <div className="space-y-3">
         {days.map((day, dayIndex) => {
           const gradient = dayHeaderGradients[dayIndex % dayHeaderGradients.length];
           const isExpanded = expandedDays.has(day.day);
@@ -251,83 +246,78 @@ export function ItineraryTimeline({
               key={day.day}
               id={`day-${day.day}`}
               data-day={day.day}
-              className="relative pl-14 pb-6 last:pb-0 scroll-mt-16"
+              className="relative scroll-mt-28 pl-10 sm:scroll-mt-32 sm:pl-14"
             >
               {/* 时间线圆点 */}
-              <div className={`absolute left-[14px] top-5 w-4 h-4 rounded-full bg-white border-[3px] shadow-sm z-10 transition-colors duration-200 ${
+              <div className={`absolute left-[11px] top-[18px] z-10 h-3.5 w-3.5 rounded-full border-[3px] bg-white shadow-sm transition-colors duration-200 sm:left-[14px] ${
                 isExpanded ? 'border-blue-500' : 'border-gray-300'
               }`} />
 
               {/* 日卡片 */}
-              <div className={`bg-white border rounded-2xl shadow-sm transition-all duration-300 overflow-hidden ${
-                isExpanded ? 'border-gray-100' : 'border-gray-100 hover:border-gray-200'
+              <article className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition-[border-color,box-shadow] duration-200 ${
+                isExpanded ? 'border-primary-100 shadow-primary-900/10' : 'border-white/80 hover:border-primary-100'
               }`}>
                 {/* 可点击的标题区 */}
                 <button
                   type="button"
                   onClick={() => toggleDay(day.day)}
+                  aria-expanded={isExpanded}
+                  aria-controls={`day-${day.day}-details`}
+                  aria-label={`${isExpanded ? '折叠' : '展开'}第 ${day.day} 天行程`}
                   className={`w-full text-left transition-colors duration-200 ${
                     isExpanded
                       ? `bg-gradient-to-r ${gradient}`
-                      : 'bg-gray-50 hover:bg-gray-100'
+                      : 'bg-white hover:bg-primary-50/50'
                   }`}
                 >
-                  <div className="px-5 py-3.5 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {/* 折叠/展开箭头 */}
-                      <svg
-                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                          isExpanded ? 'rotate-90 text-white' : 'rotate-0 text-gray-400'
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2.5}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                      </svg>
+                  <div className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-2.5 px-3.5 py-3 sm:gap-3 sm:px-5 sm:py-3.5">
+                    <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${
+                      isExpanded ? 'bg-white/15 text-white' : 'bg-primary-50 text-primary-700'
+                    }`}>
+                      <ChevronRight
+                        aria-hidden="true"
+                        className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                        strokeWidth={2.2}
+                      />
+                    </span>
 
-                      <h3 className={`font-bold text-base ${isExpanded ? 'text-white' : 'text-gray-900'}`}>
-                        第 {day.day} 天
-                      </h3>
-                      {day.date && (
-                        <span className={`text-sm font-normal ${isExpanded ? 'text-white/80' : 'text-gray-500'}`}>
-                          {day.date}
+                    <span className="min-w-0">
+                      <span className="flex min-w-0 items-baseline gap-2">
+                        <span className={`shrink-0 font-bold ${isExpanded ? 'text-white' : 'text-gray-900'}`}>
+                          第 {day.day} 天
                         </span>
-                      )}
+                        {day.date && (
+                          <span className={`truncate text-xs ${isExpanded ? 'text-white/80' : 'text-gray-500'}`}>
+                            <span className="sm:hidden">{formatCompactDate(day.date)}</span>
+                            <span className="hidden sm:inline">{day.date}</span>
+                          </span>
+                        )}
+                      </span>
                       {day.theme && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          isExpanded
-                            ? 'bg-white/25 text-white'
-                            : 'bg-blue-50 text-blue-700'
-                        }`}>
+                        <span className={`mt-0.5 block truncate text-xs ${isExpanded ? 'text-white/75' : 'text-primary-800'}`}>
                           {day.theme}
                         </span>
                       )}
-                      <span className={`text-xs ${isExpanded ? 'text-white/70' : 'text-gray-400'}`}>
-                        {scheduleCount} 项活动
-                      </span>
-                    </div>
+                    </span>
+
+                    <span className={`shrink-0 whitespace-nowrap rounded-lg px-2 py-1 text-[11px] font-semibold ${
+                      isExpanded ? 'bg-white/15 text-white/90' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {scheduleCount} 项
+                    </span>
                   </div>
                 </button>
 
-                {/* 天摘要：始终显示（放在 button 外面，避免嵌套 <div> 导致浏览器修正 DOM） */}
-                <div className={`px-5 pb-4 pt-3 ${
-                  isExpanded ? 'bg-white' : 'bg-gradient-to-r from-gray-50 to-white border-t border-gray-100'
-                }`}>
-                  <p className="text-xs font-medium text-gray-500 mb-1.5">当天亮点</p>
-                  {summary ? (
-                    <p className="text-sm text-gray-700 leading-relaxed line-clamp-2">
-                      {summary}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-gray-400 italic">暂无当天摘要</p>
+                <div id={`day-${day.day}-details`}>
+                  {!isExpanded && (
+                    <div className="border-t border-primary-50 bg-gradient-to-r from-primary-50/55 to-white px-3.5 pb-3.5 pt-2.5 sm:px-5">
+                      <p className="line-clamp-2 text-sm leading-6 text-gray-600">{summary}</p>
+                    </div>
                   )}
-                </div>
 
-                {/* 展开态：完整内容 */}
-                {isExpanded && (
-                  <div className="p-5 page-enter">
+                  {/* 展开态：完整内容 */}
+                  {isExpanded && (
+                  <div className="page-enter p-3.5 sm:p-5">
                     {/* 日程安排 */}
                     {day.schedule && day.schedule.length > 0 && (
                       <div className="space-y-4 mb-4">
@@ -453,8 +443,9 @@ export function ItineraryTimeline({
                       </div>
                     )}
                   </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </article>
             </div>
           );
         })}

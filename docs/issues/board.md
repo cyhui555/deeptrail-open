@@ -1,11 +1,11 @@
 # 执行看板
 
-- 最近更新：2026-07-19
+- 最近更新：2026-07-20
 - WIP 上限：1 个产品/发布主任务 + 1 个维护试运行；依赖更新仅排队审查
 
 ## In Progress
 
-- `TASK-APP-001`：只开发 Android 基础安装与启动切片，复用现有 H5/PWA，不扩展 iOS 或其他原生能力，见[活动 Work Item](task-app-001-android-basic.md)。
+- 当前没有 G1 产品实现；`TASK-APP-001` 与子项已进入 G2 人工评审。
 
 ## Maintenance Trial
 
@@ -13,7 +13,8 @@
 
 ## Review Queue（不计入 WIP）
 
-- `BUG-20260719-002`：PR #64 已同步 `main@f9722a2` 并解决冲突，405 统一响应与定向回归等待必需检查和所有者人工复核，见[活动 Work Item](bug-20260719-002-http-method-error-mapping.md)；不自动部署。
+- [`TASK-APP-001`](task-app-001-android-basic.md) 真机反馈修复与 [`BUG-20260720-001`](bug-20260720-001-geocoding-qps-cascade.md) 已完成 G2，位于短期分支 `fix/task-app-001-mobile-geo`，不自动部署。
+- `BUG-20260719-002`：405 统一响应已由 PR #64 合入 `main@bfc3068`，见[活动 Work Item](bug-20260719-002-http-method-error-mapping.md)；尚未部署。
 
 ## Operational Follow-up（不计入 WIP）
 

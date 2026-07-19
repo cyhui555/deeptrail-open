@@ -1,8 +1,8 @@
 # 当前项目状态
 
-- 最后核对：2026-07-19
-- 当前阶段：`TASK-APP-001` G2 Review + `TASK-LOOP-008` G2
-- 当前检查门：公开 `main@b21c373`；当前短期分支 `agent/task-app-001-android-basic` 已同步最新主干
+- 最后核对：2026-07-20
+- 当前阶段：`TASK-APP-001` 真机反馈修复 G2（含 `BUG-20260720-001`）+ `TASK-LOOP-008` G2
+- 当前检查门：公开 `main@bfc3068`；当前短期分支 `fix/task-app-001-mobile-geo` 已重放至该主干
 - 活动工作项：`TASK-APP-001`（唯一产品任务）、`TASK-LOOP-008`（唯一维护试运行）
 
 ## 当前事实
@@ -16,7 +16,11 @@
 - 工程所有者要求后续产品迭代采用最小可验证切片，当前只开发 Android；iOS 因复杂度明确后置。
 - Android 首期复用现有 H5/PWA、同源认证与现场执行流程，不重写业务前端。
 - Android 基础切片已加入稳定 PWA 身份、浏览器条件化安装入口、失败关闭的 Digital Asset Links 与确定性就绪检查。
-- PR #65 已生成仅用于当前 H5 验收的 WebView debug APK；正式 release、正式签名、商店发布与自动部署仍禁止。
+- PR #65 已合入 `main@f9722a2`，并生成仅用于当前 H5 验收的 WebView debug APK；正式 release、正式签名、商店发布与自动部署仍禁止。
+- PR #64 已合入 `main@bfc3068`，不支持的 HTTP 方法现在保持 HTTP 405 / `METHOD_NOT_ALLOWED` 语义。
+- 真机截图反馈的折叠卡片、窄屏按钮和规划概要已完成响应式修复；用户澄清第 3 项是规划转行程时的 POI 地理编码批量失败，不是手机 GPS。
+- `BUG-20260720-001` 已确认当前高德配置为 5 QPS；I/O 重试未重新领令牌，且一次 QPS 错误会按阈值 1 打开 60 秒 Provider 熔断，放大为同批坐标缺失。
+- `BUG-20260720-001` 已修复：每次外部 HTTP 尝试重新领令牌，高德 QPS 错误退避重试且不再触发 60 秒健康熔断；真实连接故障熔断保持不变。
 - React Doctor Daily 保持 `0 6 * * *`（`Asia/Shanghai`）启用；复测已以 `nothing-new` 持久化 `healthScore=38`，不改变周期，不自动合并或部署。
 
 ## 当前约束
@@ -31,13 +35,14 @@
 
 ## 当前验证
 
-- Android 单测 8/8、标准关联路径运行时测试 1/1、浏览器 smoke 13/13 与安全测试 19/19 通过。
+- Android 单测 9/9、标准关联路径运行时测试 1/1、浏览器 smoke 13/13 与安全测试 19/19 通过。
+- 真机反馈定向 Playwright 2/2、地理编码定向测试 62/62、整库测试 681/681、lint、typecheck、生产构建、文档、Work Item 与 diff 检查通过。
 - lint、typecheck、生产构建、文档、Work Item、11 条路由体积和 diff 检查通过。
 - `Android Test APK` 运行 #29685119973 在 `ac2eaa5` 成功；`apksigner`、`com.deeptrail.app.debug` 应用身份与下载后 SHA-256 均验证通过。
-- `TASK-GOV-004`：`pnpm governance:check`、Loop 36/36 与安全测试 19/19 通过；线上 `enforce_admins=false`、PR #65 `viewerCanMergeAsAdmin=true`，未执行合并。
+- `TASK-GOV-004`：`pnpm governance:check`、Loop 36/36 与安全测试 19/19 通过；线上 `enforce_admins=false`，PR #65 已由所有者人工管理员合并。
 - 新远程制品 Workflow 合同测试已覆盖手动触发、最小权限、Secret 白名单与禁止部署边界；PR #62 的五项 Required Checks 成功。
 - 本机不具备 Android SDK、adb 或 Gradle；APK 已由远程 Runner 构建并下载，尚未执行真机安装与启动验收。
 
 ## 下一项唯一动作
 
-等待 PR #65 在 `main@b21c373` 基线上完成必需检查，再由工程所有者核对精确 Head、Checks 与对话并决定是否管理员合并；不自动合并或部署。
+通过受检 PR 将 `fix/task-app-001-mobile-geo` 合入 `main`；部署另行执行，并以脱敏规划任务复验目标账号实际 QPS、POI 坐标补全率和新版真机布局。
