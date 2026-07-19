@@ -1,6 +1,7 @@
 # BUG-20260719-002 不支持的 HTTP 方法被映射为内部错误
 
-- 状态：Ready for Review / G2
+- 状态：Closed / G3
+- 关闭时间：2026-07-19
 - 优先级：P2
 - 关联需求：`REQ-MAINTAINABILITY-001`
 - 发现环境：生产错误晨检窗口 `[2026-07-18 06:00, 2026-07-19 06:00)`（Asia/Shanghai）
@@ -61,6 +62,7 @@
 - `pnpm docs:check`：67 个 Markdown 通过。
 - `pnpm work-items:check`：3 个活动项与 10 个历史证据通过。
 - `pnpm verify:server`：678/678 通过，Checkstyle 0 违规，JaCoCo 门槛通过并完成可执行 JAR 构建。
+- PR #64 在精确 Head `d589be3` 上通过适用检查并合入 `main@bfc3068`；合并后主干 CI run #29692540813 成功，未部署。
 - 未运行 Web typecheck、浏览器 E2E、AI Eval 或真实外部 Provider 测试；本修复不修改 Web、AI、数据库或外部集成。
 
 ## 回退

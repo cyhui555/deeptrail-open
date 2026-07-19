@@ -5,7 +5,7 @@
 
 ## In Progress
 
-- `TASK-APP-001`：只开发 Android 基础安装与启动切片，复用现有 H5/PWA，不扩展 iOS 或其他原生能力，见[活动 Work Item](task-app-001-android-basic.md)。
+- `TASK-APP-001`：基础测试 APK 已由 PR #65 合入 `main@f9722a2`；真机反馈中的行程折叠、窄屏按钮和定位诊断修复已在本地短期分支 `fix/task-app-001-mobile-geo` 完成 G2 验证，但尚未提交、创建 PR 或重新生成 APK，见[活动 Work Item](task-app-001-android-basic.md)。
 
 ## Maintenance Trial
 
@@ -13,7 +13,7 @@
 
 ## Review Queue（不计入 WIP）
 
-- `BUG-20260719-002`：PR #64 已同步 `main@f9722a2` 并解决冲突，405 统一响应与定向回归等待必需检查和所有者人工复核，见[活动 Work Item](bug-20260719-002-http-method-error-mapping.md)；不自动部署。
+- 当前没有开放的产品 Review 项。`fix/task-app-001-mobile-geo` 必须先同步最新 `main@bfc3068`、解决事实文档重叠并重新通过适用门禁，之后才能进入 Review Queue。
 
 ## Operational Follow-up（不计入 WIP）
 
@@ -21,6 +21,7 @@
 
 ## Closed
 
+- `BUG-20260719-002`：不支持的 HTTP 方法现统一映射为 HTTP 405 / `METHOD_NOT_ALLOWED`；PR #64 已合入 `main@bfc3068`，合并后主干 CI 成功，未部署，见[交付记录](../archive/bug-20260719-002-http-method-error-mapping.md)。
 - `TASK-DOCS-001`：首次文档诚实性基线修复已由 PR #63 合入 `main@52ac204`，见[交付摘要](../archive/task-docs-001-docs-honesty-baseline.md)。
 - `TASK-GOV-004`：单维护者管理员人工旁路已完成并直接合入治理事实，见[交付摘要](../archive/task-gov-004-solo-maintainer-admin-bypass.md)。
 - `TASK-GOV-003`：维护控制面已由 PR #59 收敛并合入 `main@0470f2f`，见[交付摘要](../archive/task-gov-003-simplify-maintenance.md)。

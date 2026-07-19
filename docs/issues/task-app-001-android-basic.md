@@ -1,6 +1,6 @@
 # TASK-APP-001：Android 基础安装与启动
 
-- 状态：Ready for Review / G2
+- 状态：In Progress / G2（基础 APK 已合入，真机反馈修复待交付）
 - 优先级：P0
 - 关联 Requirement：`REQ-APP-001`
 
@@ -46,7 +46,8 @@
 
 - 代码侧基础能力与测试 APK 已闭环；无需为 iOS、商店能力或更多原生能力预建框架。
 - 正式 Android 安装物仍需受信任 HTTPS Origin、最终 application ID 与签名证书指纹。
-- 当前 Windows 开发机没有 Android SDK、adb 或 Gradle；已由 GitHub Runner 构建并验证 APK，但尚未执行真机安装与启动验收。
+- 当前 Windows 开发机没有 Android SDK、adb 或 Gradle；已由 GitHub Runner 构建并验证 APK。
+- 用户真机反馈已证明测试壳能够进入现有 H5 业务页面，同时暴露窄屏布局和 HTTP WebView 定位限制；对应修复仍位于未提交的 `fix/task-app-001-mobile-geo`，不能写成已发布或已生成新 APK。
 
 ## 回滚
 

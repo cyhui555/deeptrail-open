@@ -1,43 +1,34 @@
 # 当前项目状态
 
-- 最后核对：2026-07-19
-- 当前阶段：`TASK-APP-001` G2 Review + `TASK-LOOP-008` G2
-- 当前检查门：公开 `main@b21c373`；当前短期分支 `agent/task-app-001-android-basic` 已同步最新主干
+- 最后核对：2026-07-19 23:59 +08:00
+- 当前阶段：`TASK-APP-001` 真机反馈修复 G2 + `TASK-LOOP-008` 维护试运行
+- 当前检查门：公开 `main@bfc3068` 与 `origin/main` 一致；主工作树干净
 - 活动工作项：`TASK-APP-001`（唯一产品任务）、`TASK-LOOP-008`（唯一维护试运行）
 
 ## 当前事实
 
-- 旅迹 v0.2.0 已部署并完成目标环境 G3；坐标刷新与两项 AI 任务 Bug 已发布复验，旧私库 GitHub #21/#24 已关闭。
-- `TASK-GOV-003` 已由 PR #59 合入 `main@0470f2f`；高权限 Archive PR finalizer 已删除，所有 PR 恢复人工 Review/Merge。
-- `TASK-RELEASE-004` 已由 PR #62 合入 `main@88b5092` 并完成主干 CI；首次真实远程制品运行仍等待环境配置，不部署且不再占用产品 WIP。
-- Dependabot PR #60/#61 与文档诚实性 PR #63 已依次合入，公开主干推进到 `main@52ac204`。
-- 工程所有者明确采用单维护者模型：Agent 负责产出，所有者人工审核；同账号 PR 允许管理员显式旁路，自动化不得继承该权限。
-- `TASK-GOV-004` 已完成并合入 `main@b21c373`：线上 `enforce_admins=false` 且 PR #65 `viewerCanMergeAsAdmin=true`，本地治理合同、ADR 与失败关闭边界同步完成。
-- 工程所有者要求后续产品迭代采用最小可验证切片，当前只开发 Android；iOS 因复杂度明确后置。
-- Android 首期复用现有 H5/PWA、同源认证与现场执行流程，不重写业务前端。
-- Android 基础切片已加入稳定 PWA 身份、浏览器条件化安装入口、失败关闭的 Digital Asset Links 与确定性就绪检查。
-- PR #65 已生成仅用于当前 H5 验收的 WebView debug APK；正式 release、正式签名、商店发布与自动部署仍禁止。
-- React Doctor Daily 保持 `0 6 * * *`（`Asia/Shanghai`）启用；复测已以 `nothing-new` 持久化 `healthScore=38`，不改变周期，不自动合并或部署。
+- 旅迹 v0.2.0 已部署并完成目标环境 G3；当前公开主干为 `main@bfc3068`。
+- PR #65 已将 Android WebView debug APK 基础切片合入 `main@f9722a2`；远程构建、应用身份、调试签名与摘要验证通过，未部署。
+- PR #64 已将 HTTP 方法不支持异常统一映射为 HTTP 405 / `METHOD_NOT_ALLOWED` 并合入 `main@bfc3068`；合并后主干 CI 成功。
+- 真机反馈修复位于本地 `fix/task-app-001-mobile-geo@f9722a2`，包含行程折叠、窄屏按钮和 Web Geolocation 诊断；定向回归 4/4、浏览器 smoke 13/13、Android 合同测试 9/9、整库测试 677/677 及 lint、typecheck、构建、文档检查通过。
+- 上述真机反馈修复尚未提交、创建 PR 或重新生成 APK，且基线落后当前主干一个提交；它不是公开交付事实。
+- 当前 HTTP 测试壳仍受 Android WebView 安全来源规则阻断，代码只能提前解释限制并保留手动打卡；真正恢复 APK 内 GPS 仍需 HTTPS，或另立原生定位方案。
+- `TASK-RELEASE-004` 已合入但首次真实远程制品运行仍等待两项 Web 构建配置，不部署且不占用产品 WIP。
+- React Doctor Daily 保持只读失败关闭；最近基线为 `healthScore=38`，不得自动合并或部署。
+
+## 工作区边界
+
+- 唯一活动事实源是 `E:\deep\deeptrail\travel-open`；`E:\deep\deeptrail\travel` 仅保留旧私库与恢复证据，默认只读。
+- 用户产品任务使用 `.local` 独立 worktree，定时自动化使用 `.loop-worktrees`；共享主工作树不切换任务分支。
+- 未提交 worktree必须先保全再回收；squash merge 分支清理必须核对 PR Head、合并提交或 patch 等价性。
 
 ## 当前约束
 
-- 普通功能与治理分支禁止直推 `main`，仍经五项 Required Checks 和作者外审批合入；纯文档归档可按所有者授权经受检 fast-forward 直接合入。本次 `TASK-GOV-004` 配置收口另有所有者一次性明确授权，不扩张为后续代码直推例外。
-- 同账号 Agent PR 可由唯一所有者核对精确 Head、Checks 与对话后执行管理员合并，但不生成虚假的自审批，也不开放自动审批、自动管理员合并或部署。
-- 当前只补齐 PWA 身份、站点与应用关联及就绪检查；不扩展 iOS、推送、支付、原生地图、完整离线或后台能力。
-- Digital Asset Links 必须失败关闭；不提交签名密钥、真实用户数据或明文生产 App 快捷配置。
-- 正式 TWA 仍要求受信任 HTTPS Origin、application ID 与签名证书指纹。
-- 完整生产放行仍缺 TLS、凭据轮换、独立介质 Restore 和正式回滚演练，这些均不属于当前任务。
-- `release-artifacts` 环境已创建并限制为受保护分支，当前 Secret 为空；尚需所有者配置两项 Web 构建值，不得从目标机复制 Server Secret 或把值写入 Git/日志。
-
-## 当前验证
-
-- Android 单测 8/8、标准关联路径运行时测试 1/1、浏览器 smoke 13/13 与安全测试 19/19 通过。
-- lint、typecheck、生产构建、文档、Work Item、11 条路由体积和 diff 检查通过。
-- `Android Test APK` 运行 #29685119973 在 `ac2eaa5` 成功；`apksigner`、`com.deeptrail.app.debug` 应用身份与下载后 SHA-256 均验证通过。
-- `TASK-GOV-004`：`pnpm governance:check`、Loop 36/36 与安全测试 19/19 通过；线上 `enforce_admins=false`、PR #65 `viewerCanMergeAsAdmin=true`，未执行合并。
-- 新远程制品 Workflow 合同测试已覆盖手动触发、最小权限、Secret 白名单与禁止部署边界；PR #62 的五项 Required Checks 成功。
-- 本机不具备 Android SDK、adb 或 Gradle；APK 已由远程 Runner 构建并下载，尚未执行真机安装与启动验收。
+- 后续产品迭代继续遵守“一轮一个最小可验证用户价值”，当前只开发 Android；iOS、推送、支付、原生地图、完整离线和商店发布均后置。
+- 普通功能与治理变更仍通过受检 PR；同账号管理员人工旁路不授权 Agent、Workflow 或 Loop 自动审批、合并或部署。
+- 正式 Android 仍要求受信任 HTTPS Origin、最终 application ID 与签名证书归属；不得用 HTTP、混合内容或未审计 JavaScript Bridge 作为生产方案。
+- 完整生产放行仍缺 TLS、凭据轮换、独立介质 Restore 和正式回滚演练，不得把测试 APK 或目标环境通过描述为正式发布。
 
 ## 下一项唯一动作
 
-等待 PR #65 在 `main@b21c373` 基线上完成必需检查，再由工程所有者核对精确 Head、Checks 与对话并决定是否管理员合并；不自动合并或部署。
+将 `fix/task-app-001-mobile-geo` 同步到 `main@bfc3068`，解决看板与项目状态重叠并重新运行适用门禁；通过受检 PR 交付后再生成 APK 做真机复验，不自动部署。
