@@ -104,6 +104,8 @@ test("机器人作者、失败 CI 与缺失检查均在写入前失败关闭", a
     { author: "github-actions[bot]" },
     { runConclusion: "failure" },
     { checks: requiredChecks.slice(0, -1) },
+    { pullHead: "d".repeat(40) },
+    { comparison: { status: "diverged", behind_by: 1, ahead_by: 1 } },
   ]) {
     const calls = [];
     await assert.rejects(() => finalizeArchivePullRequest(
@@ -139,7 +141,7 @@ function createRequestMock(options = {}) {
     base: { ref: "main", repo: { full_name: "cyhui555/deeptrail-open" } },
     head: {
       ref: `agent/archive/${stem}`,
-      sha: head,
+      sha: options.pullHead ?? head,
       repo: { full_name: "cyhui555/deeptrail-open" },
     },
     commits: 1,
@@ -161,7 +163,7 @@ function createRequestMock(options = {}) {
     }
     if (method === "GET" && pathname.endsWith("/pulls/55")) return pullRequest;
     if (pathname.includes("/compare/")) {
-      return { status: "ahead", behind_by: 0, ahead_by: 1 };
+      return options.comparison ?? { status: "ahead", behind_by: 0, ahead_by: 1 };
     }
     if (pathname.includes("/pulls/55/files")) return validFiles();
     if (pathname.includes("/contents/")) {

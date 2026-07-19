@@ -4,6 +4,7 @@
 
 ## Verification
 
+- `TASK-GOV-002`：严格归档的机器人作者外审批与 squash merge 已完成 G2，功能和治理 PR 继续人工审批，见[活动 Work Item](task-gov-002-archive-pr-finalizer.md)与[执行计划](../plans/task-gov-002-archive-pr-finalizer.md)。
 - `TASK-LOOP-007`：在人工 Review/Merge 边界下建立只读 Issue 准入合同，先消除终态事项阻塞，再推进自动提单与 PR 生命周期，见[活动 Work Item](task-loop-007-autonomous-intake.md)与[执行计划](../plans/task-loop-007-autonomous-intake-exec-plan.md)。
 - Release/运维验证项：[BUG-20260717-006](bug-20260717-006-release-identity-recovery.md)、[TASK-RELEASE-003](task-release-003-target-release-validation.md)、[TASK-OPS-002](task-ops-002-no-cost-target-regressions.md)。
 - CI 与 Web 质量验证项：[TASK-CI-001](task-ci-001-node24-actions-runtime.md)、[BUG-20260717-001](bug-20260717-001-optimize-watchdog-race.md)、[BUG-20260717-002](bug-20260717-002-ai-json-parse-fallback-success.md)、[BUG-20260717-003](bug-20260717-003-amap-e2e-build-config.md)、[BUG-20260717-004](bug-20260717-004-pdf-static-map-e2e-isolation.md)、[BUG-20260717-005](bug-20260717-005-dev-pwa-e2e-profile.md)。

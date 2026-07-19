@@ -35,6 +35,7 @@
 | REQ-RELEASE-001 | 固化旅迹首个稳定发布基线 | 已完成 | 用户确认封板；完整门禁通过，创建本地 `v0.1.0` Git revision 并同步工程恢复记忆；未推送远程发布 |
 | REQ-OPS-001 | 建立后台运营入口并由管理员统一分配用户账号 | 已完成 | 默认环境关闭公开注册；管理员角色、账号初始化、用户查询/创建/启停/重置密码、越权拦截及响应式管理界面通过服务端与浏览器验收 |
 | REQ-DEPLOY-002 | 将当前旅迹版本可追溯地部署到目标 Linux 主机并沉淀后续发版脚本 | 已完成 | `BUG-20260719-001` 已由不可变 release `v0.2.0-20260719-025020-06e4058c57cd` 发布并经用户验收；TLS、远程制品链与独立 Restore 仍是完整生产放行约束 |
+| REQ-GOV-001 | 严格归档 PR 在不降低主干保护的前提下自动审批与合并 | 实施中 | `TASK-GOV-002` 仅准入所有者作者、单提交、同名归档与活动项删除、受控索引、最新 main 和五项成功检查；功能与治理变更继续人工 Review |
 | REQ-LOOP-001 | 在不重写业务程序的前提下，将工程接入固定版本 LoopAny 并形成可审计的本地影子闭环 | 已完成 | PR #19 已按 deepbarin 规范补齐 ExecutionSpec/Outcome、分阶段恢复、隔离 Backup/Restore 与可执行手册；L0 和 L1 Phase 1 G0—G3 通过，业务反馈、治理进化和 L2/L3 保持 `NOT READY` |
 | REQ-LOOP-002 | 将 Loop 工程推进到持续可验证的 L1 Phase 2，并以脱敏 Release Outcome 和稳定 Shadow 证据完成 L2 Proposal-only 准入 | 已完成 | PR #22–#31 受保护合并、不可变发布/恢复、目标机断网回归及公开 Cohort 10/10 严格审计通过；仅 Proposal 可用，Mutation/L3 继续阻断 |
 | REQ-LOOP-003 | 以失败关闭、隔离工作树和受保护审批链建立 Loop L3A Draft PR 自动化 | 已完成 | PR #36/#37/#39 受保护合入；真实试点 PR #40 完成固定 Patch、隔离 Worktree、Profile、Commit、Push 与机器人 Draft PR，自动审批、合并和部署均关闭 |
