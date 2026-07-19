@@ -1,5 +1,5 @@
 # TASK-CI-001：升级并锁定 GitHub Actions Node 24 Runtime
-- 状态：Verification
+- 状态：Closed / G3
 - 关联规则：`RULE-002`
 ## 目标
 消除公开 CI 的 Node 20 Runtime 弃用警告，并把所有远程 Action 固定到已核验的完整 Commit SHA。

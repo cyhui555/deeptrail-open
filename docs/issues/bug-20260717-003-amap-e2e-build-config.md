@@ -1,6 +1,6 @@
 # BUG-20260717-003 AMap E2E 测试构建缺少公开配置占位值
 
-- 状态：Verification
+- 状态：Closed / G3（Required Checks 已通过）
 - 优先级：P1
 - 关联需求：`REQ-RUNTIME-001`、`REQ-QUALITY-003`
 - 发现环境：公开主仓 Full E2E workflow `29577848547`

@@ -161,16 +161,63 @@ export function validateWorkflowText(content, relativePath = "") {
   const isReadOnly = /^permissions:\s*\r?\n\s+contents:\s*read\s*$/m.test(content);
   const isConstrainedAuthor = normalizePath(relativePath) === ".github/workflows/automation-pr-author.yml"
     && validateAutomationAuthorWorkflow(content).length === 0;
-  if (!isReadOnly && !isConstrainedAuthor) {
+  const isConstrainedRelease = normalizePath(relativePath) === ".github/workflows/release-artifacts.yml"
+    && validateReleaseArtifactWorkflow(content).length === 0;
+  if (!isReadOnly && !isConstrainedAuthor && !isConstrainedRelease) {
     violations.push("workflow-permissions-not-read-only");
   }
-  if (/\bsecrets\.[A-Za-z_][A-Za-z0-9_]*/.test(content)) {
+  if (/\bsecrets\.[A-Za-z_][A-Za-z0-9_]*/.test(content) && !isConstrainedRelease) {
     violations.push("workflow-secret-reference");
   }
   if (/(?:^|\s)(?:test-results|artifacts)\//m.test(content) || /trace\.zip/i.test(content)) {
     violations.push("raw-runtime-artifact-upload");
   }
   return violations;
+}
+
+export function validateReleaseArtifactWorkflow(content) {
+  const failures = [];
+  const requiredFragments = [
+    /^on:\s*\r?\n  workflow_dispatch:\s*$/m,
+    /^permissions:\s*\{\}\s*$/m,
+    /^    if: github\.actor == github\.repository_owner && github\.ref == 'refs\/heads\/main' && github\.repository == 'cyhui555\/deeptrail-open'\s*$/m,
+    /^    environment: release-artifacts\s*$/m,
+    /^      contents: read\s*$/m,
+    /^      packages: write\s*$/m,
+    /^        uses: actions\/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0\s+# v7\s*$/m,
+    /^          ref: main\s*$/m,
+    /^          fetch-depth: 0\s*$/m,
+    /^          persist-credentials: false\s*$/m,
+    /^        uses: actions\/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a\s+# v7\s*$/m,
+    /^          REQUESTED_REVISION: \$\{\{ inputs\.revision \}\}\s*$/m,
+    /^          NEXT_PUBLIC_AMAP_KEY: \$\{\{ secrets\.NEXT_PUBLIC_AMAP_KEY \}\}\s*$/m,
+    /^          NEXT_PUBLIC_AMAP_SECURITY_CODE: \$\{\{ secrets\.NEXT_PUBLIC_AMAP_SECURITY_CODE \}\}\s*$/m,
+    /bash infra\/deploy\/build-images\.sh[\s\S]*?--push[\s\S]*?--registry "\$\{registry\}"/m,
+  ];
+  if (requiredFragments.some((pattern) => !pattern.test(content))) {
+    failures.push("release-workflow-contract-missing");
+  }
+  const triggerBlock = content.match(/^on:\s*\r?\n(?<body>(?:^ {2,}.*(?:\r?\n|$))*)/m)?.groups?.body ?? "";
+  const triggers = [...triggerBlock.matchAll(/^ {2}([a-z_]+):/gm)].map((match) => match[1]);
+  if ([...content.matchAll(/^on:/gm)].length !== 1
+      || triggers.length !== 1 || triggers[0] !== "workflow_dispatch") {
+    failures.push("release-workflow-trigger-too-broad");
+  }
+  const writePermissions = [...content.matchAll(/^\s+[a-z-]+:\s*write\s*$/gm)]
+    .map((match) => match[0].trim());
+  if (writePermissions.join("|") !== "packages: write") {
+    failures.push("release-workflow-permissions-drift");
+  }
+  const secretReferences = [...content.matchAll(/\bsecrets\.([A-Za-z_][A-Za-z0-9_]*)/g)]
+    .map((match) => match[1]).sort();
+  if (secretReferences.join("|") !== "NEXT_PUBLIC_AMAP_KEY|NEXT_PUBLIC_AMAP_SECURITY_CODE") {
+    failures.push("release-workflow-secret-drift");
+  }
+  if (/\b(?:deploy|remote-release|rollback)\.sh\b|\b(?:ssh|scp)\b|docker\s+compose\s+up|gh\s+release\b/m
+    .test(content)) {
+    failures.push("release-workflow-deployment-boundary-violation");
+  }
+  return failures;
 }
 
 export function validateAutomationAuthorWorkflow(content) {

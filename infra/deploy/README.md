@@ -36,13 +36,19 @@ if (-not $DeployHost) { throw '请先设置 DEEPTRAIL_DEPLOY_HOST' }
   -AppPort 0
 ```
 
-`AppPort=0`：首发从 `30301` 起选择空闲端口，后续发布复用 current 端口。制品保存到未跟踪的 `artifacts/releases/<release-id>/`。目标机构建只计入目标环境验收；正式流水线应使用干净远程 CI、Registry digest 和 `build-images.sh --push`。
+`AppPort=0`：首发从 `30301` 起选择空闲端口，后续发布复用 current 端口。制品保存到未跟踪的 `artifacts/releases/<release-id>/`。目标机构建只计入目标环境验收；正式制品入口见[远程不可变制品链](../../docs/operations/remote-artifact-chain.md)。
 
 只冻结制品、不连接服务器：
 
 ```powershell
 & .\infra\deploy\publish.ps1 -HostName deeptrail.example.invalid -DryRun
 ```
+
+## 远程制品
+
+`.github/workflows/release-artifacts.yml` 只允许仓库所有者从受保护 `main` 手动触发。它解析三个基础镜像 digest，调用 `build-images.sh --push` 推送 GHCR Server/Web 镜像，并上传源码 bundle、`release.json`、Compose 与 SHA-256 证据。Workflow 不接受 SSH 或 Server Secret，不调用本目录的发布、部署或回滚入口。
+
+首次运行前，只在 GitHub `release-artifacts` Environment 配置 `NEXT_PUBLIC_AMAP_KEY` 与 `NEXT_PUBLIC_AMAP_SECURITY_CODE`；完整触发和验收步骤见远程制品手册。
 
 ## Secret 与地图配置
 
