@@ -24,7 +24,7 @@
 
 - PR #67 精确 Head `107c3a4` 的五项 Required Checks 全部成功并 squash 合入 `main@714a633`；本地验证为 Server 681/681、地理编码 62/62、浏览器 15/15，以及 lint、typecheck、build、文档和 Work Item 门禁通过。
 - 两条归档循环已从 Loopany 读回 `enabled=false`、`nextFire=null`，历史任务文件和运行记录保留。
-- 中央工程记忆校验存在预先已有的 `last_memory_digest` 不匹配，当前标记 `shared-memory-unavailable`；本地事实源继续有效，中央同步暂停。
+- 中央工程记忆校验 8/8 通过；其工作树存在多项目及 Deeptrail 记忆重叠的未提交改动，本轮按受保护现场处理，不写入中央，本地事实源继续有效。
 
 ## 下一项唯一动作
 
