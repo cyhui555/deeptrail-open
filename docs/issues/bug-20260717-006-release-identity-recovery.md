@@ -1,6 +1,6 @@
 # BUG-20260717-006 Release 身份缺失且失败发布未自动恢复
 
-- 状态：Verification / G3
+- 状态：Closed / G3
 - 优先级：P0
 - 关联需求：`REQ-DEPLOY-002`、`REQ-LOOP-002`
 - 发现环境：目标 Linux 主机，不可变 Release `v0.2.0-20260717-143945-8642554dbf77`

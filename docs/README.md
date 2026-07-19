@@ -16,6 +16,7 @@
 | UI 视觉规则 | [样式规范](technical/style-guide.md) |
 | 文档与工具约束 | [文档治理规范](process/documentation-governance.md) |
 | 生产部署与回滚 | [单机发布手册](operations/production-deployment.md) |
+| 远程不可变制品 | [远程制品链](operations/remote-artifact-chain.md) |
 | 服务器配置更新 | [配置更新手册](operations/server-configuration-update.md) |
 
 ## 维护原则
