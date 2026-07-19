@@ -548,7 +548,8 @@ class GeocodingServiceImplTest {
 
       // 高德失败（抛异常）
       when(gaodeProvider.geocode(any(GeoRequest.class)))
-          .thenThrow(new GeocodingException("Gaode API error: CUQPS_HAS_EXCEEDED_THE_LIMIT"));
+          .thenThrow(GeocodingException.throttled(
+              "Gaode API error: CUQPS_HAS_EXCEEDED_THE_LIMIT"));
       // Nominatim 成功
       GeoResult qingdao = GeoResult.builder()
           .latitude(36.08).longitude(120.35)
@@ -674,6 +675,32 @@ class GeocodingServiceImplTest {
       }
 
       verify(nominatimProvider, times(1)).geocode(any(GeoRequest.class));
+    }
+
+    @Test
+    @DisplayName("一次 QPS 拒绝不打开长熔断，后续 POI 仍继续调用高德并恢复")
+    void throttledRequest_doesNotOpenCircuitForRemainingPois() throws Exception {
+      when(properties.getProvider()).thenReturn("gaode");
+      GeoResult kunming = GeoResult.builder()
+          .latitude(25.04).longitude(102.73)
+          .province("云南省").city("昆明市").district("五华区")
+          .provider("gaode").build();
+      when(gaodeProvider.geocode(any(GeoRequest.class)))
+          .thenThrow(GeocodingException.throttled(
+              "Gaode API error: CUQPS_HAS_EXCEEDED_THE_LIMIT (10021)"))
+          .thenReturn(kunming);
+      GeocodingServiceImpl circuitService = new GeocodingServiceImpl(
+          properties, List.of(gaodeProvider), geocodingCacheMapper);
+
+      GeoResult throttled = circuitService.geocode(GeoRequest.builder()
+          .name("翠湖公园").destination("昆明").build());
+      GeoResult recovered = circuitService.geocode(GeoRequest.builder()
+          .name("云南大学").destination("昆明").build());
+
+      assertThat(throttled).isNull();
+      assertThat(recovered).isNotNull();
+      assertThat(recovered.getLatitude()).isEqualTo(25.04);
+      verify(gaodeProvider, times(2)).geocode(any(GeoRequest.class));
     }
   }
 

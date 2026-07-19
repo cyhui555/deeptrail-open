@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Check, ClipboardList, Sparkles } from 'lucide-react';
 import { useTaskPoller } from '@/hooks/useTaskPoller';
 import { TaskMetaCard } from '@/components/TaskMetaCard';
 import { ItineraryContent } from '@/components/ItineraryContent';
@@ -419,7 +420,7 @@ export default function ItineraryDetailPage({
 
           {/* 操作按钮区：加入行程清单 + 优化 */}
           {!immersive && hasStructuredDays && (
-            <div className="flex gap-3 mb-6">
+            <div data-testid="itinerary-primary-actions" className="mb-6 grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:gap-3">
               {!addToTripSuccess && (
                 <button
                   type="button"
@@ -439,26 +440,29 @@ export default function ItineraryDetailPage({
                       }
                     }
                   }}
-                  className="flex-1 rounded-xl bg-blue-600 border border-blue-600 px-4 py-3.5 text-sm font-semibold text-white active:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2"
+                  className="button-primary h-11 min-h-11 w-full min-w-0 gap-1.5 whitespace-nowrap px-3 text-[13px] leading-none sm:text-sm"
                 >
-                  📋 加入行程清单
+                  <ClipboardList aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={1.9} />
+                  <span>加入行程清单</span>
                 </button>
               )}
               {addToTripSuccess && (
                 <Link
                   href={`/trips/${addToTripSuccess}`}
-                  className="flex-1 rounded-xl bg-green-50 border border-green-200 px-4 py-3.5 text-sm font-semibold text-green-700 text-center active:bg-green-100 transition-all"
+                  className="flex h-11 min-h-11 min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-green-200 bg-green-50 px-3 text-[13px] font-semibold leading-none text-green-700 transition-colors active:bg-green-100 sm:text-sm"
                 >
-                  ✅ 已加入，查看行程
+                  <Check aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2.1} />
+                  <span>已加入，查看行程</span>
                 </Link>
               )}
               {!showOptimize && (
                 <button
                   type="button"
                   onClick={() => setShowOptimize(true)}
-                  className="rounded-xl bg-white border border-purple-200 px-4 py-3.5 text-sm font-semibold text-purple-600 active:bg-purple-50 transition-all shadow-sm"
+                  className="button-secondary h-11 min-h-11 shrink-0 gap-1.5 whitespace-nowrap px-3 text-[13px] leading-none sm:px-4 sm:text-sm"
                 >
-                  ✨ 优化
+                  <Sparkles aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={1.9} />
+                  <span>优化</span>
                 </button>
               )}
             </div>

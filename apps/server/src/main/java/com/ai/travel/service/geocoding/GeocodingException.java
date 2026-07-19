@@ -8,13 +8,21 @@ package com.ai.travel.service.geocoding;
  */
 public class GeocodingException extends RuntimeException {
 
+  /** 异常类别决定上层是否应把失败计入 Provider 健康熔断。 */
+  public enum FailureKind {
+    PROVIDER_FAILURE,
+    THROTTLED
+  }
+
+  private final FailureKind failureKind;
+
   /**
    * 构造地理编码异常。
    *
    * @param message 异常描述
    */
   public GeocodingException(String message) {
-    super(message);
+    this(message, null, FailureKind.PROVIDER_FAILURE);
   }
 
   /**
@@ -24,6 +32,21 @@ public class GeocodingException extends RuntimeException {
    * @param cause 原始异常
    */
   public GeocodingException(String message, Throwable cause) {
+    this(message, cause, FailureKind.PROVIDER_FAILURE);
+  }
+
+  private GeocodingException(String message, Throwable cause, FailureKind failureKind) {
     super(message, cause);
+    this.failureKind = failureKind;
+  }
+
+  /** 创建远端配额限流异常；该异常可降级和重试，但不能误开 Provider 健康熔断。 */
+  public static GeocodingException throttled(String message) {
+    return new GeocodingException(message, null, FailureKind.THROTTLED);
+  }
+
+  /** 是否为远端配额限流。 */
+  public boolean isThrottled() {
+    return failureKind == FailureKind.THROTTLED;
   }
 }

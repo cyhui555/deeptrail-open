@@ -130,8 +130,14 @@ class ProviderIntegrationTest {
     @DisplayName("首次 IOException → 重试 → 第二次成功 — 覆盖 executeWithRetry 重试分支")
     void retryOnIOException_succeedsOnSecondAttempt() throws Exception {
       AtomicInteger attempts = new AtomicInteger();
+      AtomicInteger permits = new AtomicInteger();
       AppGeocodingProperties props = gaodeProps();
       GaodeGeocodingProvider provider = new GaodeGeocodingProvider(props, MAPPER) {
+        @Override
+        void acquireRateLimitPermit() {
+          permits.incrementAndGet();
+        }
+
         @Override
         String executeHttpGet(String url, int timeoutMs) throws Exception {
           if (attempts.incrementAndGet() == 1) {
@@ -151,6 +157,7 @@ class ProviderIntegrationTest {
       // 重试分支会 Thread.sleep(800ms),用于验证 backoff 确实发生
       assertThat(elapsedMs).isGreaterThanOrEqualTo(700);
       assertThat(attempts.get()).isEqualTo(2);
+      assertThat(permits.get()).as("每次真实 HTTP 尝试都必须重新领取令牌").isEqualTo(2);
     }
 
     @Test
@@ -270,7 +277,40 @@ class ProviderIntegrationTest {
 
       assertThatThrownBy(() -> provider.geocode(GeoRequest.builder().name("测试").build()))
           .isInstanceOf(GeocodingException.class)
-          .hasMessageContaining("CUQPS_HAS_EXCEEDED_THE_LIMIT");
+          .hasMessageContaining("CUQPS_HAS_EXCEEDED_THE_LIMIT")
+          .satisfies(error -> assertThat(((GeocodingException) error).isThrottled()).isTrue());
+    }
+
+    @Test
+    @DisplayName("首次 QPS 拒绝 — 完整窗口退避并重新限流后恢复当前 POI")
+    void qpsThrottle_retriesAndRecoversCurrentPoi() throws Exception {
+      AtomicInteger attempts = new AtomicInteger();
+      AtomicInteger permits = new AtomicInteger();
+      AppGeocodingProperties props = gaodeProps();
+      GaodeGeocodingProvider provider = new GaodeGeocodingProvider(props, MAPPER) {
+        @Override
+        void acquireRateLimitPermit() {
+          permits.incrementAndGet();
+        }
+
+        @Override
+        String executeHttpGet(String url, int timeoutMs) {
+          if (attempts.incrementAndGet() == 1) {
+            return "{\"status\":\"0\",\"info\":\"CUQPS_HAS_EXCEEDED_THE_LIMIT\","
+                + "\"infocode\":\"10021\",\"count\":\"0\"}";
+          }
+          return GAODE_OK_JSON;
+        }
+      };
+
+      long startedAt = System.currentTimeMillis();
+      GeoResult result = provider.geocode(GeoRequest.builder().name("翠湖公园").build());
+
+      assertThat(result).isNotNull();
+      assertThat(result.getLatitude()).isEqualTo(36.082419);
+      assertThat(attempts.get()).isEqualTo(2);
+      assertThat(permits.get()).isEqualTo(2);
+      assertThat(System.currentTimeMillis() - startedAt).isGreaterThanOrEqualTo(900L);
     }
 
     @Test
@@ -395,8 +435,14 @@ class ProviderIntegrationTest {
     @DisplayName("首次 IOException → 重试 → 第二次成功")
     void retryOnIOException_succeedsOnSecondAttempt() throws Exception {
       AtomicInteger attempts = new AtomicInteger();
+      AtomicInteger permits = new AtomicInteger();
       AppGeocodingProperties props = gaodeProps();
       NominatimGeocodingProvider provider = new NominatimGeocodingProvider(props, MAPPER) {
+        @Override
+        void acquireRateLimitPermit() {
+          permits.incrementAndGet();
+        }
+
         @Override
         String executeHttpGet(String url, int timeoutMs) throws Exception {
           if (attempts.incrementAndGet() == 1) {
@@ -414,6 +460,7 @@ class ProviderIntegrationTest {
       assertThat(result.getLatitude()).isEqualTo(36.082419);
       assertThat(elapsedMs).isGreaterThanOrEqualTo(1100);  // Nominatim backoff=1200ms
       assertThat(attempts.get()).isEqualTo(2);
+      assertThat(permits.get()).as("Nominatim 重试也必须重新领取 1 QPS 令牌").isEqualTo(2);
     }
 
     @Test

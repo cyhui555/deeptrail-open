@@ -89,6 +89,30 @@ class PoiCoordinateEnricherTest {
   }
 
   @Test
+  void enrichContinuesWithLaterPoisAfterOneCoordinateMiss() {
+    when(geocodingService.geocode(any(GeoRequest.class)))
+        .thenReturn(null)
+        .thenReturn(kunming());
+    PoiInfo first = poi("翠湖公园", null, null);
+    PoiInfo second = poi("云南大学", null, null);
+    ScheduleItem firstItem = new ScheduleItem();
+    firstItem.setPoi(first);
+    ScheduleItem secondItem = new ScheduleItem();
+    secondItem.setPoi(second);
+    DayPlan day = new DayPlan();
+    day.setSchedule(List.of(firstItem, secondItem));
+    ItineraryResponse response = new ItineraryResponse();
+    response.setDays(List.of(day));
+
+    enricher.enrich(response, "昆明行程", "昆明");
+
+    assertThat(first.getLatitude()).isNull();
+    assertThat(second.getLatitude()).isEqualTo(25.04);
+    assertThat(second.getLongitude()).isEqualTo(102.73);
+    verify(geocodingService, times(2)).geocode(any(GeoRequest.class));
+  }
+
+  @Test
   void enrichSkipsPoiWithoutName() {
     PoiInfo poi = poi(null, 36.08, 120.35);
 
@@ -131,6 +155,19 @@ class PoiCoordinateEnricherTest {
         .province("山东省")
         .city("青岛市")
         .district("市南区")
+        .destinationSatisfied(true)
+        .build();
+  }
+
+  private static GeoResult kunming() {
+    return GeoResult.builder()
+        .latitude(25.04)
+        .longitude(102.73)
+        .level("兴趣点")
+        .provider("gaode")
+        .province("云南省")
+        .city("昆明市")
+        .district("五华区")
         .destinationSatisfied(true)
         .build();
   }

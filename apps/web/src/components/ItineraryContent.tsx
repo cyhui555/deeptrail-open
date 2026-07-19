@@ -1,3 +1,14 @@
+import {
+  CalendarDays,
+  ClipboardList,
+  Clock3,
+  FileText,
+  MapPin,
+  Navigation,
+  Users,
+  WalletCards,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { ItineraryTimeline } from '@/components/ItineraryTimeline';
 import type { DayPlan, NodeRevision, ScheduleItem } from '@/types';
 
@@ -38,6 +49,12 @@ interface Props {
   justSavedKeys?: Set<string>;
 }
 
+/** 将模型请求中的 ISO 本地时间压缩为移动端可读格式，且不改变时区语义。 */
+function formatPlanningTime(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
+  return match ? `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}` : value;
+}
+
 /**
  * 结构化行程内容区块（概览 + 时间线 + 预算 + 提示）。
  *
@@ -68,6 +85,38 @@ export function ItineraryContent({
     (planningInfo.preferences && planningInfo.preferences.length > 0) ||
     planningInfo.specialRequirements
   );
+  const planningItems: Array<{
+    key: string;
+    label: string;
+    value: string;
+    icon: LucideIcon;
+    wide?: boolean;
+  }> = [];
+
+  if (planningInfo?.departureLocation) {
+    planningItems.push({ key: 'departure', label: '出发地', value: planningInfo.departureLocation, icon: Navigation });
+  }
+  if (planningInfo?.destination) {
+    planningItems.push({ key: 'destination', label: '目的地', value: planningInfo.destination, icon: MapPin });
+  }
+  if (planningInfo?.days != null && planningInfo.days > 0) {
+    planningItems.push({ key: 'days', label: '天数', value: `${planningInfo.days} 天`, icon: CalendarDays });
+  }
+  if (planningInfo?.peopleCount != null && planningInfo.peopleCount > 0) {
+    planningItems.push({ key: 'people', label: '人数', value: `${planningInfo.peopleCount} 人`, icon: Users });
+  }
+  if (planningInfo?.departureTime) {
+    planningItems.push({
+      key: 'time',
+      label: '出发时间',
+      value: formatPlanningTime(planningInfo.departureTime),
+      icon: Clock3,
+      wide: true,
+    });
+  }
+  if (planningInfo?.budget) {
+    planningItems.push({ key: 'budget', label: '预算', value: planningInfo.budget, icon: WalletCards, wide: true });
+  }
 
   if (!hasDays) {
     return (
@@ -81,59 +130,31 @@ export function ItineraryContent({
     <div className="space-y-6">
       {/* 规划概要（用户提交时的输入参数） */}
       {hasPlanningInfo && (
-        <div className="rounded-2xl border border-primary-100 bg-gradient-to-r from-primary-50 to-surface p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-cyan-900 mb-3">📋 规划概要</h2>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            {planningInfo.departureLocation && (
-              <div className="flex items-start gap-1.5">
-                <span className="shrink-0">🛫</span>
-                <span className="text-gray-500">出发地：</span>
-                <span className="text-cyan-800 font-medium">{planningInfo.departureLocation}</span>
-              </div>
-            )}
-            {planningInfo.destination && (
-              <div className="flex items-start gap-1.5">
-                <span className="shrink-0">📍</span>
-                <span className="text-gray-500">目的地：</span>
-                <span className="text-cyan-800 font-medium">{planningInfo.destination}</span>
-              </div>
-            )}
-            {planningInfo.days != null && planningInfo.days > 0 && (
-              <div className="flex items-start gap-1.5">
-                <span className="shrink-0">📅</span>
-                <span className="text-gray-500">天数：</span>
-                <span className="text-cyan-800 font-medium">{planningInfo.days} 天</span>
-              </div>
-            )}
-            {planningInfo.peopleCount != null && planningInfo.peopleCount > 0 && (
-              <div className="flex items-start gap-1.5">
-                <span className="shrink-0">👥</span>
-                <span className="text-gray-500">人数：</span>
-                <span className="text-cyan-800 font-medium">{planningInfo.peopleCount} 人</span>
-              </div>
-            )}
-            {planningInfo.departureTime && (
-              <div className="flex items-start gap-1.5">
-                <span className="shrink-0">🕐</span>
-                <span className="text-gray-500">出发时间：</span>
-                <span className="text-cyan-800 font-medium">{planningInfo.departureTime}</span>
-              </div>
-            )}
-            {planningInfo.budget && (
-              <div className="flex items-start gap-1.5">
-                <span className="shrink-0">💰</span>
-                <span className="text-gray-500">预算：</span>
-                <span className="text-cyan-800 font-medium">{planningInfo.budget}</span>
-              </div>
-            )}
-          </div>
+        <section className="rounded-2xl border border-primary-100 bg-gradient-to-r from-primary-50 to-surface p-4 shadow-sm sm:p-6">
+          <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-primary-900">
+            <ClipboardList aria-hidden="true" className="h-4 w-4" strokeWidth={1.9} />
+            规划概要
+          </h2>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            {planningItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.key} className={`min-w-0 ${item.wide ? 'col-span-2 min-[380px]:col-span-1' : ''}`}>
+                  <dt className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-primary-600" strokeWidth={1.8} />
+                    {item.label}
+                  </dt>
+                  <dd className="mt-1 truncate font-semibold text-primary-900" title={item.value}>{item.value}</dd>
+                </div>
+              );
+            })}
+          </dl>
           {planningInfo.preferences && planningInfo.preferences.length > 0 && (
-            <div className="mt-3 flex items-start gap-1.5 text-sm">
-              <span className="shrink-0">🏷️</span>
-              <span className="text-gray-500">偏好：</span>
+            <div className="mt-4 border-t border-primary-100 pt-3 text-sm">
+              <p className="mb-2 text-xs text-gray-500">偏好</p>
               <div className="flex flex-wrap gap-1.5">
                 {planningInfo.preferences.map((pref, i) => (
-                  <span key={i} className="inline-block bg-cyan-100 text-cyan-700 text-xs px-2 py-0.5 rounded-full">
+                  <span key={i} className="inline-flex min-h-7 items-center rounded-lg bg-primary-100 px-2 text-xs text-primary-800">
                     {pref}
                   </span>
                 ))}
@@ -141,18 +162,20 @@ export function ItineraryContent({
             </div>
           )}
           {planningInfo.specialRequirements && (
-            <div className="mt-3 flex items-start gap-1.5 text-sm">
-              <span className="shrink-0">📝</span>
-              <span className="text-gray-500 shrink-0">特殊需求：</span>
-              <span className="text-cyan-800">{planningInfo.specialRequirements}</span>
+            <div className="mt-3 flex items-start gap-2 border-t border-primary-100 pt-3 text-sm">
+              <FileText aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" strokeWidth={1.8} />
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500">特殊需求</p>
+                <p className="mt-1 break-words text-primary-900">{planningInfo.specialRequirements}</p>
+              </div>
             </div>
           )}
-        </div>
+        </section>
       )}
 
       {/* 概览 */}
       {summary && (
-        <div className="rounded-2xl border border-primary-100 bg-gradient-to-r from-primary-50 to-surface p-6 shadow-sm">
+        <div className="rounded-2xl border border-primary-100 bg-gradient-to-r from-primary-50 to-surface p-4 shadow-sm sm:p-6">
           <h2 className="text-base font-semibold text-blue-900 mb-2">行程概览</h2>
           <p className="text-sm text-blue-800 leading-relaxed">{summary}</p>
         </div>

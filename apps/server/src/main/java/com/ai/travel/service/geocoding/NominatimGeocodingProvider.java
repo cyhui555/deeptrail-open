@@ -70,10 +70,7 @@ public class NominatimGeocodingProvider implements GeocodingProvider {
       url.append(", ").append(urlEncode(request.getAddress()));
     }
 
-    // 阻塞等待令牌桶（严格 1 QPS，不 fast-fail）
-    // Guava RateLimiter.acquire() 响应中断并恢复 Thread.interrupted() 标志，不抛受检异常
     ensureRateLimiterRegistered();
-    RateLimiters.waitFor("nominatim");
 
     // Hutool HttpRequest.timeout(int) 同时设置连接超时和读取超时
     int timeoutMs = Math.max(properties.getConnectTimeoutMs(), properties.getReadTimeoutMs());
@@ -98,6 +95,8 @@ public class NominatimGeocodingProvider implements GeocodingProvider {
     int attempts = retryOnIo ? 2 : 1;
     for (int attempt = 1; attempt <= attempts; attempt++) {
       try {
+        // I/O 重试也是一次真实外部请求，必须重新领取严格 1 QPS 的令牌。
+        acquireRateLimitPermit();
         return executeHttpGet(url, timeoutMs);
       } catch (Exception e) {
         if (isIoError(e) && attempt < attempts) {
@@ -118,6 +117,14 @@ public class NominatimGeocodingProvider implements GeocodingProvider {
     throw lastException != null
         ? lastException
         : new GeocodingException("Nominatim HTTP error: exhausted attempts");
+  }
+
+  /** 测试可覆盖该边界，以验证每次真实 HTTP 尝试都重新领取令牌。 */
+  void acquireRateLimitPermit() {
+    RateLimiters.waitFor("nominatim");
+    if (Thread.currentThread().isInterrupted()) {
+      throw new GeocodingException("Nominatim rate limit wait interrupted");
+    }
   }
 
   /**

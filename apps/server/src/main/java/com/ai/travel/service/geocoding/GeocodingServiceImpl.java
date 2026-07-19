@@ -108,7 +108,11 @@ public class GeocodingServiceImpl implements GeocodingService {
         log.debug("Geocoding no valid result: name={}, provider={}",
             request.getName(), provider.getProviderName());
       } catch (GeocodingException e) {
-        recordProviderFailure(providerName, e.getMessage());
+        // QPS 拒绝只代表当前请求超额，不代表 Provider 宕机；长熔断会把单点限流
+        // 放大成同批全部 POI 跳过高德。Provider 已完成有界退避，此处只继续 fallback。
+        if (!e.isThrottled()) {
+          recordProviderFailure(providerName, e.getMessage());
+        }
         log.warn("Geocoding failed: name={}, provider={}, error={}",
             request.getName(), provider.getProviderName(), e.getMessage());
       } catch (Exception e) {

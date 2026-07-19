@@ -41,21 +41,24 @@ export function DayNavigator({ days, activeDay, onDayClick }: Props) {
       </aside>
 
       {/* 移动端：顶部横向滚动 Tab 栏 */}
-      <nav aria-label="行程日期导航" className="lg:hidden sticky top-12 z-20 -mx-4 px-4 py-2 bg-gray-50/90 backdrop-blur-sm border-b border-gray-100">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+      <nav aria-label="行程日期导航" className="sticky top-14 z-20 -mx-4 border-b border-white/70 bg-surface/90 px-4 py-1.5 backdrop-blur-sm max-[480px]:-mx-3.5 max-[480px]:px-3.5 sm:top-16 sm:-mx-6 sm:px-6 lg:hidden">
+        <div className="scrollbar-hide flex snap-x gap-1 overflow-x-auto pb-0.5">
           {days.map((day) => (
             <button
               key={day}
               type="button"
               onClick={() => onDayClick(day)}
+              aria-label={`第 ${day} 天`}
               aria-current={activeDay === day ? 'step' : undefined}
-              className={`flex h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition duration-200 ${
+              className="flex min-h-11 min-w-11 shrink-0 snap-start items-center justify-center whitespace-nowrap p-1"
+            >
+              <span className={`inline-flex h-9 items-center justify-center rounded-lg px-3 text-[13px] font-semibold transition duration-200 ${
                 activeDay === day
                   ? 'bg-primary-700 text-white shadow-sm'
-                  : 'bg-white text-gray-500 border border-gray-200'
-              }`}
-            >
-              第 {day} 天
+                  : 'border border-white/80 bg-white/75 text-gray-600'
+              }`}>
+                第 {day} 天
+              </span>
             </button>
           ))}
         </div>
