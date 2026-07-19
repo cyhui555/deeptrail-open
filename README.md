@@ -38,39 +38,39 @@ pnpm install --frozen-lockfile
 | --- | --- | --- |
 | `SPRING_AI_OPENAI_API_KEY` | AI 功能必需 | OpenAI-compatible 模型服务凭据 |
 | `SPRING_AI_OPENAI_CHAT_OPTIONS_MAX_TOKENS` | 否 | AI 最大输出；LongCat-2.0 默认固定为官方上限 131072，禁止回退到 4096 |
-| `JWT_SECRET` | 生产必需 | JWT 签名密钥，至少 32 个随机字节 |
+| `JWT_SECRET` | Server 启动必需 | JWT 签名密钥，至少 32 个随机字节 |
 | `JWT_EXPIRATION_DAYS` | 否 | Token 有效天数，默认 7 |
 | `GAODE_API_KEY` | 否 | 高德 Web Service Key；为空时走降级策略 |
 | `APP_CORS_ALLOWED_ORIGINS` | 否 | 精确 Origin，默认 `http://localhost:3000` |
 | `APP_DATA_DIR` | 否 | Server 数据目录；workspace 默认 `../../data` |
 | `APP_LOG_DIR` | 否 | Server 日志目录；workspace 默认 `../../log` |
-| `NEXT_PUBLIC_API_URL` | 否 | Web 访问的 API，默认 `http://localhost:8080` |
+| `BACKEND_INTERNAL_URL` | 否 | Next.js 服务端代理的 API，默认 `http://localhost:8080`；浏览器固定访问同源 `/api` |
 
 复制 `.env.example` 的变量名到操作系统或本地未跟踪配置。不要把真实值写入仓库。
 
 ## 启动
 
-分别启动：
+Server 会在所有 Profile 启动时校验 `JWT_SECRET`。本地开发可在当前 PowerShell 会话生成一个临时随机值，然后分别在两个终端启动：
 
 ```powershell
+$secretBytes = New-Object byte[] 48
+[System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($secretBytes)
+$env:JWT_SECRET = [Convert]::ToBase64String($secretBytes)
 pnpm dev:server
+```
+
+```powershell
 pnpm dev:web
 ```
 
-或联合启动：
-
-```powershell
-pnpm dev
-```
-
-Windows 也可以运行 `scripts\start-all.ps1`。默认地址：
+当前根 `pnpm dev` 经 Turborepo 启动时不会向 Server 透传 `JWT_SECRET`，不能作为联合启动入口。Windows 也可以先设置 `JWT_SECRET`，再运行 `scripts\start-all.ps1`。默认地址：
 
 - Web：`http://localhost:3000`
 - API Health：`http://localhost:8080/api/health`
 - Swagger UI：`http://localhost:8080/swagger-ui.html`
 - OpenAPI：`http://localhost:8080/v3/api-docs`
 
-生产配置需要有效 `JWT_SECRET`；无外部 AI Key 时核心页面、账户、清单和确定性测试仍可运行，但 AI 生成请求不会成功。
+所有 Server 启动都需要有效 `JWT_SECRET`；无外部 AI Key 时核心页面、账户、清单和确定性测试仍可运行，但 AI 生成请求不会成功。
 
 ## 质量门禁
 

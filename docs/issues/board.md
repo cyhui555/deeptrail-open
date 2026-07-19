@@ -13,6 +13,7 @@
 
 ## Review Queue（不计入 WIP）
 
+- `TASK-DOCS-001`：首次文档诚实性基线修复已提交 PR #63，等待必需检查与作者外 Review，见[活动 Work Item](task-docs-001-docs-honesty-baseline.md)。
 - Dependabot PR #60 因 JJWT 三模块版本错配已 `CHANGES_REQUESTED`；#61 经 lint、typecheck、生产构建与体积预算验证后已批准，但按 WIP 边界保持未合并。两项均不自动合并。
 
 ## Operational Follow-up（不计入 WIP）

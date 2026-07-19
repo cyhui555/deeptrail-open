@@ -15,7 +15,7 @@
 | `SPRING_AI_OPENAI_API_KEY` | OpenAI-compatible Provider 凭据 |
 | `SPRING_AI_OPENAI_BASE_URL` | Provider 基地址 |
 | `SPRING_AI_OPENAI_MODEL` | 模型名 |
-| `JWT_SECRET` | 生产 JWT 签名密钥，至少 32 个随机字节 |
+| `JWT_SECRET` | 所有 Server 启动都必需的 JWT 签名密钥，至少 32 个随机字节 |
 | `GAODE_API_KEY` | 高德 Web Service Key；未配置时走受控降级 |
 | `APP_DATA_DIR` / `APP_LOG_DIR` | 可选数据与日志目录 |
 
@@ -23,7 +23,7 @@
 
 ## 启动与验证
 
-在仓库根目录执行：
+在仓库根目录执行。`pnpm dev:server` 启动前必须在当前环境设置有效 `JWT_SECRET`：
 
 ```powershell
 pnpm dev:server
