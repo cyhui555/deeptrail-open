@@ -1,6 +1,6 @@
 # TASK-RELEASE-004：远程不可变制品链
 
-- 状态：In Progress / G2
+- 状态：In Progress / G3（PR #62 已合入，等待首次真实远程运行）
 - 优先级：P0
 - 关联 Requirement：`REQ-RELEASE-002`
 - ExecPlan：[远程制品链计划](../plans/task-release-004-remote-artifact-chain.md)
@@ -18,7 +18,8 @@
 - [x] 证据包包含源码 Git bundle、SHA-256、生产 Compose、release manifest 与包级校验和，且不包含运行时 Secret。
 - [x] GitHub `release-artifacts` Environment 已创建并只接受受保护分支；当前 Secret 列表保持为空。
 - [x] 安全测试拒绝扩大触发器、权限、Secret 或部署边界；本任务不调用 `deploy.sh`、`remote-release.sh`、`rollback.sh`、SSH 或 `gh release`。
-- [ ] Workflow 合入受保护 `main` 后，由所有者配置 `release-artifacts` 环境的两项 Web 构建值并完成一次真实远程运行。
+- [x] Workflow 经 PR #62 的五项 Required Checks 与作者外 Review 后合入受保护 `main@88b5092`。
+- [ ] 由所有者配置 `release-artifacts` 环境的两项 Web 构建值并完成一次真实远程运行。
 
 ## 回滚
 

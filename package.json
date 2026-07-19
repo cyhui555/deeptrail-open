@@ -8,6 +8,9 @@
     "pnpm": ">=11.0.0"
   },
   "scripts": {
+    "android:check": "node scripts/android/check-readiness.mjs",
+    "android:test": "node --test scripts/android/tests/*.test.mjs",
+    "android:test:runtime": "node --test scripts/android/runtime/*.test.mjs",
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
     "dev:web": "pnpm --filter @deeptrail/web dev",

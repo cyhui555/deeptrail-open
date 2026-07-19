@@ -121,10 +121,12 @@ sudo docker compose \
 
 ### 3.6 执行独立验收
 
+将下列 `<approved-port>` 替换为 current release 的 `DEEPTRAIL_WEB_PORT`；批准端口可能是 `30301-30400` 中的任意一个，不能假定始终为 `30301`。
+
 ```bash
 release_id="$(basename "$current")"
 sudo bash "/srv/deeptrail/builds/${release_id}/infra/deploy/verify.sh" \
-  --current --public-url 'http://127.0.0.1:30301'
+  --current --public-url 'http://127.0.0.1:<approved-port>'
 
 sudo docker ps --filter name=deeptrail \
   --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
@@ -133,10 +135,10 @@ sudo docker ps --filter name=deeptrail \
 从发布机复验公网入口和认证边界：
 
 ```powershell
-Invoke-WebRequest "http://${DeployHost}:30301/api/health" -UseBasicParsing
+Invoke-WebRequest "http://${DeployHost}:<approved-port>/api/health" -UseBasicParsing
 
 & .\infra\deploy\verify-auth.ps1 `
-  -BaseUrl "http://${DeployHost}:30301" `
+  -BaseUrl "http://${DeployHost}:<approved-port>" `
   -Username admin
 ```
 

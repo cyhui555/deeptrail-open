@@ -142,17 +142,16 @@ public TaskStatusResponse getStatus(String taskId) { ... }
 
 - **IntelliJ IDEA**：导入 Google 官方 [`intellij-java-google-style.xml`](https://github.com/google/styleguide/blob/gh-pages/intellij-java-google-style.xml)，设为项目默认 Code Style。
 - **VS Code**：使用 `google-java-format` 扩展，保存时自动格式化。
-- **命令行**：`google-java-format` 提供 `mvn fmt:format` 与 CI 检查脚本。
+- **命令行**：在仓库根目录执行 `pnpm --filter @deeptrail/server lint`；全仓门禁使用 `pnpm lint`。
 
-### 9.2 Checkstyle（计划）
+### 9.2 Checkstyle
 
-`pom.xml` 初始化时一并加入 `maven-checkstyle-plugin`，使用 Google 官方 `google_checks.xml`：
+`apps/server/pom.xml` 已配置 `maven-checkstyle-plugin`，使用 Google 官方 `google_checks.xml`，并加载 `packages/config/checkstyle/suppressions.xml`。在仓库根目录执行：
 
-```bash
-mvn checkstyle:check
+```powershell
+pnpm --filter @deeptrail/server lint
+pnpm verify:server
 ```
-
-> 注：当前阶段尚无 `pom.xml`，Checkstyle 配置在 Step 1 项目初始化时补齐。
 
 ## 10. 参考
 
