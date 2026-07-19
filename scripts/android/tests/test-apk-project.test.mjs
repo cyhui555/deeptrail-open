@@ -33,6 +33,9 @@ test('远程构建仅产出 debug APK 且 Action 固定完整 SHA', async () => 
   const workflow = await read('.github/workflows/android-test-apk.yml');
   assert.match(workflow, /permissions:\s*\n\s+contents: read/);
   assert.match(workflow, /lintDebug assembleDebug/);
+  assert.match(workflow, /apksigner" verify --verbose/);
+  assert.match(workflow, /test "\$application_id" = "com\.deeptrail\.app\.debug"/);
+  assert.match(workflow, /signatureVerified=true/);
   assert.doesNotMatch(workflow, /assembleRelease|bundleRelease|contents: write/);
   const actionRefs = [...workflow.matchAll(/uses:\s+[^@\s]+@([^\s#]+)/g)].map((match) => match[1]);
   assert.ok(actionRefs.length >= 4);

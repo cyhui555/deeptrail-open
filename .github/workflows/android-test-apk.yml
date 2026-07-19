@@ -30,7 +30,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle 8.9
-        uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+        uses: gradle/actions/setup-gradle@4c125117fe7c5aed11272ec4213f602f012f89f2 # v5
         with:
           gradle-version: '8.9'
 
@@ -50,8 +50,22 @@ jobs:
         shell: bash
         run: |
           mkdir -p android-output
-          cp apps/android/app/build/outputs/apk/debug/app-debug.apk android-output/deeptrail-test-app-debug.apk
-          sha256sum android-output/deeptrail-test-app-debug.apk > android-output/deeptrail-test-app-debug.apk.sha256
+          apk="android-output/deeptrail-test-app-debug.apk"
+          cp apps/android/app/build/outputs/apk/debug/app-debug.apk "$apk"
+
+          build_tools_dir=$(dirname "$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -n 1)")
+          test -x "$build_tools_dir/apksigner"
+          test -x "$build_tools_dir/aapt"
+          "$build_tools_dir/apksigner" verify --verbose "$apk"
+
+          application_id=$("$build_tools_dir/aapt" dump badging "$apk" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          test "$application_id" = "com.deeptrail.app.debug"
+          sha256sum "$apk" > "$apk.sha256"
+          {
+            echo "applicationId=$application_id"
+            echo "signatureVerified=true"
+            echo "buildType=debug"
+          } > android-output/deeptrail-test-app-debug.metadata
 
       - name: Upload test APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
