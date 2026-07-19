@@ -18,10 +18,18 @@ try {
     { cwd: sourceRoot, encoding: "buffer", maxBuffer: 32 * 1024 * 1024 },
   );
   const files = fileOutput.toString("utf8").split("\0").filter(Boolean);
+  let copiedFiles = 0;
   for (const relativePath of files) {
     const source = path.join(sourceRoot, ...relativePath.split("/"));
     const target = path.join(baselineRoot, ...relativePath.split("/"));
-    const metadata = await lstat(source);
+    let metadata;
+    try {
+      metadata = await lstat(source);
+    } catch (error) {
+      // Index 中待删除的路径不属于当前候选 Tree；提交前模拟应跳过而不是因 ENOENT 中止。
+      if (error?.code === "ENOENT") continue;
+      throw error;
+    }
     await mkdir(path.dirname(target), { recursive: true });
     if (metadata.isSymbolicLink()) {
       await symlink(await readlink(source), target);
@@ -30,6 +38,7 @@ try {
     } else {
       throw new Error(`公开基线只接受文件或符号链接：${relativePath}`);
     }
+    copiedFiles += 1;
   }
 
   await git(["init", "-b", "main"], baselineRoot);
@@ -57,7 +66,7 @@ try {
     encoding: "utf8",
   });
   console.log(
-    `公开基线模拟通过：${files.length} 个文件，单根提交；来源 ${sourceRevision.trim().slice(0, 12)}，dirty=${Boolean(sourceStatus.trim())}。`,
+    `公开基线模拟通过：${copiedFiles} 个文件，单根提交；来源 ${sourceRevision.trim().slice(0, 12)}，dirty=${Boolean(sourceStatus.trim())}。`,
   );
 } finally {
   const expectedRoot = path.resolve(os.tmpdir());

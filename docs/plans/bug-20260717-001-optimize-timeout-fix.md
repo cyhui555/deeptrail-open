@@ -1,6 +1,6 @@
 # BUG-20260717-001 行程优化超时修复 ExecPlan
 
-- 状态：Verification / G2
+- 状态：Closed / G3（因 L2 Cohort 审计链接保留）
 - 关联 Work Item：[`BUG-20260717-001`](../issues/bug-20260717-001-optimize-watchdog-race.md)
 - 交付 Commit：`main@6495d3e`（由 `fix/BUG-20260717-001-optimize-timeout` fast-forward 合入）
 - 基线：最新主干 `598d049`（初始诊断基线 `da147e8`）
