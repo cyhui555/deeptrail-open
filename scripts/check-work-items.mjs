@@ -21,9 +21,14 @@ const historicalWorkItems = new Map([
 
 const board = await readFile(boardPath, "utf8");
 const registry = await readFile(registryPath, "utf8");
+const cohortManifest = JSON.parse(await readFile(path.join(loopRoot, "l2-cohort.json"), "utf8"));
+const retainedCohortItems = new Set(cohortManifest.registrations
+  .map(({ workItem }) => workItem.replace(/^docs\/issues\//, "")));
 const issueNames = (await readdir(issuesRoot))
   .filter((name) => /^(?:task|bug|spike)-[a-z0-9-]+\.md$/.test(name))
   .sort();
+let activeItems = 0;
+let retainedItems = 0;
 
 for (const name of issueNames) {
   const content = await readFile(path.join(issuesRoot, name), "utf8");
@@ -35,7 +40,17 @@ for (const name of issueNames) {
   if (!name.startsWith(`${headingId.toLowerCase()}-`)) {
     failures.push(`${name} 与标题 ID ${headingId} 不一致`);
   }
-  if (!/^- 状态：\S+/m.test(content)) failures.push(`${name} 缺少状态字段`);
+  const status = content.match(/^- 状态：(.+)$/m)?.[1]?.trim();
+  if (!status) failures.push(`${name} 缺少状态字段`);
+  else if (/^Closed\b/.test(status)) {
+    retainedItems += 1;
+    // 已关闭明细默认应压缩归档；L2 合同绑定的路径必须继续由 Git 跟踪，因此保留为明确例外。
+    if (!retainedCohortItems.has(name)) {
+      failures.push(`${name} 已关闭但不属于不可变 L2 Cohort，应压缩到 docs/archive`);
+    }
+  } else {
+    activeItems += 1;
+  }
   if (!/^## (?:目标|决策)$/m.test(content)) failures.push(`${name} 缺少目标或决策章节`);
   if (!/^## (?:验收标准|验收与退出|验收)$/m.test(content)) {
     failures.push(`${name} 缺少验收章节`);
@@ -89,7 +104,7 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log(`Work Item 检查通过：${issueNames.length} 个活动项与看板、Requirement 和运行时引用一致。`);
+console.log(`Work Item 检查通过：${activeItems} 个活动项、${retainedItems} 个 L2 历史证据与看板、Requirement 和运行时引用一致。`);
 
 async function collectFiles(directory, extension) {
   const files = [];

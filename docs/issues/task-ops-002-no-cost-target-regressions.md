@@ -1,5 +1,5 @@
 # TASK-OPS-002：零付费目标机确定性回归
-- 状态：Verification
+- 状态：Closed / G3
 - 关联需求：`REQ-DEPLOY-002`、`REQ-LOOP-002`
 ## 目标
 固化目标机回归脚本：绑定当前 Release、提交和 Maven digest，只读加载源码，在无网络测试容器中验证并发、解析与失败终态。

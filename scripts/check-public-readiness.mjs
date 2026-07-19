@@ -17,19 +17,29 @@ const failures = [];
 let scannedTextFiles = 0;
 let skippedBinaryFiles = 0;
 
-const { stdout } = await run("git", ["ls-files", "-z"], {
+const { stdout } = await run("git", [
+  "ls-files", "-z", "--cached", "--others", "--exclude-standard",
+], {
   cwd: root,
   encoding: "buffer",
   maxBuffer: 32 * 1024 * 1024,
 });
-const trackedFiles = stdout.toString("utf8").split("\0").filter(Boolean);
+const candidateFiles = stdout.toString("utf8").split("\0").filter(Boolean);
+const existingFiles = [];
 
-for (const relativePath of trackedFiles) {
+for (const relativePath of candidateFiles) {
   const normalized = normalizePath(relativePath);
-  for (const category of validateTrackedPath(normalized)) addFailure(normalized, category);
-
   const absolute = path.join(root, ...normalized.split("/"));
-  const metadata = await stat(absolute);
+  let metadata;
+  try {
+    metadata = await stat(absolute);
+  } catch (error) {
+    // `--cached` 会保留工作树中待删除的路径；提交前扫描应忽略已经不存在的旧文件。
+    if (error?.code === "ENOENT") continue;
+    throw error;
+  }
+  existingFiles.push(normalized);
+  for (const category of validateTrackedPath(normalized)) addFailure(normalized, category);
   if (metadata.size > 5 * 1024 * 1024) {
     if (/\.(?:md|txt|json|ya?ml|xml|html?|mjs|cjs|js|ts|tsx|jsx|java|sh|ps1|properties|sql)$/i.test(normalized)) {
       addFailure(normalized, "oversized-text-not-scanned");
@@ -52,7 +62,7 @@ for (const relativePath of trackedFiles) {
   }
 }
 
-const hasLicense = trackedFiles.some((file) => /^(?:LICENSE|COPYING)(?:\..*)?$/i.test(file));
+const hasLicense = existingFiles.some((file) => /^(?:LICENSE|COPYING)(?:\..*)?$/i.test(file));
 if (!hasLicense) {
   console.warn("公开准备警告：仓库尚未选择 LICENSE；公开可见不等于授予开源使用许可。");
 }
@@ -64,7 +74,7 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `公开准备检查通过：${trackedFiles.length} 个跟踪文件，扫描 ${scannedTextFiles} 个文本文件，跳过 ${skippedBinaryFiles} 个二进制文件。`,
+  `公开准备检查通过：${existingFiles.length} 个候选文件，扫描 ${scannedTextFiles} 个文本文件，跳过 ${skippedBinaryFiles} 个二进制文件。`,
 );
 
 function addFailure(relativePath, category) {

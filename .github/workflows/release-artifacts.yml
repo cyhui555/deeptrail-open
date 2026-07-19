@@ -1,0 +1,161 @@
+name: Release artifact chain
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Exact 40-character commit currently at protected main
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: release-artifact-chain
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    if: github.actor == github.repository_owner && github.ref == 'refs/heads/main' && github.repository == 'cyhui555/deeptrail-open'
+    environment: release-artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout protected main
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Freeze exact release identity
+        id: identity
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision }}
+        run: |
+          set -Eeuo pipefail
+          [[ "${REQUESTED_REVISION}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo 'revision 必须是完整的 40 位小写 Commit SHA。' >&2
+            exit 1
+          }
+          main_revision="$(git rev-parse origin/main)"
+          [[ "${REQUESTED_REVISION}" == "${main_revision}" ]] || {
+            echo '请求 revision 不是当前受保护 main，拒绝构建。' >&2
+            exit 1
+          }
+          git checkout --detach "${REQUESTED_REVISION}"
+          [[ -z "$(git status --porcelain)" ]] || {
+            echo '远程制品必须从干净工作树构建。' >&2
+            exit 1
+          }
+          version="$(python3 -c 'import json; print(json.load(open("package.json", encoding="utf-8"))["version"])')"
+          [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo 'package.json version 不符合发布格式。' >&2
+            exit 1
+          }
+          created="$(date -u +%Y%m%d-%H%M%S)"
+          release_id="v${version}-${created}-${REQUESTED_REVISION:0:12}"
+          release_dir="${RUNNER_TEMP}/deeptrail-release"
+          mkdir "${release_dir}"
+          printf 'revision=%s\nrelease_id=%s\nrelease_dir=%s\n' \
+            "${REQUESTED_REVISION}" "${release_id}" "${release_dir}" >>"${GITHUB_OUTPUT}"
+
+      - name: Freeze source and base image digests
+        id: inputs
+        env:
+          RELEASE_DIR: ${{ steps.identity.outputs.release_dir }}
+        run: |
+          set -Eeuo pipefail
+          docker buildx version
+          git bundle create "${RELEASE_DIR}/source.bundle" refs/remotes/origin/main
+          (
+            cd "${RELEASE_DIR}"
+            sha256sum source.bundle >source.bundle.sha256
+          )
+          resolve_base() {
+            local tag="$1" digest
+            digest="$(docker buildx imagetools inspect "${tag}" --format '{{.Manifest.Digest}}')"
+            [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+              echo "无法解析基础镜像 digest：${tag}" >&2
+              exit 1
+            }
+            printf '%s@%s' "${tag}" "${digest}"
+          }
+          printf 'maven=%s\n' "$(resolve_base 'maven:3.9-eclipse-temurin-17')" >>"${GITHUB_OUTPUT}"
+          printf 'java=%s\n' "$(resolve_base 'eclipse-temurin:17-jre')" >>"${GITHUB_OUTPUT}"
+          printf 'node=%s\n' "$(resolve_base 'node:24-alpine')" >>"${GITHUB_OUTPUT}"
+          printf 'source_sha256=%s\n' "$(cut -d ' ' -f 1 "${RELEASE_DIR}/source.bundle.sha256")" >>"${GITHUB_OUTPUT}"
+
+      - name: Build and publish immutable images
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAVEN_IMAGE: ${{ steps.inputs.outputs.maven }}
+          JAVA_IMAGE: ${{ steps.inputs.outputs.java }}
+          NODE_IMAGE: ${{ steps.inputs.outputs.node }}
+          NEXT_PUBLIC_AMAP_KEY: ${{ secrets.NEXT_PUBLIC_AMAP_KEY }}
+          NEXT_PUBLIC_AMAP_SECURITY_CODE: ${{ secrets.NEXT_PUBLIC_AMAP_SECURITY_CODE }}
+          RELEASE_ID: ${{ steps.identity.outputs.release_id }}
+          RELEASE_DIR: ${{ steps.identity.outputs.release_dir }}
+          SOURCE_SHA256: ${{ steps.inputs.outputs.source_sha256 }}
+        run: |
+          set -Eeuo pipefail
+          [[ -n "${NEXT_PUBLIC_AMAP_KEY}" && -n "${NEXT_PUBLIC_AMAP_SECURITY_CODE}" ]] || {
+            echo 'release-artifacts 环境缺少两项 NEXT_PUBLIC_AMAP_* Secret。' >&2
+            exit 1
+          }
+          web_build_env="${RUNNER_TEMP}/deeptrail-web-build.env"
+          cleanup() {
+            rm -f -- "${web_build_env}"
+            docker logout ghcr.io >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          umask 077
+          printf 'NEXT_PUBLIC_AMAP_KEY=%s\nNEXT_PUBLIC_AMAP_SECURITY_CODE=%s\n' \
+            "${NEXT_PUBLIC_AMAP_KEY}" "${NEXT_PUBLIC_AMAP_SECURITY_CODE}" >"${web_build_env}"
+          printf '%s' "${GH_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
+          registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
+          bash infra/deploy/build-images.sh \
+            --push \
+            --registry "${registry}" \
+            --release-id "${RELEASE_ID}" \
+            --maven-image "${MAVEN_IMAGE}" \
+            --java-image "${JAVA_IMAGE}" \
+            --node-image "${NODE_IMAGE}" \
+            --source-sha256 "${SOURCE_SHA256}" \
+            --web-build-env "${web_build_env}" \
+            --output "${RELEASE_DIR}/release.json"
+
+      - name: Assemble verifiable release evidence
+        env:
+          RELEASE_DIR: ${{ steps.identity.outputs.release_dir }}
+        run: |
+          set -Eeuo pipefail
+          cp infra/docker/compose.production.yml "${RELEASE_DIR}/compose.production.yml"
+          (
+            cd "${RELEASE_DIR}"
+            sha256sum release.json compose.production.yml source.bundle source.bundle.sha256 \
+              >release-package.sha256
+          )
+          python3 - "${RELEASE_DIR}/release.json" >>"${GITHUB_STEP_SUMMARY}" <<'PY'
+          import json
+          import sys
+
+          manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+          print("## Deeptrail remote artifacts")
+          print(f"- Release: `{manifest['releaseId']}`")
+          print(f"- Revision: `{manifest['revision']}`")
+          print(f"- Server: `{manifest['images']['server']['reference']}`")
+          print(f"- Web: `{manifest['images']['web']['reference']}`")
+          print("- Result: images pushed with BuildKit provenance and SBOM; no deployment executed.")
+          PY
+
+      - name: Upload release evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: deeptrail-${{ steps.identity.outputs.release_id }}
+          if-no-files-found: error
+          retention-days: 30
+          path: ${{ steps.identity.outputs.release_dir }}/

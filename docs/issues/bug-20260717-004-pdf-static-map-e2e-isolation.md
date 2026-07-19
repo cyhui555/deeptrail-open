@@ -1,6 +1,6 @@
 # BUG-20260717-004 PDF 主路径 E2E 未隔离静态地图 REST 调用
 
-- 状态：Verification
+- 状态：Closed / G3（Required Checks 已通过）
 - 优先级：P1
 - 关联需求：`REQ-BRAND-005`、`REQ-QUALITY-003`
 - 发现环境：公开主仓 Full E2E workflow `29577848547`

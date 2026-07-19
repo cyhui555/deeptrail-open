@@ -1,24 +1,30 @@
 # 当前项目状态
+
 - 最后核对：2026-07-19
-- 当前阶段：`TASK-GOV-003` G2；业务 Bug 已关闭，治理与定时 Loop 进入收敛模式
-- 当前检查门：公开 `main@824b7ad`；短期分支必须经 Required Checks 与作者外审批合入
-- 活动工作项：`TASK-GOV-003`、`TASK-RELEASE-003`、`TASK-OPS-002`
+- 当前阶段：`TASK-RELEASE-004` G2 + `TASK-LOOP-008` G2
+- 当前检查门：公开 `main@0470f2f`；当前隔离分支 `agent/task-release-004-remote-artifact-chain`
+- 活动工作项：`TASK-RELEASE-004`（唯一发布主任务）、`TASK-LOOP-008`（唯一维护试运行）
 
 ## 当前事实
-- 3/9 坐标刷新根因修复已由 PR #53 发布为 `v0.2.0-20260719-025020-06e4058c57cd`；已认证用户确认生产验收通过，GitHub #51 已关闭。
-- 旅迹 M0—M16、后台运营与 v0.2.0 不可变发布历史位于 `docs/archive/`；L3A 已交付，L3B activation 已终止且无合并权限。
-- PR #48、#56、#58 已关闭未合入；Archive PR finalizer 已手动停用，`TASK-GOV-003` 将删除其 Workflow、脚本与专项测试。
-- 定时 Loop 已暂停并降级为每 6 小时一次的轻量只读观察器；不运行全量测试、Doctor 或全库文档扫描，不执行写操作。
+
+- 旅迹 v0.2.0 已部署并完成目标环境 G3；坐标刷新与两项 AI 任务 Bug 已发布复验，旧私库 GitHub #21/#24 已关闭。
+- `TASK-GOV-003` 已由 PR #59 合入 `main@0470f2f`；高权限 Archive PR finalizer 已删除，所有 PR 恢复人工 Review/Merge。
+- React Doctor Daily 保持 `0 6 * * *`（`Asia/Shanghai`）启用；复测已以 `nothing-new` 持久化 `healthScore=38`，不改变周期，不自动合并或部署。
+- Dependabot PR #60 已因 JJWT 模块版本错配被 `CHANGES_REQUESTED`；#61 已独立验证并批准但未合并。它们只在审查队列，不计入活动 WIP。
 
 ## 当前约束
-- 禁止直推 `main`；功能、治理与归档 PR 均须通过现有保护规则，不保留自动审批或自动合并例外。
-- 默认测试使用确定性替身；真实高德探针只在人工触发的 release 验收执行一次并声明范围，不读取用户数据。
-- 完整生产放行仍缺 TLS、凭据轮换、远程制品链、独立介质 Restore 和正式回滚演练。
+
+- 禁止直推 `main`；短期分支经五项 Required Checks 和作者外审批合入，不保留自动审批、自动合并或自动部署例外。
+- 当前只制作远程制品链：GitHub Actions 干净构建、GHCR digest、SBOM/provenance、源码 bundle 与校验和；不连接目标机。
+- 完整生产放行仍缺 TLS、凭据轮换、独立介质 Restore 和正式回滚演练，这些均不属于当前任务。
+- `release-artifacts` 环境已创建并限制为受保护分支，当前 Secret 为空；尚需所有者配置两项 Web 构建值，不得从目标机复制 Server Secret 或把值写入 Git/日志。
 
 ## 当前验证
-- 当前 release 与 POI Bug G3 证据见归档摘要；主干五项保护保持启用。
-- 旧存量 worktree 与远端分支已从 9/8 清零；当前只保留 `main` 与 `TASK-GOV-003` 隔离工作项，仓库已启用合并后自动删分支。
-- `TASK-GOV-003` 文档 63 个（活动 2699 行、总计 3365 行）、Work Item 11 个、安全测试 17/17、治理/公开扫描、lint 与 typecheck 均通过。
+
+- 新 Workflow 合同测试已覆盖手动触发、最小权限、Secret 白名单与禁止部署边界；source bundle 已本地创建并通过 `git bundle verify`。
+- L2 Cohort 的 10 个历史 Work Item 路径继续保留为不可变证据，但全部退出活动 WIP。
+- React Doctor 复测完成 10 errors/130 warnings 的结构化扫描并安全回收 worktree；调度环境 `gh` 未认证，故没有代码或 PR。
 
 ## 下一项唯一动作
-完成 `TASK-GOV-003` 门禁并发布小型 Draft PR，由作者外 Reviewer 审查后合入。
+
+完成本地治理门禁并创建机器人作者 Draft PR；合入并配置环境值后，才执行一次真实远程制品运行，不部署。
