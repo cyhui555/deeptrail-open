@@ -27,7 +27,9 @@ class ConfigBeansTest {
   @Test
   void createsCoreInfrastructureBeans() {
     contextRunner.run(context -> {
-      assertThat(context).hasSingleBean(TaskExecutor.class);
+      assertThat(context).hasBean("aiTaskExecutor");
+      assertThat(context).hasBean("geocodingTaskExecutor");
+      assertThat(context.getBeansOfType(TaskExecutor.class)).hasSize(2);
       assertThat(context).hasSingleBean(CorsFilter.class);
       assertThat(context).hasSingleBean(io.swagger.v3.oas.models.OpenAPI.class);
     });

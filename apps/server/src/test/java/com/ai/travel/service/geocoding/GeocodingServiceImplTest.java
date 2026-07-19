@@ -567,6 +567,30 @@ class GeocodingServiceImplTest {
     }
 
     @Test
+    @DisplayName("provider=auto — 高德返回跨城结果时继续 fallback 到同城 Provider")
+    void providerMode_auto_fallsBackAfterCityRejection() throws Exception {
+      when(properties.getProvider()).thenReturn("auto");
+      GeocodingServiceImpl svc = new GeocodingServiceImpl(properties,
+          List.of(gaodeProvider, nominatimProvider), geocodingCacheMapper);
+      when(gaodeProvider.geocode(any(GeoRequest.class))).thenReturn(GeoResult.builder()
+          .latitude(29.55).longitude(106.59)
+          .province("重庆市").city("重庆市").district("沙坪坝区")
+          .provider("gaode").build());
+      when(nominatimProvider.geocode(any(GeoRequest.class))).thenReturn(GeoResult.builder()
+          .latitude(36.08).longitude(120.35)
+          .province("山东省").city("青岛市").district("市南区")
+          .provider("nominatim").build());
+
+      GeoResult result = svc.geocode(GeoRequest.builder()
+          .name("大学路").destination("青岛").build());
+
+      assertThat(result).isNotNull();
+      assertThat(result.getProvider()).isEqualTo("nominatim");
+      verify(gaodeProvider).geocode(any(GeoRequest.class));
+      verify(nominatimProvider).geocode(any(GeoRequest.class));
+    }
+
+    @Test
     @DisplayName("provider=auto — 高德成功时 Nominatim 不参与")
     void providerMode_auto_gaodeSucceeds_noFallback() throws Exception {
       when(properties.getProvider()).thenReturn("auto");

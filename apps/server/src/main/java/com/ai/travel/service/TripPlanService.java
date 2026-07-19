@@ -319,12 +319,13 @@ public class TripPlanService {
   }
 
   /**
-   * 强制：清空所有打卡项坐标后重新地理编码。
+   * 强制重新查询所有打卡项坐标。
    *
    * <p>用于清洗已有的"同名跨城"脏坐标（如青岛行程出现重庆坐标）。
    * 新流程依赖 GeocodingServiceImpl 解析 reverseGeocode 结果，
    * 省/市字段与 plan.destination 匹配校验，拒绝跨城结果；
-   * 因此强制重查后脏坐标被清空或替换为同城坐标。
+   * 因此强制重查只用有效同城结果覆盖旧值；查询失败时保留现有有效坐标，
+   * 避免短暂 Provider 故障造成持久数据退化。
    *
    * @param planId 清单 ID
    * @return 成功反查并写入坐标的项数

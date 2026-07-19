@@ -342,20 +342,20 @@ export default function CheckinPage() {
     setEditingItem(null);
   }, []);
 
-  // 强制刷新坐标：清空所有坐标后重新地理编码反查，清洗同名跨城脏坐标
+  // 强制刷新坐标：成功结果覆盖旧值，外部查询失败时保留现有坐标。
   const handleRefreshCoords = async () => {
     const accepted = await confirmAction({
       title: '重新校准全部坐标？',
-      description: '系统会清除当前坐标并重新查询，过程中地图标记可能短暂变化。',
+      description: '系统会重新查询全部坐标；查询成功才覆盖旧值，失败时保留现有坐标。',
       confirmLabel: '开始校准',
-      danger: true,
+      danger: false,
     });
     if (!accepted) return;
     setRefreshingCoords(true);
     setOfflineNotice(null);
     try {
       const resolved = await refreshCoordinates(true);
-      setOfflineNotice(`坐标刷新完成，已修正 ${resolved} 个打卡点`);
+      setOfflineNotice(`坐标刷新完成，已更新 ${resolved} 个打卡点`);
     } catch (e) {
       notify(e instanceof Error ? e.message : '刷新坐标失败', 'error');
     } finally {
@@ -527,7 +527,7 @@ export default function CheckinPage() {
               type="button"
               onClick={handleRefreshCoords}
               disabled={refreshingCoords || coordinateBackfillStatus === 'pending'}
-              title="清空所有坐标后重新地理编码反查，用于清洗定位到错误城市的脏数据（如青岛的大学路出现重庆坐标）"
+              title="重新查询全部坐标；有效同城结果覆盖旧值，查询失败时保留现有坐标"
               className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-primary-200 bg-primary-50 px-3 text-xs font-semibold text-primary-800 transition-colors hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:w-auto"
             >
               <RefreshCw aria-hidden="true" className={`h-3.5 w-3.5 ${refreshingCoords ? 'animate-spin' : ''}`} />

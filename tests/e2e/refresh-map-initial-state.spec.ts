@@ -151,6 +151,88 @@ test('renders overview before slow coordinate backfill finishes', async ({ page 
   expect(backfillFinished).toBe(false);
 });
 
+/** 部分成功必须展示真实完成度，不能把“更新 3 个”误报成 9 个地点均已恢复。 */
+test('reports partial coordinate refresh result for nine POIs', async ({ page }) => {
+  await page.addInitScript(AMAP_MOCK_JS);
+  await page.context().addCookies([
+    { name: 'token', value: 'coordinate-refresh-fixture', domain: 'localhost', path: '/' },
+  ]);
+  await page.route('**/api/auth/me', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(userFixture),
+  }));
+
+  const items = Array.from({ length: 9 }, (_, index) => ({
+    id: 3401 + index,
+    poiName: `脱敏地点 ${index + 1}`,
+    poiLat: index < 3 ? 36.05 + index / 100 : null,
+    poiLng: index < 3 ? 120.30 + index / 100 : null,
+    displayLat: index < 3 ? 36.05 + index / 100 : null,
+    displayLng: index < 3 ? 120.30 + index / 100 : null,
+    status: 'PENDING',
+    period: index < 5 ? '上午' : '下午',
+    media: [],
+  }));
+  const taskResponse = {
+    success: true,
+    data: [{
+      id: 'coordinate-refresh-day-1',
+      dayNumber: 1,
+      itineraryDate: '2026-07-19',
+      status: 'ONGOING',
+      totalPoi: 9,
+      completedPoi: 0,
+      items,
+    }],
+  };
+  await page.route('**/api/trips/coordinate-refresh-plan/checkin/backfill-coordinates', (route) => (
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: 0 }),
+    })
+  ));
+  let forceRefillCalls = 0;
+  await page.route('**/api/trips/coordinate-refresh-plan/checkin/force-refill-coordinates', (route) => {
+    forceRefillCalls += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: 3 }),
+    });
+  });
+  await page.route('**/api/trips/coordinate-refresh-plan/checkin', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(taskResponse),
+  }));
+  await page.route('**/api/trips/coordinate-refresh-plan/track/points', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, data: [] }),
+  }));
+  await page.route('**/api/trips/coordinate-refresh-plan', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: true,
+      data: { id: 'coordinate-refresh-plan', title: '坐标刷新回归', destination: '青岛' },
+    }),
+  }));
+
+  await page.goto('/trips/coordinate-refresh-plan/overview');
+  await expect(page.getByText('坐标 3/9', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /强制重查坐标/ }).click();
+
+  await expect(page.getByText(
+    '坐标刷新完成：更新 3 个，当前 3/9，仍有 6 个地点无法自动定位',
+    { exact: true },
+  )).toBeVisible();
+  await expect(page.getByRole('button', { name: /强制重查坐标/ })).toBeEnabled();
+  expect(forceRefillCalls).toBe(1);
+});
+
 /**
  * 任务数据先于地图 SDK 返回是线上常见顺序；SDK 就绪后必须补绘，而不能等待下一次业务状态变化。
  */

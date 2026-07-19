@@ -35,4 +35,26 @@ public class AsyncConfig {
     executor.initialize();
     return executor;
   }
+
+  /**
+   * 构建坐标解析线程池。
+   *
+   * <p>外部 Provider 仍由全局令牌桶限制 QPS；这里仅把单次行程内的独立 POI 请求并发化，
+   * 避免串行超时超过 Web 请求预算。固定 4 线程和有界队列防止重复刷新耗尽进程线程。
+   *
+   * @return 坐标解析执行器
+   */
+  @Bean("geocodingTaskExecutor")
+  public TaskExecutor geocodingTaskExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(4);
+    executor.setMaxPoolSize(4);
+    executor.setQueueCapacity(32);
+    executor.setThreadNamePrefix("geocoding-");
+    executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+    executor.setWaitForTasksToCompleteOnShutdown(true);
+    executor.setAwaitTerminationSeconds(30);
+    executor.initialize();
+    return executor;
+  }
 }

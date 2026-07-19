@@ -49,6 +49,8 @@ export default function OverviewPage() {
   const itemNodeRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const hasStartedCoordinateBackfillRef = useRef(false);
+  const [forceRefilling, setForceRefilling] = useState(false);
+  const [forceRefillMsg, setForceRefillMsg] = useState<string | null>(null);
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
@@ -71,7 +73,11 @@ export default function OverviewPage() {
               setTasks([...refreshed].sort((a, b) => a.dayNumber - b.dayNumber));
             }
           })
-          .catch(() => undefined);
+          .catch((coordinateError: unknown) => {
+            setForceRefillMsg(
+              coordinateError instanceof Error ? coordinateError.message : '地点坐标补全失败',
+            );
+          });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : '加载失败');
@@ -99,19 +105,26 @@ export default function OverviewPage() {
   }, [selectedItemId]);
 
   const mapItems = useMemo(() => tasks.flatMap((t) => t.items), [tasks]);
-  const [forceRefilling, setForceRefilling] = useState(false);
-  const [forceRefillMsg, setForceRefillMsg] = useState<string | null>(null);
 
   const handleForceRefill = useCallback(async () => {
     setForceRefilling(true);
     setForceRefillMsg(null);
     try {
       const resolved = await forceRefillCoordinates(planId);
-      setForceRefillMsg(`已处理 ${resolved} 个打卡项，重新加载中…`);
       // 重新加载获取最新坐标
       const refreshed = await getCheckinTasks(planId);
       setTasks([...refreshed].sort((a, b) => a.dayNumber - b.dayNumber));
-      setTimeout(() => setForceRefillMsg(null), 3000);
+      const refreshedItems = refreshed
+        .flatMap((task) => task.items)
+        .filter((item) => item.status !== 'ABANDONED');
+      const refreshedValidCount = refreshedItems.filter(getValidItemCoordinate).length;
+      const missingCount = refreshedItems.length - refreshedValidCount;
+      setForceRefillMsg(missingCount === 0
+        ? `坐标刷新完成：更新 ${resolved} 个，当前 ${refreshedValidCount}/${refreshedItems.length}`
+        : `坐标刷新完成：更新 ${resolved} 个，当前 ${refreshedValidCount}/${refreshedItems.length}，仍有 ${missingCount} 个地点无法自动定位`);
+      if (missingCount === 0) {
+        setTimeout(() => setForceRefillMsg(null), 3000);
+      }
     } catch (e) {
       setForceRefillMsg(e instanceof Error ? e.message : '强制重查失败');
     } finally {
@@ -190,7 +203,7 @@ export default function OverviewPage() {
                       ? 'bg-amber-100 text-amber-700'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   } disabled:opacity-50`}
-                  title="清空所有坐标后重新地理编码反向查询，可清洗重庆等同名跨城脏坐标"
+                  title="重新查询全部地点；成功时更新，失败时保留现有坐标"
                 >
                   {forceRefilling ? '清洗中…' : '🧹 强制重查坐标'}
                 </button>

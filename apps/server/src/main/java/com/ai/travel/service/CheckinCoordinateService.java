@@ -21,15 +21,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 签到坐标解析、城市锚点校验与历史坐标回填服务。 */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class CheckinCoordinateService {
 
@@ -39,6 +42,51 @@ public class CheckinCoordinateService {
   private final GeocodingService geocodingService;
   private final ItineraryTaskMapper itineraryTaskMapper;
   private final ObjectMapper objectMapper;
+  private final Executor coordinateLookupExecutor;
+
+  /** 生产环境使用受控线程池并行解析独立 POI，Provider 自身继续负责全局 QPS。 */
+  @Autowired
+  public CheckinCoordinateService(
+      CheckinTaskMapper checkinTaskMapper,
+      CheckinItemMapper checkinItemMapper,
+      TripPlanMapper tripPlanMapper,
+      GeocodingService geocodingService,
+      ItineraryTaskMapper itineraryTaskMapper,
+      ObjectMapper objectMapper,
+      @Qualifier("geocodingTaskExecutor") TaskExecutor coordinateLookupExecutor) {
+    this(checkinTaskMapper, checkinItemMapper, tripPlanMapper, geocodingService,
+        itineraryTaskMapper, objectMapper, (Executor) coordinateLookupExecutor);
+  }
+
+  /** 兼容既有领域单测与门面构造器；默认同步执行，避免测试泄漏线程。 */
+  CheckinCoordinateService(
+      CheckinTaskMapper checkinTaskMapper,
+      CheckinItemMapper checkinItemMapper,
+      TripPlanMapper tripPlanMapper,
+      GeocodingService geocodingService,
+      ItineraryTaskMapper itineraryTaskMapper,
+      ObjectMapper objectMapper) {
+    this(checkinTaskMapper, checkinItemMapper, tripPlanMapper, geocodingService,
+        itineraryTaskMapper, objectMapper, Runnable::run);
+  }
+
+  /** 测试可注入可控执行器，验证批量解析并发边界。 */
+  CheckinCoordinateService(
+      CheckinTaskMapper checkinTaskMapper,
+      CheckinItemMapper checkinItemMapper,
+      TripPlanMapper tripPlanMapper,
+      GeocodingService geocodingService,
+      ItineraryTaskMapper itineraryTaskMapper,
+      ObjectMapper objectMapper,
+      Executor coordinateLookupExecutor) {
+    this.checkinTaskMapper = checkinTaskMapper;
+    this.checkinItemMapper = checkinItemMapper;
+    this.tripPlanMapper = tripPlanMapper;
+    this.geocodingService = geocodingService;
+    this.itineraryTaskMapper = itineraryTaskMapper;
+    this.objectMapper = objectMapper;
+    this.coordinateLookupExecutor = coordinateLookupExecutor;
+  }
 
   /**
    * 在数据库事务外调用地理编码，避免外部 HTTP 延迟占用数据库连接和事务锁。
@@ -194,11 +242,22 @@ public class CheckinCoordinateService {
       return 0;
     }
 
+    List<CompletableFuture<ItemResolution>> pendingResolutions = candidates.stream()
+        .map(item -> CompletableFuture.supplyAsync(
+            () -> new ItemResolution(item, resolveOneItem(plan, item, forceRefill)),
+            coordinateLookupExecutor))
+        .toList();
+    List<ItemResolution> resolutions = pendingResolutions.stream()
+        .map(CompletableFuture::join)
+        .toList();
+
     int resolved = 0;
-    int cleared = 0;
+    int preserved = 0;
     int failed = 0;
-    for (CheckinItem item : candidates) {
-      ResolutionResult result = resolveOneItem(plan, item, forceRefill);
+    // 外部解析全部结束后才顺序更新签到项，避免多个线程并发修改同一批业务记录。
+    for (ItemResolution itemResolution : resolutions) {
+      CheckinItem item = itemResolution.item();
+      ResolutionResult result = itemResolution.result();
       switch (result.status()) {
         case RESOLVED -> {
           item.setPoiLat(result.latitude());
@@ -206,21 +265,16 @@ public class CheckinCoordinateService {
           checkinItemMapper.updateById(item);
           resolved++;
         }
-        case CLEARED -> {
-          item.setPoiLat(null);
-          item.setPoiLng(null);
-          checkinItemMapper.updateById(item);
-          cleared++;
-        }
+        case PRESERVED -> preserved++;
         case FAILED -> failed++;
         default -> {
           // 所有枚举值均已覆盖，该分支仅满足静态检查的防御性要求。
         }
       }
     }
-    log.info("Backfill completed: planId={}, total={}, resolved={}, cleared={}, failed={}, "
+    log.info("Backfill completed: planId={}, total={}, resolved={}, preserved={}, failed={}, "
             + "forceRefill={}",
-        planId, items.size(), resolved, cleared, failed, forceRefill);
+        planId, items.size(), resolved, preserved, failed, forceRefill);
     return resolved;
   }
 
@@ -228,18 +282,17 @@ public class CheckinCoordinateService {
       TripPlan plan, CheckinItem item, boolean forceRefill) {
     if (forceRefill && item.getPoiLat() != null && item.getPoiLng() != null
         && !isLikelyInDestination(plan, item.getPoiLat(), item.getPoiLng())) {
-      log.info("Force refill: 坐标偏离目的地，清空并重查: name={}, lat={}, lng={}, destination={}",
-          item.getPoiName(), item.getPoiLat(), item.getPoiLng(), plan.getDestination());
+      log.info("Force refill: 坐标偏离目的地，准备重查: itemId={}", item.getId());
     }
     Double[] coordinates = resolveCoordinates(plan, item.getPoiName(), item.getPoiAddress());
     if (coordinates != null) {
       return new ResolutionResult(
           ResolutionStatus.RESOLVED, coordinates[0], coordinates[1]);
     }
-    if (forceRefill && item.getPoiLat() != null) {
-      log.info("Force refill: 地理编码未返回结果，清空脏坐标: itemId={}, name={}",
-          item.getId(), item.getPoiName());
-      return new ResolutionResult(ResolutionStatus.CLEARED, null, null);
+    if (forceRefill && hasValidCoordinate(item)) {
+      // Provider 空结果或短暂故障不得把已有业务数据降级为空；用户仍可手工校准疑似脏坐标。
+      log.info("Force refill: 地理编码未返回结果，保留原坐标: itemId={}", item.getId());
+      return new ResolutionResult(ResolutionStatus.PRESERVED, null, null);
     }
     return new ResolutionResult(ResolutionStatus.FAILED, null, null);
   }
@@ -258,6 +311,7 @@ public class CheckinCoordinateService {
     Double latitude = item.getPoiLat();
     Double longitude = item.getPoiLng();
     return latitude != null && longitude != null
+        && GeoUtils.isValidCoordinate(latitude, longitude)
         && !(latitude == 0.0 && longitude == 0.0);
   }
 
@@ -298,10 +352,13 @@ public class CheckinCoordinateService {
   }
 
   private enum ResolutionStatus {
-    RESOLVED, CLEARED, FAILED
+    RESOLVED, PRESERVED, FAILED
   }
 
   private record ResolutionResult(
       ResolutionStatus status, Double latitude, Double longitude) {
+  }
+
+  private record ItemResolution(CheckinItem item, ResolutionResult result) {
   }
 }
