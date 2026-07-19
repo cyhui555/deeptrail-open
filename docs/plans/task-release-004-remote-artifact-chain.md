@@ -1,6 +1,6 @@
 # TASK-RELEASE-004 远程制品链 ExecPlan
 
-- 状态：G2
+- 状态：G3
 - Work Item：[TASK-RELEASE-004](../issues/task-release-004-remote-artifact-chain.md)
 - Requirement：`REQ-RELEASE-002`
 
@@ -32,5 +32,5 @@
 ## 验证与下一动作
 
 - 本地：Workflow 合同测试、`security:test`、`governance:check`、部署 Shell 静态测试与 YAML 解析。
-- 远程：Draft PR 五项 Required Checks 全绿后等待作者外审批；合入后才执行一次手动制品运行。
-- 下一项唯一动作：完成本地门禁并发布机器人作者 Draft PR，不部署。
+- 远程：PR #62 五项 Required Checks 成功并经作者外 Review 合入 `main@88b5092`；`release-artifacts` Environment Secret 仍为空，Workflow 尚无运行记录。
+- 下一项唯一动作：由所有者配置两项 Web 构建值，再对当前受保护 `main` 手工执行一次制品运行并核验，不部署。
