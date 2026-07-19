@@ -265,6 +265,19 @@ MergePlan 必须位于项目外 `proposals`，逐项绑定 L3A Transaction/Recei
 
 若 merge 响应丢失，`loop:recover` 只给出 `resume-postcheck`；不得 `finalize-failed` 或直接重试。恢复会先只读判断精确 merge commit/main/Tree/PR/部署事实，证明已合并则闭环，证明未合并则失败终结并要求新的完整 preflight，不一致则保留现场人工审计。
 
+### 10.2 合并后分支与 worktree 回收
+
+Post-merge GC 独立于 merge transaction，默认只读且至少保留 24 小时：
+
+```powershell
+pnpm git:closeout -- --pr 50
+pnpm git:closeout -- --pr 50 --expected-head <40位SHA> --apply
+```
+
+apply 前必须从 clean、精确同步到实时 `main` 的 worktree 运行，并绑定 PR head。命令只自动纳入 PR head 与机器人审计 Source；同 SHA 其他别名仅报告，需用 `--include-alias` 逐条批准。分支被 clean worktree 占用时还需显式 `--remove-worktrees`；dirty/current worktree、OPEN PR、SHA 漂移、未满保留期和发布证据均失败关闭。
+
+远端删除使用 expected-SHA lease；结果写入 Git Common Dir 下的 `deeptrail-gc-receipts/*.jsonl`。部分失败不回滚既有 merge，也不得直接重试未知写入；先按 Receipt 核对实际引用。GitHub 自动删 PR head 不会清理本地分支、worktree 或 `agent/*` Source。
+
 ## 11. 脱敏公开主仓启动
 
 现私有仓历史不得直接公开。只有源工作树 clean、治理总门禁通过且输出目录不存在时，才生成不带远端、旧引用或不可达对象的单根公开基线：

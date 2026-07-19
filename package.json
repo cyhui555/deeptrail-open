@@ -16,6 +16,7 @@
     "work-items:check": "node scripts/check-work-items.mjs",
     "governance:check": "pnpm docs:check && pnpm work-items:check && pnpm github:governance:check && pnpm loop:cohort:l2:static && pnpm security:test && pnpm security:public-readiness && pnpm security:public-history && pnpm security:public-baseline",
     "github:governance:check": "node scripts/check-github-governance.mjs",
+    "git:closeout": "node scripts/git/post-merge-gc.mjs",
     "eval": "node evals/run.mjs",
     "lint": "pnpm docs:check && turbo run lint",
     "loop:doctor": "node scripts/loop/cli.mjs doctor",
