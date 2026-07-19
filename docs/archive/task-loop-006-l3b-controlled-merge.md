@@ -12,7 +12,7 @@
 
 工程边界调整为：Loop 负责发现、开发、测试和维护 PR，人工所有者负责 Review/Merge。L3B Engine 代码与测试保留为失败关闭和审计资产，不再推进 activation，也不得由定时任务重新打开 #44 或调用 `loop:l3:merge-*`。
 
-后续由 [TASK-LOOP-007](../issues/task-loop-007-autonomous-intake.md) 建立自主任务入口；自动审批、自动合并、管理员绕过、force-push 和自动部署继续禁止。
+后续 [TASK-LOOP-007](task-loop-007-autonomous-intake.md) 仅交付只读 Issue 准入；自动提单路线已暂停，自动审批、自动合并、管理员绕过、force-push 和自动部署继续禁止。
 
 ## 回退
 
