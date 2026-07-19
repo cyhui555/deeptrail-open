@@ -4,6 +4,7 @@
 
 ## Verification
 
+- `TASK-DOCS-001`：修复首次文档诚实性基线确认的启动配置、代理变量、发布示例和运维端口漂移，见[活动 Work Item](task-docs-001-docs-honesty-baseline.md)。
 - `TASK-GOV-003`：收敛无人消费的治理控制面，停用并移除归档自动审批/合并入口，降低依赖更新并发并修正文档预算，见[活动 Work Item](task-gov-003-simplify-maintenance.md)与[执行计划](../plans/task-gov-003-simplify-maintenance.md)。
 - Release/运维验证项：[BUG-20260717-006](bug-20260717-006-release-identity-recovery.md)、[TASK-RELEASE-003](task-release-003-target-release-validation.md)、[TASK-OPS-002](task-ops-002-no-cost-target-regressions.md)。
 - CI 与 Web 质量验证项：[TASK-CI-001](task-ci-001-node24-actions-runtime.md)、[BUG-20260717-001](bug-20260717-001-optimize-watchdog-race.md)、[BUG-20260717-002](bug-20260717-002-ai-json-parse-fallback-success.md)、[BUG-20260717-003](bug-20260717-003-amap-e2e-build-config.md)、[BUG-20260717-004](bug-20260717-004-pdf-static-map-e2e-isolation.md)、[BUG-20260717-005](bug-20260717-005-dev-pwa-e2e-profile.md)。

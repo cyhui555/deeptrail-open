@@ -22,7 +22,7 @@ pnpm --filter @deeptrail/web build
 pnpm test:e2e:smoke
 ```
 
-默认页面为 `http://localhost:3000`。`NEXT_PUBLIC_API_URL` 未设置时 API 回退到 `http://localhost:8080`。
+默认页面为 `http://localhost:3000`。浏览器固定请求同源 `/api`；Next.js 服务端通过 `BACKEND_INTERNAL_URL` 转发，未设置时后端为 `http://localhost:8080`。
 
 ## 交互与状态规则
 
