@@ -9,6 +9,7 @@ import lombok.Getter;
 public enum ErrorCode {
 
   VALIDATION_FAILED("VALIDATION_FAILED", "Parameter validation failed"),
+  METHOD_NOT_ALLOWED("METHOD_NOT_ALLOWED", "Request method not allowed"),
   AI_SERVICE_ERROR("AI_SERVICE_ERROR", "AI service call failed"),
   INTERNAL_ERROR("INTERNAL_ERROR", "Internal server error"),
   AUTH_FAILED("AUTH_FAILED", "Authentication failed"),

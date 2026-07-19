@@ -13,7 +13,7 @@
 
 ## Review Queue（不计入 WIP）
 
-- PR #64 仍需更新到最新 `main` 并解决冲突；PR #65 已同步 `main@b21c373`，等待必需检查与所有者人工复核。两者均不自动合并或部署。
+- `BUG-20260719-002`：PR #64 已同步 `main@f9722a2` 并解决冲突，405 统一响应与定向回归等待必需检查和所有者人工复核，见[活动 Work Item](bug-20260719-002-http-method-error-mapping.md)；不自动部署。
 
 ## Operational Follow-up（不计入 WIP）
 
