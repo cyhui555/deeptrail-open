@@ -1,10 +1,9 @@
 # BUG-20260720-001 地理编码限流级联修复 ExecPlan
 
-- 状态：Ready for Review / G2
+- 状态：G2（已合入，等待目标环境复验）
 - 关联 Work Item：[`BUG-20260720-001`](../issues/bug-20260720-001-geocoding-qps-cascade.md)
 - 关联 Requirement：`REQ-AI-001`、`REQ-UX-001`
-- 基线：`main@bfc3068`
-- 工作分支：`fix/task-app-001-mobile-geo`
+- 合入：PR #67，`main@714a633`
 - 最近更新：2026-07-20
 
 ## 目标
@@ -49,6 +48,7 @@
 - [x] 已定位重试绕过令牌与限流误开长熔断两处放大点。
 - [x] 完成实现与定向回归，相关测试 62/62 通过。
 - [x] 完成完整门禁与 G2 结论；Server 681/681、移动端 2/2、lint、typecheck 与构建均通过。
+- [x] PR #67 五项 Required Checks 全部成功并 squash 合入 `main@714a633`。
 
 ## G2 结论
 
@@ -59,4 +59,4 @@
 
 ## 下一项唯一动作
 
-所有者完成代码审查后合入并部署，再用一条脱敏规划任务复验目标账号实际 QPS 与 POI 坐标补全率。
+发布 `main@714a633` 到受控验收环境，再用一条脱敏规划任务复验目标账号实际 QPS 与 POI 坐标补全率。

@@ -3,8 +3,8 @@
 - 状态：Closed / G3（已发布并完成目标机 117 项固定样例复验）
 - 优先级：P1
 - GitHub Issue：[cyhui555/deeptrail#21](https://github.com/cyhui555/deeptrail/issues/21)
-- ExecPlan：[行程优化超时修复计划](../plans/bug-20260717-001-optimize-timeout-fix.md)
-- 分析报告：[服务器与本地任务耗时差异分析](../verification/bug-20260717-001-server-local-duration-analysis.md)
+- ExecPlan：[行程优化超时修复计划](../archive/plan-bug-20260717-001-optimize-timeout-fix.md)
+- 分析报告：[服务器与本地任务耗时差异分析](../archive/verification-bug-20260717-001-server-local-duration-analysis.md)
 - 关联需求：`REQ-AI-001`、`REQ-UX-002`
 - 发现环境：目标环境 `v0.2.0`
 - 最近更新：2026-07-17

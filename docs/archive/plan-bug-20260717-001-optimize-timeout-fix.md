@@ -1,4 +1,4 @@
-# BUG-20260717-001 行程优化超时修复 ExecPlan
+# BUG-20260717-001 行程优化超时修复 ExecPlan（历史归档）
 
 - 状态：Closed / G3（因 L2 Cohort 审计链接保留）
 - 关联 Work Item：[`BUG-20260717-001`](../issues/bug-20260717-001-optimize-watchdog-race.md)

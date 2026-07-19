@@ -94,7 +94,7 @@ pnpm test:e2e:smoke
 - [需求注册表](docs/requirements/registry.md)
 - [接口说明书](docs/api/接口说明书.md)
 - [当前项目状态](docs/memory/project-state.md)
-- [历史交付摘要](docs/archive/m0-m10-delivery.md)
+- [历史归档导航](docs/archive/README.md)
 
 ## 本地数据
 

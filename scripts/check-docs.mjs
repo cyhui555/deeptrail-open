@@ -32,7 +32,7 @@ for (const file of markdownFiles) {
   totalLines += lines;
   if (!name.startsWith("docs/archive/")) activeLines += lines;
 
-  const maxLines = name === "docs/api/接口说明书.md" ? 160 : name === "docs/memory/project-state.md" ? 60 : 320;
+  const maxLines = name === "docs/api/接口说明书.md" ? 160 : name === "docs/memory/project-state.md" ? 40 : 320;
   if (lines > maxLines) errors.push(`${name} 为 ${lines} 行，超过 ${maxLines} 行预算`);
 
   if (/\b(?:ak|sk)_[A-Za-z0-9]{16,}\b/.test(content) || /\bsk-[A-Za-z0-9_-]{16,}\b/.test(content)) {
@@ -56,7 +56,7 @@ for (const file of markdownFiles) {
   }
 }
 
-if (activeLines > 3400) errors.push(`活动 docs Markdown 共 ${activeLines} 行，超过 3400 行预算`);
+if (activeLines > 2600) errors.push(`活动 docs Markdown 共 ${activeLines} 行，超过 2600 行预算`);
 
 const memoryNames = (await readdir(path.join(docsRoot, "memory"))).sort();
 const allowedMemory = new Set(["README.md", "lessons.md", "project-state.md"]);

@@ -1,4 +1,4 @@
-# ADR：以薄 Gateway 接入固定版本 LoopAny
+# ADR：以薄 Gateway 接入固定版本 LoopAny（历史归档）
 
 - 状态：Accepted for local shadow
 - 日期：2026-07-17
