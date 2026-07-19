@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -113,6 +114,21 @@ public class GlobalExceptionHandler {
   public ApiResponse<?> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
     log.warn("文件过大: {}", ex.getMessage());
     return ApiResponse.error(ErrorCode.FILE_TOO_LARGE.getCode(), "文件大小超出限制");
+  }
+
+  /**
+   * 保留 Spring MVC 对不受支持方法的 405 协议语义，避免预期拒绝落入内部错误路径。
+   *
+   * @param ex HTTP 方法不受支持异常
+   * @return 不包含请求路径或用户数据的 405 响应
+   */
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<ApiResponse<?>> handleMethodNotSupported(
+      HttpRequestMethodNotSupportedException ex) {
+    log.warn("请求方法不受支持: {}", ex.getMethod());
+    ApiResponse<?> body = ApiResponse.error(
+        ErrorCode.METHOD_NOT_ALLOWED.getCode(), "请求方法不受支持");
+    return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(body);
   }
 
   @ExceptionHandler(Exception.class)

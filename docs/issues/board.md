@@ -13,6 +13,7 @@
 
 ## Review Queue（不计入 WIP）
 
+- `BUG-20260719-002`：生产晨检确认不支持的 HTTP 方法被通用处理器映射为内部错误；405 统一响应与定向回归已通过 G2，等待人工 Review/Merge，见[活动 Work Item](bug-20260719-002-http-method-error-mapping.md)。
 - Dependabot PR #60 因 JJWT 三模块版本错配已 `CHANGES_REQUESTED`；#61 经 lint、typecheck、生产构建与体积预算验证后已批准，但按 WIP 边界保持未合并。两项均不自动合并。
 
 ## Closed

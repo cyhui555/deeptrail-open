@@ -2,6 +2,7 @@ package com.ai.travel.exception;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -66,6 +67,15 @@ class GlobalExceptionHandlerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(false))
         .andExpect(jsonPath("$.errorCode").value("INTERNAL_ERROR"));
+  }
+
+  @Test
+  void unsupportedHttpMethodReturnsMethodNotAllowed() throws Exception {
+    mockMvc.perform(get("/api/itineraries/generate"))
+        .andExpect(status().isMethodNotAllowed())
+        .andExpect(jsonPath("$.success").value(false))
+        .andExpect(jsonPath("$.errorCode").value("METHOD_NOT_ALLOWED"))
+        .andExpect(jsonPath("$.message").value("请求方法不受支持"));
   }
 
   @Test
