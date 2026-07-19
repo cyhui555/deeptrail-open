@@ -1,7 +1,7 @@
 # 当前项目状态
 
 - 最后核对：2026-07-19
-- 当前阶段：`TASK-APP-001` G1 追加测试 APK + `TASK-LOOP-008` G2
+- 当前阶段：`TASK-APP-001` G2 Review + `TASK-LOOP-008` G2
 - 当前检查门：公开 `main@88b5092`；当前短期分支 `agent/task-app-001-android-basic`
 - 活动工作项：`TASK-APP-001`（唯一产品任务）、`TASK-LOOP-008`（唯一维护试运行）
 
@@ -10,8 +10,8 @@
 - PR #62 已合入并完成主干 CI；`TASK-RELEASE-004` 只等待首次真实远程制品运行，不部署且不再占用产品 WIP。
 - 工程所有者要求后续产品迭代采用最小可验证切片，当前只开发 Android；iOS 因复杂度明确后置。
 - Android 首期复用现有 H5/PWA、同源认证与现场执行流程，不重写业务前端。
-- Android 基础切片已加入稳定 PWA 身份、浏览器条件化安装入口、失败关闭的 Digital Asset Links 与确定性就绪检查；尚未生成 APK/AAB。
-- 工程所有者追加要求先生成测试 App；当前只增加远程构建的 WebView debug APK，正式 release 与签名仍禁止。
+- Android 基础切片已加入稳定 PWA 身份、浏览器条件化安装入口、失败关闭的 Digital Asset Links 与确定性就绪检查。
+- PR #65 已生成仅用于当前 H5 验收的 WebView debug APK；正式 release、正式签名、商店发布与自动部署仍禁止。
 - React Doctor Daily 保持 `0 6 * * *`（`Asia/Shanghai`）启用，不自动合并或部署。
 
 ## 当前约束
@@ -23,10 +23,11 @@
 
 ## 当前验证
 
-- Android 单测 5/5、标准关联路径运行时测试 1/1、浏览器 smoke 13/13 与安全测试 19/19 通过。
+- Android 单测 8/8、标准关联路径运行时测试 1/1、浏览器 smoke 13/13 与安全测试 19/19 通过。
 - lint、typecheck、生产构建、文档、Work Item、11 条路由体积和 diff 检查通过。
-- 本机具备 Node、pnpm 与 Java 17，不具备 Android SDK、adb 或 Gradle；未构建 APK/AAB，也未执行真机验收。
+- `Android Test APK` 运行 #29685119973 在 `ac2eaa5` 成功；`apksigner`、`com.deeptrail.app.debug` 应用身份与下载后 SHA-256 均验证通过。
+- 本机不具备 Android SDK、adb 或 Gradle；APK 已由远程 Runner 构建并下载，尚未执行真机安装与启动验收。
 
 ## 下一项唯一动作
 
-完成 debug APK 干净构建、摘要校验与下载；随后再恢复 G2 Review，不触碰正式签名或部署。
+在 Android 真机安装测试 APK，验收启动、登录和基础页面；不触碰 iOS、正式签名、商店发布或部署。

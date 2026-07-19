@@ -1,6 +1,6 @@
 # TASK-APP-001：Android 基础安装与启动
 
-- 状态：In Progress / G1（追加 debug APK）
+- 状态：Ready for Review / G2
 - 优先级：P0
 - 关联 Requirement：`REQ-APP-001`
 
@@ -30,21 +30,23 @@
 - [x] `/.well-known/assetlinks.json` 无有效配置时返回 404，有效配置时只返回当前 Android 应用的 `handle_all_urls` 关联。
 - [x] `pnpm android:check` 对合法配置通过，并拒绝 HTTP Origin、非法 package ID、非法证书指纹或不合格 PWA Manifest。
 - [x] Web lint、typecheck、生产构建与既有基础流程验证通过；不引入明文生产 URL、签名文件或用户数据。
-- [ ] 远程干净环境构建 `com.deeptrail.app.debug`，产出可下载 APK 与 SHA-256；release 变体保持禁用。
-- [ ] APK 不包含正式签名，HTTP 只在 debug 变体开放；外部导航、文件访问、混合内容和 JavaScript Bridge 均失败关闭。
+- [x] 远程干净环境构建 `com.deeptrail.app.debug`，产出可下载 APK 与 SHA-256；release 变体保持禁用。
+- [x] APK 不包含正式签名，HTTP 只在 debug 变体开放；外部导航、文件访问、混合内容和 JavaScript Bridge 均失败关闭。
 
 ## 验证
 
-- `pnpm android:test`：5/5 通过；`pnpm android:test:runtime`：1/1 通过。
+- `pnpm android:test`：8/8 通过；`pnpm android:test:runtime`：1/1 通过。
 - `pnpm lint`、`pnpm typecheck`、`pnpm build`：通过。
 - `pnpm test:e2e:smoke`：13/13 通过，包含安装入口用户行为。
 - `pnpm security:test`：19/19 通过；文档、Work Item、11 条路由体积与 `git diff --check` 通过。
+- PR #65 的 `Android Test APK` 运行 #29685119973 在提交 `ac2eaa5` 上成功；远程 `apksigner` 验证通过，应用身份为 `com.deeptrail.app.debug`。
+- 下载制品大小为 12,599 字节，SHA-256 为 `135081474025e5867851d9b7ea3656b3e51586d7d7407c0e694b5642bbeec13f`；本地摘要与远程摘要一致。
 
 ## 实现后分析
 
-- 代码侧基础能力已经闭环；无需为 iOS、原生容器或商店能力预建框架。
+- 代码侧基础能力与测试 APK 已闭环；无需为 iOS、商店能力或更多原生能力预建框架。
 - 正式 Android 安装物仍需受信任 HTTPS Origin、最终 application ID 与签名证书指纹。
-- 当前 Windows 开发机没有 Android SDK、adb 或 Gradle；APK/AAB 与真机启动属于后续独立验收，不应伪装为本任务已完成。
+- 当前 Windows 开发机没有 Android SDK、adb 或 Gradle；已由 GitHub Runner 构建并验证 APK，但尚未执行真机安装与启动验收。
 
 ## 回滚
 
