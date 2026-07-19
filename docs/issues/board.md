@@ -13,8 +13,7 @@
 
 ## Review Queue（不计入 WIP）
 
-- `TASK-DOCS-001`：首次文档诚实性基线修复已提交 PR #63，等待必需检查与作者外 Review，见[活动 Work Item](task-docs-001-docs-honesty-baseline.md)。
-- Dependabot PR #60 因 JJWT 三模块版本错配已 `CHANGES_REQUESTED`；#61 经 lint、typecheck、生产构建与体积预算验证后已批准，但按 WIP 边界保持未合并。两项均不自动合并。
+- PR #64 仍需更新到最新 `main` 并解决冲突；PR #65 已同步 `main@b21c373`，等待必需检查与所有者人工复核。两者均不自动合并或部署。
 
 ## Operational Follow-up（不计入 WIP）
 
@@ -22,6 +21,8 @@
 
 ## Closed
 
+- `TASK-DOCS-001`：首次文档诚实性基线修复已由 PR #63 合入 `main@52ac204`，见[交付摘要](../archive/task-docs-001-docs-honesty-baseline.md)。
+- `TASK-GOV-004`：单维护者管理员人工旁路已完成并直接合入治理事实，见[交付摘要](../archive/task-gov-004-solo-maintainer-admin-bypass.md)。
 - `TASK-GOV-003`：维护控制面已由 PR #59 收敛并合入 `main@0470f2f`，见[交付摘要](../archive/task-gov-003-simplify-maintenance.md)。
 - L2 Cohort 的 10 个历史 Work Item 已闭环，但路径作为不可变证据保留：[TASK-GOV-001](task-gov-001-rapid-iteration-direct-main.md)、[BUG-20260717-001](bug-20260717-001-optimize-watchdog-race.md)、[BUG-20260717-002](bug-20260717-002-ai-json-parse-fallback-success.md)、[TASK-CI-001](task-ci-001-node24-actions-runtime.md)、[BUG-20260717-003](bug-20260717-003-amap-e2e-build-config.md)、[BUG-20260717-004](bug-20260717-004-pdf-static-map-e2e-isolation.md)、[BUG-20260717-005](bug-20260717-005-dev-pwa-e2e-profile.md)、[BUG-20260717-006](bug-20260717-006-release-identity-recovery.md)、[TASK-RELEASE-003](task-release-003-target-release-validation.md)、[TASK-OPS-002](task-ops-002-no-cost-target-regressions.md)。旧私库 GitHub #21/#24 已按发布与目标机证据关闭。
 - `TASK-GOV-002`：归档自动审批/合并控制面已撤回，见[终止摘要](../archive/task-gov-002-archive-pr-finalizer.md)。

@@ -65,7 +65,11 @@ for (const context of requiredChecks) {
 }
 if (requiredChecks.length !== 5) failures.push("main 必须精确要求五项常驻 CI 检查");
 if (!protection.required_status_checks?.strict) failures.push("Required Checks 必须基于最新 main");
-if (!protection.enforce_admins) failures.push("管理员必须遵守 main 保护");
+// Agent 复用所有者身份创建 PR 时，GitHub 会把两者视为同一作者，无法记录作者自批；
+// 仅允许人工管理员旁路，自动化合并仍由独立的失败关闭合同禁止。
+if (protection.enforce_admins !== false) {
+  failures.push("单维护者仓库必须显式允许管理员人工旁路作者外审批");
+}
 if ((protection.required_pull_request_reviews?.required_approving_review_count ?? 0) < 1) {
   failures.push("main 至少需要一名非 PR 作者 Reviewer");
 }
@@ -86,4 +90,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log(`GitHub 治理合同通过：${requiredChecks.length} 项 Required Checks，PR 作者外审批与 main 防护已声明。`);
+console.log(`GitHub 治理合同通过：${requiredChecks.length} 项 Required Checks、常规作者外审批与单维护者管理员人工旁路已声明。`);

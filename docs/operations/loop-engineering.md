@@ -263,6 +263,8 @@ pnpm loop:l3:merge-approved -- --plan task-example-l3b.json
 
 MergePlan 必须位于项目外 `proposals`，逐项绑定 L3A Transaction/Receipt/ChangePlan/Patch、机器人 PR 的单一 Head Commit、五项成功 Check Run、人工批准和保护规则。写入前会立即二次取证，只允许普通 expected-Head squash merge；不转 Ready、不提交 Review、不使用管理员/auto-merge、不删分支且不部署。
 
+`TASK-GOV-004` 只开放工程所有者的人工管理员旁路，不改变本 Engine 的权限。L3B 继续把管理员合并或保护规则漂移视为失败条件，自动化不得继承所有者的旁路能力。
+
 若 merge 响应丢失，`loop:recover` 只给出 `resume-postcheck`；不得 `finalize-failed` 或直接重试。恢复会先只读判断精确 merge commit/main/Tree/PR/部署事实，证明已合并则闭环，证明未合并则失败终结并要求新的完整 preflight，不一致则保留现场人工审计。
 
 ## 11. 脱敏公开主仓启动
@@ -275,7 +277,7 @@ $publicBaselinePath = 'E:\path\deeptrail-public-baseline'
 pnpm security:public-prepare -- --output $publicBaselinePath
 ```
 
-公开主仓已建立并应用 `.github/branch-protection-main.json`。仓库只有一名人工维护者：受信任的手工工作流把锁定 SHA 复制为 `github-actions[bot]` 作者的 Draft PR，唯一人工所有者负责批准，证明 PR 作者外审批门禁；这只是账号级职责分离，不等价于第二位人员审计。PR #22 已完成首个实证并关闭 `TASK-GOV-001`；原私有仓继续保留为审计档案，两个仓库不得互设 Remote 或推送旧历史。
+公开主仓已建立并应用 `.github/branch-protection-main.json`。仓库只有一名人工维护者；L3A 仍可由受信任手工 Workflow 把锁定 SHA 复制为 `github-actions[bot]` 作者的 Draft PR。普通 Agent 工具会复用所有者 GitHub 身份，平台因而无法记录作者对自己 PR 的 `APPROVED` Review；此时允许唯一人工所有者在核对精确 Head、五项 Required Checks 和未解决对话后显式执行管理员合并。该合并动作是所有者的人工验收记录，不冒充第二位人员审计，也不授权 Agent、Workflow 或休眠 L3B Engine 自动使用管理员旁路。原私有仓继续保留为审计档案，两个仓库不得互设 Remote 或推送旧历史。
 
 ## 12. 停止、回退与禁止事项
 

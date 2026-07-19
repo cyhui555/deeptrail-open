@@ -20,6 +20,7 @@
 
 - 每项工作先读取 `docs/memory/project-state.md`，并按 `docs/process/p0-method.md` 完成 G0 至 G3。
 - 用户要求“提交 Issue”或“提交 Bug”时，默认完成 GitHub Issue、本地 Work Item/看板、适用文档检查、范围内 `git commit` 以及安全推送与合并，无需逐次确认；只提交该 Issue 相关文件，直接合入主干例外期使用 fast-forward 推送，否则通过满足必需检查的 Pull Request 合并，不自动部署。
+- 纯文档归档经工程所有者确认范围并通过文档、Work Item 与治理检查后，可以使用非强制 fast-forward 直接合入 `main`，无需 Pull Request；不得夹带产品代码、依赖、CI、权限、运行配置或生产变更。
 - 复杂、跨工作区或长时任务必须在 `docs/plans` 建立并持续更新 ExecPlan。
 - 功能和 Bug 必须关联 Requirement、Task 或 Bug ID，并提供可验证验收标准。
 - 文档遵守 `docs/process/documentation-governance.md`：当前事实只写一处，关闭的详细记录压缩到 `docs/archive`，不得复制可生成契约或长日志。
