@@ -32,6 +32,22 @@ class XiaohongshuContentServiceTest {
   }
 
   @Test
+  void resolveTreatsUrlPastedAsNoteContentAsUrl() {
+    String shortUrl = "http://xhslink.com/o/example";
+    when(contentFetcher.fetchContent(shortUrl)).thenReturn("青岛笔记正文");
+
+    assertThat(service.resolve(null, "  " + shortUrl + "  ")).isEqualTo("青岛笔记正文");
+    verify(contentFetcher).fetchContent(shortUrl);
+  }
+
+  @Test
+  void resolveKeepsProseContainingUrlAsDirectContent() {
+    String content = "青岛两日游，原始参考链接是 http://xhslink.com/o/example，请以栈桥和小鱼山为主。";
+
+    assertThat(service.resolve(null, content)).isEqualTo(content);
+  }
+
+  @Test
   void resolveRejectsMissingInput() {
     assertThatThrownBy(() -> service.resolve(" ", null))
         .isInstanceOf(IllegalArgumentException.class)

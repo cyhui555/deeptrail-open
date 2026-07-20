@@ -8,6 +8,7 @@
 - [`TASK-APP-001`](task-app-001-android-basic.md)：Android 基础 APK 与真机反馈修复已分别由 PR #65/#67 合入；当前只做受控部署与 360px/390px 真机复验。
 - [`BUG-20260720-001`](bug-20260720-001-geocoding-qps-cascade.md)：5 QPS 限流级联修复已随 PR #67 合入，等待脱敏规划任务验证实际坐标补全率；作为 `TASK-APP-001` 子项，不新增并行 WIP。
 - [`BUG-20260720-002`](bug-20260720-002-daily-map-viewport.md)：现场按天切换地图视口修复已提交 PR #74，等待受控环境与真机复验；作为 `TASK-APP-001` 真机反馈子项，不新增并行 WIP。
+- [`BUG-20260720-003`](bug-20260720-003-xiaohongshu-url-ingestion.md)：P1 生产事故例外，Draft PR #75 的 Required Checks 与脱敏截图证据已建立，等待人工复核；不包含部署或旧任务重算。
 
 ## Operational Follow-up（不占用产品 WIP）
 

@@ -122,6 +122,32 @@ test.describe('CI smoke without external AI', () => {
     }
   });
 
+  test('正文框粘贴短链时自动按链接提交', async ({ page }) => {
+    const shortUrl = 'http://xhslink.com/o/example';
+    let submittedPayload: Record<string, unknown> | undefined;
+    await page.route('**/api/itineraries/from-xiaohongshu', async (route) => {
+      submittedPayload = route.request().postDataJSON();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          message: 'ok',
+          data: { taskId: 'xhs-auto-detected-url' },
+        }),
+      });
+    });
+    await gotoHomeAndWaitForTasks(page);
+    await page.getByRole('tab', { name: '小红书', exact: true }).click();
+
+    await page.getByPlaceholder('直接复制粘贴小红书笔记的正文内容到这里...').fill(shortUrl);
+    await page.getByRole('button', { name: '从小红书生成行程' }).click();
+
+    await expect(page.getByText('任务已提交')).toBeVisible({ timeout: 5000 });
+    expect(submittedPayload).toMatchObject({ url: shortUrl });
+    expect(submittedPayload).not.toHaveProperty('noteContent');
+  });
+
   test('completed task with invalid days fails closed without exposing raw model text', async ({ page }) => {
     const taskId = 'smoke-invalid-structured-result';
     const rawModelText = '{invalid model payload that must stay hidden}';
