@@ -66,6 +66,37 @@ test.describe('地图路线交互回归', () => {
     await expect(mapSection.locator('[data-amap-ready="true"]')).toBeVisible();
   });
 
+  test('现场切换每日行程时地图视口同步适配所选日期', async ({ page }) => {
+    const tasks = [
+      task(1, { poiLat: 39.908, poiLng: 116.397, displayLat: 39.908, displayLng: 116.397 }),
+      task(2, { poiLat: 30.572, poiLng: 104.066, displayLat: 30.572, displayLng: 104.066 }),
+    ];
+    await page.route('**/api/trips/daily-map-viewport/checkin', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: apiResponse(tasks) });
+    });
+    await page.route('**/api/trips/daily-map-viewport/track/points', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: apiResponse([]) });
+    });
+
+    await page.goto('/trips/daily-map-viewport/checkin');
+
+    const map = page.getByTestId('daily-route-map').locator('[data-amap-ready="true"]');
+    await expect(map).toBeVisible();
+    await expect.poll(async () => page.evaluate(() => (
+      (window as any).__AMAP_MOCK__?.setFitViewCalls.at(-1)?.coordinates ?? []
+    ))).toContain('116.397,39.908');
+
+    // 日期切换是新的显式视口意图，即使用户刚刚手动操作过地图，也应定位到所选日期。
+    await map.dispatchEvent('pointerdown');
+    await page.evaluate(() => { (window as any).__AMAP_MOCK__.setFitViewCalls = []; });
+    await page.getByRole('button', { name: '第 2 天' }).click();
+
+    await expect(page.getByRole('button', { name: '第 2 天' })).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(async () => page.evaluate(() => (
+      (window as any).__AMAP_MOCK__?.setFitViewCalls.at(-1)?.coordinates ?? []
+    )), { timeout: 3_000 }).toEqual(['104.066,30.572']);
+  });
+
   test('自定义打卡点高亮时与 AI 打卡点保持相同卡片底色和层级', async ({ page }) => {
     const generatedTask = task(1, {
       poiLat: 30.67,
