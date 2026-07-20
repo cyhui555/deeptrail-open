@@ -46,7 +46,7 @@
 - [x] `BUG-20260720-001` 验证每次高德请求都受 5 QPS 限流，单次限流不再导致同批大量 POI 坐标缺失。
 - [x] PR CI 的 Frontend smoke 同时执行 360px/390px 确定性移动端回归，全部成功后上传两张脱敏 PNG 截图。
 - [x] 截图上传前验证固定文件集、视口宽度、PNG 完整性、尺寸/体积上限和无文本元数据；缺失、额外、损坏或异常截图均失败关闭。
-- [ ] 截图制品保留 7 天，Job Summary 给出当前运行的不可变 Artifact 链接；CI 保持只读权限，不访问真实外部服务。
+- [x] 截图制品保留 7 天，Job Summary 给出当前运行的不可变 Artifact 链接；CI 保持只读权限，不访问真实外部服务。
 
 ## 验证
 
@@ -60,7 +60,8 @@
 - `pnpm security:test`：19/19 通过；文档、Work Item、11 条路由体积与 `git diff --check` 通过。
 - 本次 CI 证据增量：等价 CI 环境下 `pnpm test:e2e:smoke` 15/15 通过，生成 360x820 与 390x820 两张确定性截图；`pnpm security:evidence -- visual-evidence` 校验 PNG 结构、CRC、解压数据、尺寸、固定文件集与无文本元数据通过。
 - `pnpm governance:check` 通过，其中安全/治理测试 22/22；`pnpm lint`、`pnpm typecheck`、`pnpm test`（Server 681/681）及 Server build 通过，Web production build 在 smoke 的受控清理入口中连续通过。
-- 在 E2E 生成 `.next/standalone` 后再次直接运行根 `pnpm build`，Windows 因符号链接目录触发既有 `EPERM scandir`，该次根命令未通过；干净 Linux PR CI 与实际 Artifact/Job Summary 链接仍待远程验收。
+- 在 E2E 生成 `.next/standalone` 后再次直接运行根 `pnpm build`，Windows 因符号链接目录触发既有 `EPERM scandir`，该次根命令未通过；PR #73 的干净 Linux Frontend build 已通过。
+- PR #73 首轮 CI run `29715832939` 五项 Required Checks 全绿；Frontend smoke 15/15，并上传[仅含本次修复两张截图的 Artifact](https://github.com/cyhui555/deeptrail-open/actions/runs/29715832939/artifacts/8450570355)。远程校验确认 360x820 与 390x820 PNG 的 SHA-256 分别为 `218af42a8d7fa27c98565de21eebba0da828bfc0d4171a1804af35501f5bf715`、`1c79b4c9ed9e6f4aad8f804b598c9e34b8e6d4129ec7ecb01f680252c62db05a`。
 - PR #65 的 `Android Test APK` 运行 #29685119973 在提交 `ac2eaa5` 上成功；远程 `apksigner` 验证通过，应用身份为 `com.deeptrail.app.debug`。
 - 下载制品大小为 12,599 字节，SHA-256 为 `135081474025e5867851d9b7ea3656b3e51586d7d7407c0e694b5642bbeec13f`；本地摘要与远程摘要一致。
 
