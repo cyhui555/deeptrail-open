@@ -1,6 +1,6 @@
 # BUG-20260720-003 小红书链接摄取修复 ExecPlan
 
-- 状态：G2（本地门禁通过，待受检提交）
+- 状态：G2（Draft PR #75，等待远程 CI 证据）
 - 关联 Work Item：[`BUG-20260720-003`](../issues/bug-20260720-003-xiaohongshu-url-ingestion.md)
 - 关联 Requirement：`REQ-AI-001`、`REQ-UX-002`
 - 基线：`origin/main@ae0700a`
@@ -61,4 +61,4 @@
 
 ## 下一项唯一动作
 
-将隔离分支作为普通代码变更提交受检；合入后再由另行授权的受控部署验证新任务，不自动重算两个历史错误任务。
+等待 PR #75 最新 Head 的 Required Checks 与脱敏截图证据；受检合入后再由另行授权的受控部署验证新任务，不自动重算两个历史错误任务。

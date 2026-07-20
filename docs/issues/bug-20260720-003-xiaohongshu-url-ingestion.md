@@ -1,6 +1,6 @@
 # BUG-20260720-003：小红书短链误分类与正文抓取失败
 
-- 状态：In Progress / G2（本地门禁通过，待受检提交；未部署）
+- 状态：In Progress / G2（Draft PR #75，等待远程 CI 证据；未部署）
 - 优先级：P1（生产核心规划链路）
 - 关联 Requirement：`REQ-AI-001`、`REQ-UX-002`
 - ExecPlan：[`小红书链接摄取修复计划`](../plans/bug-20260720-003-xiaohongshu-url-ingestion.md)
