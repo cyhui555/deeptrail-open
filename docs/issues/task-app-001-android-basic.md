@@ -1,6 +1,6 @@
 # TASK-APP-001：Android 基础安装与启动
 
-- 状态：Ready for Review / G2（真机反馈修复）
+- 状态：In Progress / G2（PR #67 已合入，等待目标环境与真机复验）
 - 优先级：P0
 - 关联 Requirement：`REQ-APP-001`
 
@@ -45,6 +45,7 @@
 
 ## 验证
 
+- PR #67 精确 Head `107c3a4` 的五项 Required Checks 全部成功，并 squash 合入 `main@714a633`；未自动部署。
 - `pnpm test:e2e app-mobile-regression.spec.ts`：2/2 通过，覆盖 360px 与 390px 布局。
 - `pnpm android:test`：9/9 通过；`pnpm android:test:runtime`：1/1 通过。
 - `pnpm lint`、`pnpm typecheck`、`pnpm build`：通过。
@@ -60,7 +61,7 @@
 - 代码侧基础能力与测试 APK 已闭环；无需为 iOS、商店能力或更多原生能力预建框架。
 - 正式 Android 安装物仍需受信任 HTTPS Origin、最终 application ID 与签名证书指纹。
 - 当前 Windows 开发机没有 Android SDK、adb 或 Gradle；已由 GitHub Runner 构建并验证 APK，但尚未执行真机安装与启动验收。
-- 真机反馈截图确认 H5 业务可运行，但暴露了窄屏折叠态和主操作拥挤；移动端修复计划见 [`ExecPlan`](../plans/task-app-001-mobile-usability.md)。
+- 真机反馈截图确认 H5 业务可运行，但暴露了窄屏折叠态和主操作拥挤；修复已合入，目标环境与新版真机复验仍未执行，计划见 [`ExecPlan`](../plans/task-app-001-mobile-usability.md)。
 - 用户已澄清第 3 项与手机 GPS 无关；真实问题由 [`BUG-20260720-001`](bug-20260720-001-geocoding-qps-cascade.md) 跟踪。
 
 ## 回滚

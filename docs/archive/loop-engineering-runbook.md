@@ -1,9 +1,9 @@
-# Loop Engineering 本地操作手册
+# Loop Engineering 本地操作手册（历史归档）
 
 - 当前能力：正式公开 L2 Proposal-only；L3A 已激活并通过真实试点；只读 Issue Intake 可判定执行资格；L3B Engine 保持休眠
 - 不包含：自动创建 Issue、任意代码生成、Daemon/Cron、自动 Skill Apply、自动审批/合并/部署和 L3C
-- 架构：[Loop Engineering 落地方案](../architecture/loop-engineering-adoption-proposal.md)
-- 验收：[TASK-LOOP-002 验收记录](../verification/task-loop-002-loop-contract-hardening.md) / [TASK-LOOP-003 交付摘要](../archive/task-loop-003-l2-proposal-admission.md) / [L3A 交付摘要](../archive/task-loop-004-l3a-controlled-execution.md) / [L3B 终止摘要](../archive/task-loop-006-l3b-controlled-merge.md)
+- 架构：[Loop Engineering 落地方案](loop-engineering-adoption-proposal.md)
+- 验收：[TASK-LOOP-002 验收记录](verification-task-loop-002-loop-contract-hardening.md) / [TASK-LOOP-003 交付摘要](task-loop-003-l2-proposal-admission.md) / [L3A 交付摘要](task-loop-004-l3a-controlled-execution.md) / [L3B 终止摘要](task-loop-006-l3b-controlled-merge.md)
 
 ## 1. 运行边界
 
@@ -285,4 +285,4 @@ pnpm security:public-prepare -- --output $publicBaselinePath
 - 回退前：确认无 Writer，创建并验证 Backup，在新目录 Restore + Doctor；不要把旧代码直接写入新 Schema Workspace。
 - 禁止：直接使用全局 `loopany`、覆盖 Backup、递归删除未知事务、自动重放 `applying`、把 Restore 切换为活动目录、把 Shadow 失败改写成成功。
 - 禁止：在 Loop Artifact、Receipt、文档或 Git 中保存 `.env`、Token、Cookie、完整日志、业务数据库、媒体或真实用户内容。
-- L2 Proposal-only 必须持续满足严格 Cohort；L3 权限按 [ADR](../architecture/adr-loop-l3-staged-automation.md) 分段准入，L3A 不能推导自动合并、部署或生产授权。
+- L2 Proposal-only 必须持续满足严格 Cohort；L3 权限按[历史 ADR](adr-loop-l3-staged-automation.md)分段准入，L3A 不能推导自动合并、部署或生产授权。

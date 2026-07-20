@@ -1,4 +1,4 @@
-# ADR：以分阶段权限模型推进 Loop L3
+# ADR：以分阶段权限模型推进 Loop L3（历史归档）
 
 - 状态：Accepted；L3A 已验收，L3B activation 已终止，人工 Merge 保持唯一合入门禁
 - 日期：2026-07-18

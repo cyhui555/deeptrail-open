@@ -6,8 +6,8 @@
 - PR：[cyhui555/deeptrail#19](https://github.com/cyhui555/deeptrail/pull/19)
 - 实现 Commit：`153ad2c`
 - 合并 Commit：`300c86df`
-- 详细验收：[TASK-LOOP-002 验收记录](../verification/task-loop-002-loop-contract-hardening.md)
-- 使用手册：[Loop Engineering 本地操作手册](../operations/loop-engineering.md)
+- 详细验收：[TASK-LOOP-002 验收记录](verification-task-loop-002-loop-contract-hardening.md)
+- 使用手册：[Loop Engineering 历史操作手册](loop-engineering-runbook.md)
 
 ## 交付
 

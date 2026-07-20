@@ -1,10 +1,9 @@
 # TASK-APP-001 真机移动端可用性修复 ExecPlan
 
-- 状态：Ready for Review / G2
+- 状态：G2（已合入，等待新版真机复验）
 - 关联 Work Item：[`TASK-APP-001`](../issues/task-app-001-android-basic.md)
 - 关联 Requirement：`REQ-APP-001`
-- 基线：`main@bfc3068`
-- 工作分支：`fix/task-app-001-mobile-geo`
+- 合入：PR #67，`main@714a633`
 - 最近更新：2026-07-20
 
 ## 目标
@@ -38,4 +37,4 @@
 
 ## 下一项唯一动作
 
-与 `BUG-20260720-001` 一并完成代码审查后进行新版真机复验。
+发布 `main@714a633` 后，与 `BUG-20260720-001` 一并进行 360px/390px 新版真机复验。

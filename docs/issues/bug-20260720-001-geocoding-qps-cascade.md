@@ -1,6 +1,6 @@
 # BUG-20260720-001：规划转行程时 POI 坐标批量失败
 
-- 状态：Ready for Review / G2
+- 状态：In Progress / G2（PR #67 已合入，等待目标环境复验）
 - 优先级：P1
 - 父任务：[`TASK-APP-001`](task-app-001-android-basic.md)
 - 关联 Requirement：`REQ-AI-001`、`REQ-UX-001`
@@ -54,6 +54,7 @@
 - `pnpm test`：Server 681/681 通过；`pnpm lint`、`pnpm typecheck`、`pnpm build` 通过。
 - `pnpm test:e2e app-mobile-regression.spec.ts`：2/2 通过，确认同一修复分支上的 360px 与 390px 端侧布局。
 - `pnpm docs:check`、`pnpm work-items:check` 与 `git diff --check` 通过。
+- PR #67 精确 Head `107c3a4` 的五项 Required Checks 全部成功，并 squash 合入 `main@714a633`；未部署。
 - 未使用真实高德 Key 或生产任务；目标环境仍需在代码审查、合入与部署后，以脱敏规划任务复验实际配额和坐标补全率。
 
 ## 回滚

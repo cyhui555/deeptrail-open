@@ -6,7 +6,7 @@
 - PR：[cyhui555/deeptrail#17](https://github.com/cyhui555/deeptrail/pull/17)
 - 实现 Commit：`e2a3b41`
 - 合并 Commit：`d8e0795d`
-- 详细验收：[TASK-LOOP-001 验收记录](../verification/task-loop-001-loopany-gateway.md)
+- 详细验收：[TASK-LOOP-001 验收记录](verification-task-loop-001-loopany-gateway.md)
 
 ## 交付
 

@@ -61,7 +61,10 @@ for (const name of issueNames) {
   if (!/^- 关联(?: Requirement|需求|规则)：/m.test(content)) {
     failures.push(`${name} 缺少 Requirement、需求或规则关联`);
   }
-  if (!board.includes(`(${name})`)) failures.push(`执行看板未链接活动项 ${name}`);
+  // 不可变 Cohort 已由 Manifest 绑定精确路径，不再把历史证据逐项复制到活动看板。
+  if (!retainedCohortItems.has(name) && !board.includes(`(${name})`)) {
+    failures.push(`执行看板未链接活动项 ${name}`);
+  }
 
   const requirementIds = [...content.matchAll(/\bREQ-[A-Z0-9-]+\b/g)].map((match) => match[0]);
   for (const requirementId of new Set(requirementIds)) {
@@ -104,7 +107,7 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log(`Work Item 检查通过：${activeItems} 个活动项、${retainedItems} 个 L2 历史证据与看板、Requirement 和运行时引用一致。`);
+console.log(`Work Item 检查通过：${activeItems} 个活动项、${retainedItems} 个 L2 历史证据、Requirement、活动看板和运行时引用一致。`);
 
 async function collectFiles(directory, extension) {
   const files = [];

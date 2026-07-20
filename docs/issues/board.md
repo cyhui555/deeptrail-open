@@ -1,33 +1,23 @@
 # 执行看板
 
 - 最近更新：2026-07-20
-- WIP 上限：1 个产品/发布主任务 + 1 个维护试运行；依赖更新仅排队审查
+- WIP 上限：1 个产品主任务；会创建源码或 PR 的维护循环默认暂停
 
 ## In Progress
 
-- 当前没有 G1 产品实现；`TASK-APP-001` 与子项已进入 G2 人工评审。
+- [`TASK-APP-001`](task-app-001-android-basic.md)：Android 基础 APK 与真机反馈修复已分别由 PR #65/#67 合入；当前只做受控部署与 360px/390px 真机复验。
+- [`BUG-20260720-001`](bug-20260720-001-geocoding-qps-cascade.md)：5 QPS 限流级联修复已随 PR #67 合入，等待脱敏规划任务验证实际坐标补全率；作为 `TASK-APP-001` 子项，不新增并行 WIP。
 
-## Maintenance Trial
+## Operational Follow-up（不占用产品 WIP）
 
-- `TASK-LOOP-008`：保留 React Doctor Daily；有界复测已持久化 `healthScore=38`，GitHub CLI 无调度认证时保持只读，不自动合并或部署，见[活动 Work Item](task-loop-008-react-doctor-daily-trial.md)。
+- [`TASK-RELEASE-004`](task-release-004-remote-artifact-chain.md)：远程不可变制品链已合入，仍等待两项 Web 构建配置与首次真实运行；不部署。
 
-## Review Queue（不计入 WIP）
+## Paused / Archived
 
-- [`TASK-APP-001`](task-app-001-android-basic.md) 真机反馈修复与 [`BUG-20260720-001`](bug-20260720-001-geocoding-qps-cascade.md) 已完成 G2，位于短期分支 `fix/task-app-001-mobile-geo`，不自动部署。
-- `BUG-20260719-002`：405 统一响应已由 PR #64 合入 `main@bfc3068`，见[活动 Work Item](bug-20260719-002-http-method-error-mapping.md)；尚未部署。
+- React Doctor Daily（`loop-mrqhdf3j-90f66952`）与 Housekeeper Daily（`loop-mrric1do-f5aff447`）已设置 `enabled=false`；历史与恢复条件见 [TASK-LOOP-008](../archive/task-loop-008-react-doctor-daily-trial.md) 和工作区 Loopany 任务文件。
+- `BUG-20260719-002`、`TASK-OPS-003`、治理试验、Loop L0—L3 与各里程碑均从活动看板移出，统一从[历史归档导航](../archive/README.md)按需取证。
+- L2 Cohort 的 10 个关闭 Work Item 因不可变合同保留原路径，由 `scripts/loop/l2-cohort.json` 索引；它们不是活动任务。
 
-## Operational Follow-up（不计入 WIP）
+## Review Queue
 
-- [`TASK-RELEASE-004`](task-release-004-remote-artifact-chain.md) 已由 PR #62 合入 `main@88b5092`；首次真实远程制品运行仍等待环境配置，不部署，也不占用产品 WIP。
-
-## Closed
-
-- `TASK-DOCS-001`：首次文档诚实性基线修复已由 PR #63 合入 `main@52ac204`，见[交付摘要](../archive/task-docs-001-docs-honesty-baseline.md)。
-- `TASK-GOV-004`：单维护者管理员人工旁路已完成并直接合入治理事实，见[交付摘要](../archive/task-gov-004-solo-maintainer-admin-bypass.md)。
-- `TASK-GOV-003`：维护控制面已由 PR #59 收敛并合入 `main@0470f2f`，见[交付摘要](../archive/task-gov-003-simplify-maintenance.md)。
-- L2 Cohort 的 10 个历史 Work Item 已闭环，但路径作为不可变证据保留：[TASK-GOV-001](task-gov-001-rapid-iteration-direct-main.md)、[BUG-20260717-001](bug-20260717-001-optimize-watchdog-race.md)、[BUG-20260717-002](bug-20260717-002-ai-json-parse-fallback-success.md)、[TASK-CI-001](task-ci-001-node24-actions-runtime.md)、[BUG-20260717-003](bug-20260717-003-amap-e2e-build-config.md)、[BUG-20260717-004](bug-20260717-004-pdf-static-map-e2e-isolation.md)、[BUG-20260717-005](bug-20260717-005-dev-pwa-e2e-profile.md)、[BUG-20260717-006](bug-20260717-006-release-identity-recovery.md)、[TASK-RELEASE-003](task-release-003-target-release-validation.md)、[TASK-OPS-002](task-ops-002-no-cost-target-regressions.md)。旧私库 GitHub #21/#24 已按发布与目标机证据关闭。
-- `TASK-GOV-002`：归档自动审批/合并控制面已撤回，见[终止摘要](../archive/task-gov-002-archive-pr-finalizer.md)。
-- `TASK-LOOP-007`：只读 Issue 准入已交付，后续自主提单扩展暂停，见[收敛摘要](../archive/task-loop-007-autonomous-intake.md)。
-- `BUG-20260719-001` 与生产 E2E 修复已发布验收，分别见[坐标刷新摘要](../archive/bug-20260719-001-poi-coordinate-refresh.md)和[生产 E2E 摘要](../archive/bug-20260718-003-production-e2e-remediation.md)。
-
-其余 M0—M16、后台运营、v0.1.0/v0.2.0、Loop L0—L3A 与工作区收口历史均以 `docs/archive/` 为事实入口，不再占用 WIP。
+当前没有开放的产品 Review 项；新候选必须由工程所有者重新准入。

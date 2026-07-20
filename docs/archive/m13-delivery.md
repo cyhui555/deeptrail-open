@@ -27,7 +27,7 @@
 
 - UI：`apps/web/src/components/ModalDialog.tsx`、`apps/web/src/app/(protected)/trips/[planId]/checkin/page.tsx`、`tests/e2e/m13-ui-hardening.spec.ts`
 - 数据边界：`apps/server/src/main/java/com/ai/travel/service/TrackService.java`、`apps/web/src/hooks/useTaskPoller.ts`、`apps/web/src/lib/offlineSync.ts`
-- 质量审计：`tests/e2e/m13-quality-boundaries.spec.ts`、`docs/verification/m13-qa-audit.md`
+- 质量审计：`tests/e2e/m13-quality-boundaries.spec.ts`、`docs/archive/verification-m13-qa-audit.md`
 
 ## 验证
 

@@ -24,7 +24,7 @@
 
 - 浏览器场景：`tests/e2e/**/*.spec.ts`
 - 确定性地图边界：`tests/e2e/lib/amap-mock.ts`
-- 审计起点：`docs/verification/m13-qa-audit.md`
+- 审计起点：`docs/archive/verification-m13-qa-audit.md`
 
 ## 验证
 

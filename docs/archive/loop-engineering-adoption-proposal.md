@@ -1,8 +1,8 @@
-# 旅迹 Loop Engineering 落地方案
+# 旅迹 Loop Engineering 落地方案（历史归档）
 
 - 状态：L1 Phase 2 持续门禁通过；L2 Proposal-only 已准入；Mutation 与 L3 阻断
-- 事实入口：`REQ-LOOP-001`、[TASK-LOOP-002 交付摘要](../archive/task-loop-002-loop-contract-hardening.md)
-- 运行入口：[本地运行手册](../operations/loop-engineering.md)
+- 事实入口：`REQ-LOOP-001`、[TASK-LOOP-002 交付摘要](task-loop-002-loop-contract-hardening.md)
+- 运行入口：[历史运行手册](loop-engineering-runbook.md)
 - 上游基线：LoopAny `cdd1d08f4d3d5a09a49443ef1d7a698363ef06f5`
 - 深层规范：deepbarin Loop Engineering runbook 与 G0—G3 工程门禁
 

@@ -1,9 +1,9 @@
-# TASK-LOOP-002 Loop 工程合同验收记录
+# TASK-LOOP-002 Loop 工程合同验收记录（历史归档）
 
 - 状态：PASS；本地 G0—G3、活动 Workspace、隔离 Restore、仓库门禁与 PR #19 远程 CI 均通过
 - Requirement：`REQ-LOOP-001`
 - 交付摘要：[TASK-LOOP-002](../archive/task-loop-002-loop-contract-hardening.md)
-- ADR：[LoopAny Gateway ADR](../architecture/adr-loopany-gateway.md)
+- ADR：[LoopAny Gateway ADR](adr-loopany-gateway.md)
 - 形态：L0 记忆侧车 + L1 Phase 1 确定性只读 Shadow
 - Runtime：LoopAny `cdd1d08f4d3d5a09a49443ef1d7a698363ef06f5` / CLI `0.2.0` / Bun `1.3.14`
 

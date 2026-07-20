@@ -8,7 +8,7 @@
 | 需求与交付追踪 | [需求注册表](requirements/registry.md) |
 | 当前工作项 | [执行看板](issues/board.md) |
 | 后续候选规划 | [任务路线图](plans/future-roadmap.md) |
-| 历史交付 | [M0–M10](archive/m0-m10-delivery.md)、[M11](archive/m11-delivery.md)、[M12](archive/m12-delivery.md)、[M13](archive/m13-delivery.md)、[M14](archive/m14-delivery.md)、[M16](archive/m16-delivery.md)、[v0.2.0 目标环境发布](archive/task-release-002-production-deployment.md) |
+| 历史交付与暂停任务 | [归档导航](archive/README.md) |
 | 可复用工程经验 | [工程经验](memory/lessons.md) |
 | API 使用与契约 | [接口入口](api/接口说明书.md) |
 | 后端运行 | [后端运行规范](technical/backend-runtime.md) |
