@@ -77,7 +77,7 @@
     <dependency>
       <groupId>cn.hutool</groupId>
       <artifactId>hutool-all</artifactId>
-      <version>5.8.27</version>
+      <version>5.8.47</version>
     </dependency>
 
     <!-- Guava（RateLimiter 工业级限流器，替换手搓令牌桶） -->
