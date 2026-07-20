@@ -1,6 +1,6 @@
 # BUG-20260720-003：小红书短链误分类与正文抓取失败
 
-- 状态：In Progress / G2（Draft PR #75，等待远程 CI 证据；未部署）
+- 状态：In Progress / G3（Draft PR #75，远程 CI 证据已建立；未部署）
 - 优先级：P1（生产核心规划链路）
 - 关联 Requirement：`REQ-AI-001`、`REQ-UX-002`
 - ExecPlan：[`小红书链接摄取修复计划`](../plans/bug-20260720-003-xiaohongshu-url-ingestion.md)
@@ -46,7 +46,7 @@
 - [x] 通用 meta description 或内容不足仍失败关闭，不向模型提供裸 URL。
 - [x] Server 定向测试、Playwright 定向回归、lint、typecheck、build、文档与 Work Item 门禁通过。
 - [x] 原短链只读抓取返回青岛标题和正文；不调用真实 AI 或产生模型费用。
-- [ ] PR 最新 Head 的五项 Required Checks 全绿，并附本次 Frontend smoke 的脱敏截图 Artifact 与 Job Summary。
+- [x] PR 最新 Head 的五项 Required Checks 全绿，并附本次 Frontend smoke 的脱敏截图 Artifact 与 Job Summary。
 
 ## G2 验证结论
 
@@ -55,6 +55,13 @@
 - 原短链真实网络只读抓取 1/1 通过，返回青岛标题与正文中的目标 POI；测试直接调用抓取器，不经过 AI 服务。
 - `pnpm lint`、`pnpm typecheck`、`pnpm build`、`pnpm eval`、安全合同 22/22、文档与 Work Item 检查以及 `git diff --check` 均通过。
 - 当前仅完成隔离 worktree 内的修复与验证，未修改生产数据、未重算历史任务、未提交付费模型请求，也未部署目标环境。
+
+## 远程证据
+
+- PR #75 受检基线 Head `27f3a2117896f13edb35f6ade02664f28dbcd75b` 的 [CI run 29718019522](https://github.com/cyhui555/deeptrail-open/actions/runs/29718019522) 五项 Required Checks 全部成功。
+- [Frontend smoke Job Summary](https://github.com/cyhui555/deeptrail-open/actions/runs/29718019522/job/88274998551) 已发布同一运行生成的[脱敏截图 Artifact](https://github.com/cyhui555/deeptrail-open/actions/runs/29718019522/artifacts/8451310846)，保留 7 天。
+- `itinerary-mobile-360.png`：360×820，SHA-256 `218af42a8d7fa27c98565de21eebba0da828bfc0d4171a1804af35501f5bf715`。
+- `itinerary-mobile-390.png`：390×820，SHA-256 `1c79b4c9ed9e6f4aad8f804b598c9e34b8e6d4129ec7ecb01f680252c62db05a`。
 
 ## 回滚
 

@@ -1,6 +1,6 @@
 # BUG-20260720-003 小红书链接摄取修复 ExecPlan
 
-- 状态：G2（Draft PR #75，等待远程 CI 证据）
+- 状态：G3（Draft PR #75，远程 CI 证据已建立）
 - 关联 Work Item：[`BUG-20260720-003`](../issues/bug-20260720-003-xiaohongshu-url-ingestion.md)
 - 关联 Requirement：`REQ-AI-001`、`REQ-UX-002`
 - 基线：`origin/main@ae0700a`
@@ -50,7 +50,7 @@
 - [x] 已增加失败回归并证明旧实现不满足验收。
 - [x] 已完成实现和定向验证。
 - [x] 已完成 G2 本地门禁，修复已准备进入受检提交。
-- [ ] PR 最新 Head 的 Required Checks、脱敏截图 Artifact 与 Job Summary 已回填到受检证据。
+- [x] PR 最新 Head 的 Required Checks、脱敏截图 Artifact 与 Job Summary 已回填到受检证据。
 
 ## G2 结论
 
@@ -61,4 +61,4 @@
 
 ## 下一项唯一动作
 
-等待 PR #75 最新 Head 的 Required Checks 与脱敏截图证据；受检合入后再由另行授权的受控部署验证新任务，不自动重算两个历史错误任务。
+由工程所有者人工复核 Draft PR #75；受检合入后再由另行授权的受控部署验证新任务，不自动重算两个历史错误任务。
