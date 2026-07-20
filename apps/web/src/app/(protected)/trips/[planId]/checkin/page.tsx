@@ -566,6 +566,7 @@ export default function CheckinPage() {
             onMarkerClick={handleMarkerClick}
             highlightItemId={selectedItemId}
             height={viewMode === 'global' ? '55vh' : '45vh'}
+            viewportScopeKey={viewMode === 'day' ? `day:${currentTask.id}` : 'global'}
             getSegmentColor={viewMode === 'global' ? (from, to) => segmentColorByDay(from) : undefined}
           />
       </div>

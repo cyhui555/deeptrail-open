@@ -7,6 +7,7 @@
 
 - [`TASK-APP-001`](task-app-001-android-basic.md)：Android 基础 APK 与真机反馈修复已分别由 PR #65/#67 合入；当前只做受控部署与 360px/390px 真机复验。
 - [`BUG-20260720-001`](bug-20260720-001-geocoding-qps-cascade.md)：5 QPS 限流级联修复已随 PR #67 合入，等待脱敏规划任务验证实际坐标补全率；作为 `TASK-APP-001` 子项，不新增并行 WIP。
+- [`BUG-20260720-002`](bug-20260720-002-daily-map-viewport.md)：修复现场按天切换后地图仍停留在前一天；作为 `TASK-APP-001` 真机反馈子项，不新增并行 WIP。
 
 ## Operational Follow-up（不占用产品 WIP）
 

@@ -25,6 +25,13 @@ interface CheckinMapProps {
   /** 地图高度 */
   height?: string;
   /**
+   * 当前视口作用域标识。
+   *
+   * <p>日期或地图范围等显式用户选择发生变化时更新此值，地图会重新适配当前覆盖物；
+   * 普通后台数据刷新应保持此值不变，以免抢夺用户已经手动调整的视野。
+   */
+  viewportScopeKey?: string | number;
+  /**
    * 自定义每段路线的颜色。
    *
    * <p>默认使用旅迹矿物蓝主色；全局模式下可按天传入低饱和路线色。
@@ -55,7 +62,7 @@ export interface CheckinMapHandle {
  * 支持标记点拖动修正坐标，通过 useImperativeHandle 暴露 setCenter 方法供外部联动。
  */
 export const CheckinMap = forwardRef<CheckinMapHandle, CheckinMapProps>(function CheckinMap(
-  { items, trackPoints = [], routeMode = 'planned', onMarkerDragEnd, onMarkerClick, showInfoWindowOnHover, highlightItemId, height = '60vh', getSegmentColor },
+  { items, trackPoints = [], routeMode = 'planned', onMarkerDragEnd, onMarkerClick, showInfoWindowOnHover, highlightItemId, height = '60vh', viewportScopeKey, getSegmentColor },
   ref
 ) {
   const { loaded, error, retry } = useAMapLoader();
@@ -71,6 +78,7 @@ export const CheckinMap = forwardRef<CheckinMapHandle, CheckinMapProps>(function
   const latestVisibleCoverageRef = useRef(0);
   const userAdjustedViewportRef = useRef(false);
   const lastRouteModeRef = useRef(routeMode);
+  const lastViewportScopeKeyRef = useRef(viewportScopeKey);
   const itemsRef = useRef<CheckinItem[]>([]);
   itemsRef.current = items;
 
@@ -571,10 +579,17 @@ export const CheckinMap = forwardRef<CheckinMapHandle, CheckinMapProps>(function
     }
 
     const routeModeChanged = lastRouteModeRef.current !== routeMode;
+    const viewportScopeChanged = lastViewportScopeKeyRef.current !== viewportScopeKey;
     lastRouteModeRef.current = routeMode;
-    if (routeModeChanged) {
-      // 主动切换路线模式代表用户希望立即查看所选范围，重新允许一次自动适配。
+    lastViewportScopeKeyRef.current = viewportScopeKey;
+    if (routeModeChanged || viewportScopeChanged) {
+      // 主动切换路线模式或日期范围都代表新的用户意图，应覆盖上一作用域的手动视野保护。
       userAdjustedViewportRef.current = false;
+    }
+    if (viewportScopeChanged) {
+      // 新日期可能暂时没有坐标；重置初始适配状态，保证坐标稍后补全时仍会定位到当前日期。
+      initialViewFittedRef.current = false;
+      fittedCoverageRef.current = 0;
     }
     const visibleCoverage = markersRef.current.size
       + polylinesRef.current.length * 2
@@ -582,10 +597,11 @@ export const CheckinMap = forwardRef<CheckinMapHandle, CheckinMapProps>(function
     latestVisibleCoverageRef.current = visibleCoverage;
     if (!initialViewFittedRef.current
         || routeModeChanged
+        || viewportScopeChanged
         || visibleCoverage > fittedCoverageRef.current) {
-      scheduleViewportFit(visibleCoverage, routeModeChanged);
+      scheduleViewportFit(visibleCoverage, routeModeChanged || viewportScopeChanged);
     }
-  }, [items, trackPoints, routeMode, getSegmentColor, parseTransport, transportEmoji, loaded, scheduleViewportFit]);
+  }, [items, trackPoints, routeMode, viewportScopeKey, getSegmentColor, parseTransport, transportEmoji, loaded, scheduleViewportFit]);
 
   // 高亮效果：高亮项的标记放大
   useEffect(() => {
