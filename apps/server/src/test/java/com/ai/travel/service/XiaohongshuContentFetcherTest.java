@@ -161,6 +161,48 @@ class XiaohongshuContentFetcherTest {
   }
 
   @Test
+  void fetchContentParsesNoteDetailFromJavascriptStateContainingUndefined() {
+    String html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>打工人周末往返青岛🌊 - 小红书</title>
+          <meta name="description" content="3 亿人的生活经验，都在小红书">
+          <script>
+            window.__INITIAL_STATE__ = {
+              "global": {
+                "desc": "这是一段长度足够但不属于当前笔记的上海推荐内容，不能被误选为正文"
+              },
+              "note": {
+                "noteDetailMap": {
+                  "note-id": {
+                    "note": {
+                      "title": "打工人周末往返青岛🌊|打卡青岛啤酒城🍻",
+                      "desc": "周六出海海钓，周天打卡小鱼山、啤酒博物馆、团岛市场、奥帆中心和栈桥；英文 undefined 必须保留。"
+                    }
+                  }
+                }
+              },
+              "ui": {"bottomPrompt": undefined}
+            };
+          </script>
+        </head>
+        <body><div id="app"></div></body>
+        </html>
+        """;
+    XiaohongshuContentFetcher fetcher = fetcherWithResponse(html);
+
+    String content = fetcher.fetchContent("http://xhslink.com/o/example");
+
+    assertThat(content).contains("标题：打工人周末往返青岛");
+    assertThat(content).contains("小鱼山");
+    assertThat(content).contains("啤酒博物馆");
+    assertThat(content).contains("英文 undefined 必须保留");
+    assertThat(content).doesNotContain("上海推荐内容");
+    assertThat(content).doesNotContain("3 亿人的生活经验");
+  }
+
+  @Test
   void fetchContentHandlesRedirectResponse() {
     String html = """
         <html>
@@ -222,7 +264,16 @@ class XiaohongshuContentFetcherTest {
   @Tag("real-network")
   @Test
   void fetchContentWithRealUrlDocumentsBehavior() {
-    assertThat(new XiaohongshuContentFetcher()).isNotNull();
+    // 只读抓取公开笔记，不调用模型或任何付费 Provider。
+    String content = new XiaohongshuContentFetcher()
+        .fetchContent("http://xhslink.com/o/4ZsyHhweRDE");
+
+    assertThat(content).contains("打工人周末往返青岛");
+    assertThat(content).contains("小鱼山");
+    assertThat(content).contains("啤酒博物馆");
+    assertThat(content).contains("奥帆中心");
+    assertThat(content).contains("栈桥");
+    assertThat(content).doesNotContain("长沙");
   }
 
   // ==================== 内容质量校验 ====================

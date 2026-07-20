@@ -66,10 +66,10 @@ public class XiaohongshuContentFetcher {
       // Priority 1: window.__INITIAL_STATE__
       String initJson = extractInitStateJson(html);
       if (initJson != null) {
-        body = findFieldInJson(initJson, "desc");
-        title = findFieldInJson(initJson, "title");
-        if (StrUtil.isBlank(title)) {
-          title = findFieldInJson(initJson, "displayTitle");
+        InitialStateNote note = extractInitialStateNote(initJson);
+        if (note != null) {
+          body = note.body();
+          title = note.title();
         }
         if (StrUtil.isNotBlank(body)) {
           log.debug("Xiaohongshu content from __INITIAL_STATE__, length={}", body.length());
@@ -233,37 +233,134 @@ public class XiaohongshuContentFetcher {
   }
 
   /**
+   * 从当前小红书页面状态的确定结构中提取目标笔记。
+   *
+   * <p>该状态是可执行 JavaScript 对象而非严格 JSON，当前页面会在字符串外写入
+   * {@code undefined}。只归一化这种独立字面量，并优先读取
+   * {@code note.noteDetailMap.*.note}，避免误取全局配置或推荐流里的同名字段。
+   */
+  InitialStateNote extractInitialStateNote(String state) {
+    try {
+      JsonNode root = objectMapper.readTree(normalizeJavascriptUndefined(state));
+      JsonNode noteDetailMap = root.path("note").path("noteDetailMap");
+      if (noteDetailMap.isObject()) {
+        var details = noteDetailMap.elements();
+        while (details.hasNext()) {
+          JsonNode note = details.next().path("note");
+          String body = textValue(note, "desc");
+          if (StrUtil.isBlank(body)) {
+            continue;
+          }
+          String title = textValue(note, "title");
+          if (StrUtil.isBlank(title)) {
+            title = textValue(note, "displayTitle");
+          }
+          return new InitialStateNote(title, body);
+        }
+      }
+
+      // 保留旧页面结构兼容，但只有确定路径不存在时才进行通用搜索。
+      String body = findFieldInTree(root, "desc");
+      String title = findFieldInTree(root, "title");
+      if (StrUtil.isBlank(title)) {
+        title = findFieldInTree(root, "displayTitle");
+      }
+      return StrUtil.isBlank(body) ? null : new InitialStateNote(title, body);
+    } catch (Exception exception) {
+      log.debug("Failed to parse Xiaohongshu __INITIAL_STATE__: {}", exception.getMessage());
+      return null;
+    }
+  }
+
+  /** 只替换 JSON 字符串外的独立 undefined，字符串正文和标识符保持原样。 */
+  String normalizeJavascriptUndefined(String state) {
+    if (state == null || !state.contains("undefined")) {
+      return state;
+    }
+    String token = "undefined";
+    StringBuilder normalized = new StringBuilder(state.length());
+    boolean inString = false;
+    boolean escaped = false;
+
+    for (int index = 0; index < state.length(); index++) {
+      char current = state.charAt(index);
+      if (inString) {
+        normalized.append(current);
+        if (escaped) {
+          escaped = false;
+        } else if (current == '\\') {
+          escaped = true;
+        } else if (current == '"') {
+          inString = false;
+        }
+        continue;
+      }
+      if (current == '"') {
+        inString = true;
+        normalized.append(current);
+        continue;
+      }
+      if (state.startsWith(token, index)
+          && isTokenBoundary(state, index - 1)
+          && isTokenBoundary(state, index + token.length())) {
+        normalized.append("null");
+        index += token.length() - 1;
+        continue;
+      }
+      normalized.append(current);
+    }
+    return normalized.toString();
+  }
+
+  private boolean isTokenBoundary(String value, int index) {
+    return index < 0 || index >= value.length()
+        || !Character.isJavaIdentifierPart(value.charAt(index));
+  }
+
+  private String textValue(JsonNode node, String fieldName) {
+    JsonNode value = node.get(fieldName);
+    return value != null && value.isTextual() && StrUtil.isNotBlank(value.asText())
+        ? value.asText().trim()
+        : null;
+  }
+
+  /**
    * 在 JSON 树中 BFS 搜索指定字段值（限深 20 层）。
    */
   String findFieldInJson(String json, String fieldName) {
     try {
-      JsonNode root = objectMapper.readTree(json);
-      Deque<JsonNode> queue = new ArrayDeque<>();
-      queue.add(root);
-      int maxDepth = 20;
+      JsonNode root = objectMapper.readTree(normalizeJavascriptUndefined(json));
+      return findFieldInTree(root, fieldName);
+    } catch (Exception e) {
+      log.debug("Failed to extract field '{}' from JSON: {}", fieldName, e.getMessage());
+    }
+    return null;
+  }
 
-      while (!queue.isEmpty() && maxDepth-- > 0) {
-        int size = queue.size();
-        for (int i = 0; i < size; i++) {
-          JsonNode current = queue.poll();
-          if (current == null) {
-            continue;
+  private String findFieldInTree(JsonNode root, String fieldName) {
+    Deque<JsonNode> queue = new ArrayDeque<>();
+    queue.add(root);
+    int maxDepth = 20;
+
+    while (!queue.isEmpty() && maxDepth-- > 0) {
+      int size = queue.size();
+      for (int i = 0; i < size; i++) {
+        JsonNode current = queue.poll();
+        if (current == null) {
+          continue;
+        }
+        if (current.isObject()) {
+          String value = textValue(current, fieldName);
+          if (StrUtil.isNotBlank(value)) {
+            return value;
           }
-          if (current.isObject()) {
-            JsonNode field = current.get(fieldName);
-            if (field != null && field.isTextual() && StrUtil.isNotBlank(field.asText())) {
-              return field.asText().trim();
-            }
-            current.fields().forEachRemaining(e -> queue.add(e.getValue()));
-          } else if (current.isArray()) {
-            for (JsonNode item : current) {
-              queue.add(item);
-            }
+          current.fields().forEachRemaining(entry -> queue.add(entry.getValue()));
+        } else if (current.isArray()) {
+          for (JsonNode item : current) {
+            queue.add(item);
           }
         }
       }
-    } catch (Exception e) {
-      log.debug("Failed to extract field '{}' from JSON: {}", fieldName, e.getMessage());
     }
     return null;
   }
@@ -313,5 +410,8 @@ public class XiaohongshuContentFetcher {
         && !lower.equals("notfound")
         && !lower.equals("notfound.")
         && !lower.contains("页面不存在");
+  }
+
+  record InitialStateNote(String title, String body) {
   }
 }

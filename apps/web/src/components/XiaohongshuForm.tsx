@@ -12,6 +12,20 @@ interface Props {
   submissionDisabled?: boolean;
 }
 
+function isXiaohongshuUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+    const host = parsed.hostname.toLowerCase();
+    return host === 'xiaohongshu.com'
+      || host.endsWith('.xiaohongshu.com')
+      || host === 'xhslink.com'
+      || host.endsWith('.xhslink.com');
+  } catch {
+    return false;
+  }
+}
+
 export function XiaohongshuForm({ onSubmit, loading, submissionDisabled = false }: Props) {
   const [mode, setMode] = useState<'url' | 'paste'>('paste');
   const [form, setForm, clearDraft] = usePersistentDraft<XiaohongshuRequest>('planner-xiaohongshu-v1', {
@@ -27,9 +41,19 @@ export function XiaohongshuForm({ onSubmit, loading, submissionDisabled = false 
     if (loading || submissionDisabled) return;
     const data = { ...form };
     if (mode === 'url') {
+      data.url = data.url?.trim();
       data.noteContent = undefined;
     } else {
-      data.url = undefined;
+      const normalizedContent = data.noteContent?.trim() ?? '';
+      // 默认正文模式也允许直接粘贴短链；在浏览器提交边界先归一化，
+      // 服务端仍会再次校验，避免其他客户端绕过这一层。
+      if (isXiaohongshuUrl(normalizedContent)) {
+        data.url = normalizedContent;
+        data.noteContent = undefined;
+      } else {
+        data.url = undefined;
+        data.noteContent = normalizedContent;
+      }
     }
     const submitted = await onSubmit(data);
     if (submitted) clearDraft();
@@ -68,6 +92,7 @@ export function XiaohongshuForm({ onSubmit, loading, submissionDisabled = false 
       {mode === 'paste' ? (
         <FormField
           label="小红书笔记内容"
+          hint="完整小红书链接也会自动识别"
           icon={<FileText />}
           required
           focusRingClass="field-wrap--red"
