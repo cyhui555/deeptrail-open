@@ -10,10 +10,17 @@
 
 ## 最近关闭与暂停
 
+- [代码与文档校验归档](task-docs-004-code-doc-validation-archive.md)
+- [小红书链接导入修复](bug-20260720-003-xiaohongshu-url-ingestion.md)
 - [HTTP 405 错误映射](bug-20260719-002-http-method-error-mapping.md)
 - [工作区事实源与清理收口](task-ops-003-workspace-remediation.md)
 - [React Doctor Daily 暂停](task-loop-008-react-doctor-daily-trial.md)
 - [维护控制面收敛](task-gov-003-simplify-maintenance.md)
+
+## 安全与流程历史
+
+- [2026-07-11 密钥轮换历史](security-key-rotation-20260711.md)
+- [被替代的 ExecPlan 独立说明](legacy-exec-plan-guidance.md)
 
 ## Loop Engineering 历史
 
