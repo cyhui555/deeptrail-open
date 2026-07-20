@@ -213,9 +213,11 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run smoke tests
+        id: smoke_tests
         env:
           CI: 'true'
           PLAYWRIGHT_CAPTURE_DIAGNOSTICS: 'false'
+          PLAYWRIGHT_EVIDENCE_DIR: visual-evidence
         run: pnpm test:e2e:smoke
 
       - name: Check Playwright report safety
@@ -231,6 +233,32 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
           path: playwright-report/
+
+      - name: Check visual evidence safety
+        id: smoke_evidence_safety
+        if: steps.smoke_tests.outcome == 'success'
+        run: pnpm security:evidence -- visual-evidence
+
+      - name: Upload PR visual evidence
+        id: smoke_evidence_upload
+        if: >-
+          steps.smoke_tests.outcome == 'success' &&
+          steps.smoke_report_safety.outcome == 'success' &&
+          steps.smoke_evidence_safety.outcome == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: frontend-smoke-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          path: visual-evidence/
+
+      - name: Publish visual evidence summary
+        if: steps.smoke_evidence_upload.outcome == 'success'
+        env:
+          ARTIFACT_URL: ${{ steps.smoke_evidence_upload.outputs.artifact-url }}
+        run: >-
+          printf '### PR 视觉验收证据\n\n- [下载 360px / 390px 脱敏截图](%s)\n- 截图来自确定性测试夹具；完整 Frontend smoke 与截图安全检查均已通过。\n'
+          "${ARTIFACT_URL}" >> "${GITHUB_STEP_SUMMARY}"
 
   frontend-full-e2e:
     name: Frontend full E2E

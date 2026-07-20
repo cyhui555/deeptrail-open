@@ -47,6 +47,7 @@
     "quality:web": "node scripts/run-quality-web.mjs",
     "quality:smoke": "node scripts/run-quality-smoke.mjs",
     "security:artifacts": "node scripts/check-report-artifacts.mjs",
+    "security:evidence": "node scripts/check-visual-evidence.mjs",
     "security:public-baseline": "node scripts/verify-public-baseline.mjs",
     "security:public-history": "node scripts/check-public-history.mjs",
     "security:public-prepare": "node scripts/prepare-public-baseline.mjs",
@@ -56,7 +57,7 @@
     "test:e2e": "node scripts/run-e2e.mjs",
     "test:e2e:dev-boundaries": "node scripts/run-e2e.mjs --web-mode=development m13-quality-boundaries.spec.ts --grep \"开发态\"",
     "test:e2e:server": "pnpm --filter @deeptrail/server test:e2e",
-    "test:e2e:smoke": "node scripts/run-e2e.mjs smoke.spec.ts",
+    "test:e2e:smoke": "node scripts/run-e2e.mjs smoke.spec.ts app-mobile-regression.spec.ts",
     "test:contract": "pnpm --filter @deeptrail/server test:contract",
     "typecheck": "turbo run typecheck",
     "verify:server": "pnpm --filter @deeptrail/server verify"

@@ -45,6 +45,7 @@ replay_pid*.log
 # 测试产物
 test-results/
 playwright-report/
+visual-evidence/
 playwright/.cache/
 
 # Python 辅助脚本缓存
