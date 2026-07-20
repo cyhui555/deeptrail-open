@@ -1,6 +1,6 @@
 # BUG-20260720-002：现场切换每日行程后地图仍停留在前一天
 
-- 状态：In Progress / G2（实现与本地门禁通过，等待审查、合入及真机复验）
+- 状态：In Progress / G2（交付 PR #74，等待受控环境与真机复验）
 - 优先级：P1
 - 父任务：[`TASK-APP-001`](task-app-001-android-basic.md)
 - 关联 Requirement：`REQ-UX-003`、`REQ-APP-001`
@@ -50,6 +50,7 @@
 - `pnpm lint`、`pnpm typecheck`、`pnpm docs:check`、`pnpm work-items:check` 与 `git diff --check` 通过。
 - `pnpm test` 通过，Server 681/681；`pnpm build` 通过。首次构建清理 E2E 遗留 `.next` 符号链接时遇到 Windows `EPERM`，隔离并清理可再生成产物后重试成功。
 - 浏览器回归使用确定性高德地图 Mock；未调用真实地图、AI、付费服务或真实用户数据。
+- 远程交付、精确 Head 与最终必需检查以 PR #74 为事实源；本地 rebase 后的浏览器复跑受 Playwright revision 下载环境阻塞，不将浏览器安装失败记为应用失败。
 
 ## 回滚
 
