@@ -18,6 +18,7 @@
 - 保持现有登录、行程和现场执行业务不变。
 - 修复真机 360px 至 390px 视口下每日行程折叠态、日期导航和主操作区的拥挤、换行与层级问题。
 - 将用户反馈的“地理位置失败”按真实语义记录为规划转行程时的 POI 地理编码失败，并由 `BUG-20260720-001` 修复 5 QPS 限流级联。
+- 将 360px 与 390px 的确定性移动端验收截图纳入 PR CI；仅在完整 Frontend smoke 成功且截图通过结构安全校验后上传，并在 Job Summary 提供制品入口。
 
 ## 范围外
 
@@ -25,6 +26,7 @@
 - TLS 部署、域名购买、目标机变更、正式 release APK/AAB 与本机 Android SDK 安装。
 - React Native、Flutter、Capacitor 本地业务重写或新的后台能力。
 - 手机 GPS、WebView Geolocation、JavaScript Bridge、原生定位通道或降低 Android target SDK。
+- 真实账号、真实行程、运行时 trace、失败现场截图，以及 Workflow 自动评论、审批、合并或部署权限。
 
 ## 验收标准
 
@@ -42,6 +44,9 @@
 - [x] 日期导航保持单行横向滚动；每日行程折叠后以紧凑摘要呈现，标题、日期、主题和活动数不互相挤压。
 - [x] 规划概要中的 ISO 出发时间按可读格式展示，不再在双列卡片内逐段断行。
 - [x] `BUG-20260720-001` 验证每次高德请求都受 5 QPS 限流，单次限流不再导致同批大量 POI 坐标缺失。
+- [x] PR CI 的 Frontend smoke 同时执行 360px/390px 确定性移动端回归，全部成功后上传两张脱敏 PNG 截图。
+- [x] 截图上传前验证固定文件集、视口宽度、PNG 完整性、尺寸/体积上限和无文本元数据；缺失、额外、损坏或异常截图均失败关闭。
+- [x] 截图制品保留 7 天，Job Summary 给出当前运行的不可变 Artifact 链接；CI 保持只读权限，不访问真实外部服务。
 
 ## 验证
 
@@ -53,6 +58,10 @@
 - 地理编码定向测试 62/62 通过，覆盖重试重新限流、QPS 恢复、限流不熔断与批量 POI 不中断。
 - `pnpm docs:check`、`pnpm work-items:check` 与 `git diff --check`：通过。
 - `pnpm security:test`：19/19 通过；文档、Work Item、11 条路由体积与 `git diff --check` 通过。
+- 本次 CI 证据增量：等价 CI 环境下 `pnpm test:e2e:smoke` 15/15 通过，生成 360x820 与 390x820 两张确定性截图；`pnpm security:evidence -- visual-evidence` 校验 PNG 结构、CRC、解压数据、尺寸、固定文件集与无文本元数据通过。
+- `pnpm governance:check` 通过，其中安全/治理测试 22/22；`pnpm lint`、`pnpm typecheck`、`pnpm test`（Server 681/681）及 Server build 通过，Web production build 在 smoke 的受控清理入口中连续通过。
+- 在 E2E 生成 `.next/standalone` 后再次直接运行根 `pnpm build`，Windows 因符号链接目录触发既有 `EPERM scandir`，该次根命令未通过；PR #73 的干净 Linux Frontend build 已通过。
+- PR #73 首轮 CI run `29715832939` 五项 Required Checks 全绿；Frontend smoke 15/15，并上传[仅含本次修复两张截图的 Artifact](https://github.com/cyhui555/deeptrail-open/actions/runs/29715832939/artifacts/8450570355)。远程校验确认 360x820 与 390x820 PNG 的 SHA-256 分别为 `218af42a8d7fa27c98565de21eebba0da828bfc0d4171a1804af35501f5bf715`、`1c79b4c9ed9e6f4aad8f804b598c9e34b8e6d4129ec7ecb01f680252c62db05a`。
 - PR #65 的 `Android Test APK` 运行 #29685119973 在提交 `ac2eaa5` 上成功；远程 `apksigner` 验证通过，应用身份为 `com.deeptrail.app.debug`。
 - 下载制品大小为 12,599 字节，SHA-256 为 `135081474025e5867851d9b7ea3656b3e51586d7d7407c0e694b5642bbeec13f`；本地摘要与远程摘要一致。
 
@@ -66,4 +75,4 @@
 
 ## 回滚
 
-回退 Manifest 增量、公开关联路由、Android 校验脚本与对应配置说明即可；不涉及数据库、后端契约、目标环境或签名材料。
+回退 Manifest 增量、公开关联路由、Android 校验脚本与对应配置说明即可；CI 截图增量可独立回退 Workflow 步骤、截图校验脚本和测试截图调用，不删除既有运行证据；不涉及数据库、后端契约、目标环境或签名材料。

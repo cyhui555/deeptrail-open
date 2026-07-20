@@ -2,9 +2,11 @@ import { readFile, readdir } from "node:fs/promises";
 import process from "node:process";
 
 const workflowPath = ".github/workflows/ci.yml";
+const packagePath = "package.json";
 const workflowsRoot = ".github/workflows";
 const protectionPath = ".github/branch-protection-main.json";
 const workflow = await readFile(workflowPath, "utf8");
+const packageJson = JSON.parse(await readFile(packagePath, "utf8"));
 const workflowFiles = (await readdir(workflowsRoot))
   .filter((name) => /\.ya?ml$/i.test(name))
   .sort();
@@ -28,10 +30,42 @@ const workflowJobNames = new Set(
 );
 const requiredChecks = protection.required_status_checks?.contexts ?? [];
 const governanceJob = workflow.match(/\n  governance-loop:[\s\S]*?\n  backend-quality:/)?.[0] ?? "";
+const frontendSmokeJob = workflow.match(/\n  frontend-smoke:[\s\S]*?\n  frontend-full-e2e:/)?.[0] ?? "";
 const checkout = requiredActions.get("actions/checkout");
 if (!new RegExp(`uses:\\s*actions/checkout@${checkout.sha}[\\s\\S]*?fetch-depth:\\s*0`)
   .test(governanceJob)) {
   failures.push("Governance Job 必须获取完整 Git 历史");
+}
+const visualEvidenceContract = [
+  /^        id: smoke_tests$/m,
+  /^          PLAYWRIGHT_CAPTURE_DIAGNOSTICS: 'false'$/m,
+  /^          PLAYWRIGHT_EVIDENCE_DIR: visual-evidence$/m,
+  /^        id: smoke_evidence_safety$/m,
+  /^        if: steps\.smoke_tests\.outcome == 'success'$/m,
+  /^        run: pnpm security:evidence -- visual-evidence$/m,
+  /^          steps\.smoke_report_safety\.outcome == 'success' &&$/m,
+  /^          steps\.smoke_evidence_safety\.outcome == 'success'$/m,
+  /^          name: frontend-smoke-evidence-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}$/m,
+  /^          if-no-files-found: error$/m,
+  /^          retention-days: 7$/m,
+  /^          path: visual-evidence\/$/m,
+  /^          ARTIFACT_URL: \$\{\{ steps\.smoke_evidence_upload\.outputs\.artifact-url \}\}$/m,
+  /GITHUB_STEP_SUMMARY/,
+];
+const visualEvidenceSteps = [
+  "- name: Run smoke tests",
+  "- name: Check visual evidence safety",
+  "- name: Upload PR visual evidence",
+  "- name: Publish visual evidence summary",
+].map((fragment) => frontendSmokeJob.indexOf(fragment));
+if (visualEvidenceContract.some((pattern) => !pattern.test(frontendSmokeJob))
+    || visualEvidenceSteps.some((index) => index < 0)
+    || visualEvidenceSteps.some((index, position) => position > 0 && index <= visualEvidenceSteps[position - 1])
+    || packageJson.scripts?.["security:evidence"] !== "node scripts/check-visual-evidence.mjs"
+    || packageJson.scripts?.["test:e2e:smoke"]
+      !== "node scripts/run-e2e.mjs smoke.spec.ts app-mobile-regression.spec.ts") {
+  // 截图只能证明同一次完整 smoke 的成功状态，因此固定生成、校验、上传和摘要顺序。
+  failures.push("Frontend smoke 必须失败关闭地发布固定移动端视觉证据");
 }
 const seenActions = new Set();
 // 扫描全部 Workflow，避免通过新增 YAML 绕过已发布的 Action 允许列表与 SHA 锁定合同。

@@ -1,4 +1,8 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
+import path from 'node:path';
+
+const evidenceDirectory = process.env.PLAYWRIGHT_EVIDENCE_DIR;
 
 const apiResponse = (data: unknown) => JSON.stringify({
   success: true,
@@ -97,6 +101,24 @@ async function mockItineraryPage(page: Page, taskId: string): Promise<void> {
   await page.route(`**/api/itineraries/tasks/${taskId}`, (route) => fulfillApi(route, itineraryTask(taskId)));
 }
 
+async function captureVisualEvidence(page: Page, width: number): Promise<void> {
+  if (!evidenceDirectory) return;
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    window.scrollTo(0, 0);
+  });
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await mkdir(evidenceDirectory, { recursive: true });
+  // 证据只来自本文件的固定夹具，并在全部可见行为断言通过后生成，避免把失败现场或真实数据上传到 CI。
+  await page.screenshot({
+    path: path.join(evidenceDirectory, `itinerary-mobile-${width}.png`),
+    fullPage: false,
+    animations: 'disabled',
+    caret: 'hide',
+    scale: 'css',
+  });
+}
+
 for (const width of [360, 390]) {
   test(`行程详情在 ${width}px 下保持紧凑折叠态和单行操作区`, async ({ page }) => {
     const taskId = `mobile-itinerary-${width}`;
@@ -144,5 +166,7 @@ for (const width of [360, 390]) {
       document: document.documentElement.scrollWidth,
     }));
     expect(overflow.document).toBeLessThanOrEqual(overflow.viewport);
+
+    await captureVisualEvidence(page, width);
   });
 }
