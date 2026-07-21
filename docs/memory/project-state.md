@@ -24,7 +24,7 @@
 
 ## 最近验证
 
-- `TASK-PRODUCT-002` 仓库 lint、typecheck、test、server verify、eval、build 全部通过；服务端 684/684、浏览器 smoke 16/16、定向 Playwright 3/3，桌面与 390px/360px 验收通过。
+- `TASK-PRODUCT-002` 仓库 lint、typecheck、test、server verify、eval、build 全部通过；服务端 684/684、浏览器 smoke 19/19，并生成 6 张脱敏视觉证据，桌面与 390px/360px 验收通过。
 - 工程所有者于 2026-07-21 确认 Android 功能验收通过，并要求对应 Bug 全部关闭、准备下一轮开发。
 - 当前主干 Android Test APK run `29809421959` 成功；`com.deeptrail.app.debug`、debug 签名校验和 Artifact 自带 SHA-256 校验均通过，APK SHA-256 为 `ba9751a99dfbe212ce19c695bcde456cc9e6ee8b707c9371a48141a992e3bc2a`。
 - 合入前证据保持有效：Server `verify` 684/684、Server E2E 39/39、前端 smoke 16/16、移动端与地图定向回归、生产构建、Eval、lint、typecheck、test 与治理门禁通过。

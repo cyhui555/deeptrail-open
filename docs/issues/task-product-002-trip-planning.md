@@ -40,8 +40,8 @@
 ## G3 验收证据
 
 - 仓库门禁：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm verify:server`、`pnpm eval` 与 `pnpm build` 全部通过；服务端测试为 684/684，Checkstyle 0 违规，JaCoCo 阈值满足。
-- 浏览器门禁：`pnpm test:e2e:smoke` 为 16/16；`pnpm test:e2e task-product-002.spec.ts` 为 3/3，覆盖日期闭区间、待安排日期、删除取消/成功/失败、筛选组合、翻页条件保持和空状态恢复。
-- 响应式与视觉：真实 Edge 验证桌面月历，并在 390px 与 360px 断言无横向溢出；视觉沿用暖纸张、矿物蓝、毛玻璃和既有 Lucide 体系，没有引入新依赖或第二套主题。
+- 浏览器门禁：`pnpm test:e2e:smoke` 为 19/19，其中本任务 3 项覆盖日期闭区间、待安排日期、删除取消/成功/失败、筛选组合、翻页条件保持和空状态恢复。
+- 响应式与视觉：真实 Edge 验证桌面月历，并在 390px 与 360px 断言无横向溢出；同一次 smoke 生成 6 张固定尺寸脱敏截图，其中 4 张直接展示月历、删除确认、移动端月历和最近任务筛选，且 `pnpm security:evidence -- visual-evidence` 通过。
 - 构建预算：首页为 15.1 kB / 117 kB First Load JS，`/trips` 为 13.9 kB / 116 kB；没有调用真实 AI、地图、付费服务或用户数据。
 
 ## 交付边界

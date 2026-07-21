@@ -63,9 +63,9 @@ if (visualEvidenceContract.some((pattern) => !pattern.test(frontendSmokeJob))
     || visualEvidenceSteps.some((index, position) => position > 0 && index <= visualEvidenceSteps[position - 1])
     || packageJson.scripts?.["security:evidence"] !== "node scripts/check-visual-evidence.mjs"
     || packageJson.scripts?.["test:e2e:smoke"]
-      !== "node scripts/run-e2e.mjs smoke.spec.ts app-mobile-regression.spec.ts") {
+      !== "node scripts/run-e2e.mjs smoke.spec.ts app-mobile-regression.spec.ts task-product-002.spec.ts") {
   // 截图只能证明同一次完整 smoke 的成功状态，因此固定生成、校验、上传和摘要顺序。
-  failures.push("Frontend smoke 必须失败关闭地发布固定移动端视觉证据");
+  failures.push("Frontend smoke 必须失败关闭地发布固定脱敏视觉证据");
 }
 const seenActions = new Set();
 // 扫描全部 Workflow，避免通过新增 YAML 绕过已发布的 Action 允许列表与 SHA 锁定合同。
