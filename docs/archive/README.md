@@ -10,6 +10,7 @@
 
 ## 最近关闭与暂停
 
+- [行程日期视图与任务筛选](task-product-002-trip-planning.md)
 - [Android 基础切片与真机反馈验收](task-app-001-android-acceptance.md)
 - [代码与文档校验归档](task-docs-004-code-doc-validation-archive.md)
 - [小红书链接导入修复](bug-20260720-003-xiaohongshu-url-ingestion.md)

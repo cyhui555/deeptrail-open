@@ -13,6 +13,7 @@
 
 ## Paused / Archived
 
+- `TASK-PRODUCT-002` 已由 PR #76 受检合入并关闭，行程月历、软删除和最近任务组合筛选的交付结论见[归档摘要](../archive/task-product-002-trip-planning.md)；本次未部署。
 - `TASK-APP-001` 与 `BUG-20260720-001/002` 已完成 Android 功能人工验收并关闭，交付与边界见[Android 基础切片验收摘要](../archive/task-app-001-android-acceptance.md)。
 - React Doctor Daily（`loop-mrqhdf3j-90f66952`）与 Housekeeper Daily（`loop-mrric1do-f5aff447`）已设置 `enabled=false`；历史与恢复条件见 [TASK-LOOP-008](../archive/task-loop-008-react-doctor-daily-trial.md) 和工作区 Loopany 任务文件。
 - `TASK-DOCS-004` 已完成代码/文档校验与历史记录压缩，结论见[归档摘要](../archive/task-docs-004-code-doc-validation-archive.md)。
@@ -22,4 +23,4 @@
 
 ## Review Queue
 
-- [`TASK-PRODUCT-002`](task-product-002-trip-planning.md)：行程软删除、月历日期规划和最近任务组合筛选已完成 G3 本地门禁，进入受检 Draft PR 验收阶段。
+当前没有等待受检合入的产品任务。
