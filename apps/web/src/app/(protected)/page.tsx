@@ -18,7 +18,6 @@ import { TaskForm } from '@/components/TaskForm';
 import { OptimizeForm } from '@/components/OptimizeForm';
 import { XiaohongshuForm } from '@/components/XiaohongshuForm';
 import { ErrorAlert } from '@/components/ErrorAlert';
-import { EmptyState } from '@/components/EmptyState';
 import {
   submitGenerateTask,
   submitOptimizeTask,
@@ -52,6 +51,22 @@ const typeLabels: Record<TaskType, string> = {
   [TaskType.XIAOHONGSHU]: '小红书生成',
 };
 
+const taskTypeFilterOptions: Array<{ value: TaskType | ''; label: string }> = [
+  { value: '', label: '全部类型' },
+  { value: TaskType.GENERATE, label: '生成行程' },
+  { value: TaskType.OPTIMIZE, label: '优化行程' },
+  { value: TaskType.XIAOHONGSHU, label: '小红书生成' },
+];
+
+const taskStatusFilterOptions: Array<{ value: TaskStatus | ''; label: string }> = [
+  { value: '', label: '全部状态' },
+  { value: TaskStatus.PENDING, label: '等待中' },
+  { value: TaskStatus.PROCESSING, label: '处理中' },
+  { value: TaskStatus.COMPLETED, label: '已完成' },
+  { value: TaskStatus.FAILED, label: '失败' },
+  { value: TaskStatus.CANCELLED, label: '已取消' },
+];
+
 /** 优先返回正在执行的旅行，其次返回日期最近的待出发旅行。 */
 function selectPriorityTrip(plans: TripPlanSummary[]): TripPlanSummary | null {
   const ongoing = plans.find((plan) => plan.status === 'ONGOING');
@@ -81,6 +96,8 @@ export default function Home() {
   const [taskPage, setTaskPage] = useState(1);
   const [taskTotal, setTaskTotal] = useState(0);
   const [taskTotalPages, setTaskTotalPages] = useState(0);
+  const [taskTypeFilter, setTaskTypeFilter] = useState<TaskType | ''>('');
+  const [taskStatusFilter, setTaskStatusFilter] = useState<TaskStatus | ''>('');
   const [trips, setTrips] = useState<TripPlanSummary[]>([]);
   const [tripsLoading, setTripsLoading] = useState(true);
   const [tripLoadError, setTripLoadError] = useState(false);
@@ -102,7 +119,12 @@ export default function Home() {
     try {
       if (!silent) setTasksLoading(true);
       setTaskLoadError(null);
-      const data: PageResult<TaskSummary> = await fetchTaskList(undefined, page);
+      const data: PageResult<TaskSummary> = await fetchTaskList(
+        taskStatusFilter || undefined,
+        page,
+        10,
+        taskTypeFilter || undefined,
+      );
       setTasks(data?.records ?? []);
       setTaskPage(data?.page ?? 1);
       setTaskTotal(data?.total ?? 0);
@@ -113,7 +135,7 @@ export default function Home() {
     } finally {
       if (!silent) setTasksLoading(false);
     }
-  }, []);
+  }, [taskStatusFilter, taskTypeFilter]);
 
   const loadTrips = useCallback(async () => {
     setTripsLoading(true);
@@ -134,9 +156,18 @@ export default function Home() {
 
   useEffect(() => {
     void loadAiStatus();
-    void loadTasks();
+  }, [loadAiStatus]);
+
+  useEffect(() => {
+    // 筛选条件变化时清除上一组结果并回到第一页，避免短暂展示不匹配的旧任务。
+    setTasks([]);
+    setTaskPage(1);
+    void loadTasks(1);
+  }, [loadTasks]);
+
+  useEffect(() => {
     void loadTrips();
-  }, [loadAiStatus, loadTasks, loadTrips]);
+  }, [loadTrips]);
 
   const hasActiveTasks = tasks.some(
     (task) => task.status === TaskStatus.PENDING || task.status === TaskStatus.PROCESSING,
@@ -153,6 +184,7 @@ export default function Home() {
 
   const aiSubmissionDisabled = aiStatusLoading || !aiStatus?.available;
   const priorityTrip = selectPriorityTrip(trips);
+  const hasTaskFilters = Boolean(taskTypeFilter || taskStatusFilter);
   const submissionErrorMessage = (value: unknown) => {
     const message = value instanceof Error ? value.message : '提交失败';
     return message.includes('SPRING_AI_OPENAI_API_KEY') || message.includes('AI 生成功能')
@@ -448,7 +480,50 @@ export default function Home() {
             <p className="mt-1 text-xs leading-5 text-gray-500">继续整理还在生成或等待确认的行程。</p>
           </div>
           {taskTotal > 0 && (
-            <span className="shrink-0 text-xs text-gray-500">{taskTotal} 个任务</span>
+            <span className="shrink-0 text-xs text-gray-500">
+              {taskTotal} 个{hasTaskFilters ? '匹配任务' : '任务'}
+            </span>
+          )}
+        </div>
+
+        <div className="mb-3 grid grid-cols-2 gap-2 rounded-2xl border border-white/65 bg-white/30 p-2" aria-label="筛选最近任务">
+          <label className="min-w-0">
+            <span className="mb-1 block px-1 text-[11px] font-semibold text-gray-500">任务类型</span>
+            <select
+              value={taskTypeFilter}
+              onChange={(event) => setTaskTypeFilter(event.target.value as TaskType | '')}
+              className="h-10 w-full rounded-xl border border-white/80 bg-white/70 px-2.5 text-xs font-semibold text-gray-700 outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+              aria-label="按任务类型筛选"
+            >
+              {taskTypeFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="min-w-0">
+            <span className="mb-1 block px-1 text-[11px] font-semibold text-gray-500">执行状态</span>
+            <select
+              value={taskStatusFilter}
+              onChange={(event) => setTaskStatusFilter(event.target.value as TaskStatus | '')}
+              className="h-10 w-full rounded-xl border border-white/80 bg-white/70 px-2.5 text-xs font-semibold text-gray-700 outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+              aria-label="按任务状态筛选"
+            >
+              {taskStatusFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          {hasTaskFilters && (
+            <button
+              type="button"
+              onClick={() => {
+                setTaskTypeFilter('');
+                setTaskStatusFilter('');
+              }}
+              className="col-span-2 min-h-9 rounded-xl text-xs font-semibold text-primary-800 hover:bg-white/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600"
+            >
+              清除筛选
+            </button>
           )}
         </div>
 
@@ -475,7 +550,23 @@ export default function Home() {
             ))}
           </div>
         ) : tasks.length === 0 && !taskLoadError ? (
-          <EmptyState message="暂无任务，提交一个开始吧！" />
+          <div className="glass-light rounded-2xl p-8 text-center text-gray-500">
+            <p className="text-sm leading-6">
+              {hasTaskFilters ? '没有符合筛选条件的任务。' : '暂无任务，提交一个开始吧！'}
+            </p>
+            {hasTaskFilters && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTaskTypeFilter('');
+                  setTaskStatusFilter('');
+                }}
+                className="mt-3 min-h-10 rounded-xl px-4 text-xs font-semibold text-primary-800 hover:bg-white/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600"
+              >
+                查看全部任务
+              </button>
+            )}
+          </div>
         ) : tasks.length > 0 ? (
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
             {tasks.map((task) => (

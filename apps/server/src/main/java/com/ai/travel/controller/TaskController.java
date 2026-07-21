@@ -6,6 +6,7 @@ import com.ai.travel.dto.response.PageResult;
 import com.ai.travel.dto.response.TaskStatusResponse;
 import com.ai.travel.dto.response.TaskSummaryResponse;
 import com.ai.travel.enums.TaskStatus;
+import com.ai.travel.enums.TaskType;
 import com.ai.travel.service.ItineraryTaskService;
 import com.ai.travel.service.TaskStatusStreamService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,15 +40,16 @@ public class TaskController {
   private final ItineraryTaskService taskService;
   private final TaskStatusStreamService taskStatusStreamService;
 
-  /** 分页获取任务列表，可按状态过滤。 */
+  /** 分页获取任务列表，可按状态和任务类型组合过滤。 */
   @Operation(summary = "分页获取任务列表")
   @ApiResponse(responseCode = "200", description = "成功")
   @GetMapping
   public com.ai.travel.dto.ApiResponse<PageResult<TaskSummaryResponse>> listTasks(
       @RequestParam(required = false) TaskStatus status,
+      @RequestParam(required = false) TaskType type,
       @RequestParam(defaultValue = "1") @Min(1) int page,
       @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size) {
-    return com.ai.travel.dto.ApiResponse.ok(taskService.listTasks(status, page, size));
+    return com.ai.travel.dto.ApiResponse.ok(taskService.listTasks(status, type, page, size));
   }
 
   /** 获取完整任务状态，SSE 客户端在状态事件到达后调用。 */

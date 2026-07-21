@@ -184,9 +184,11 @@ export async function fetchTaskList(
   status?: string,
   page = 1,
   size = 10,
+  type?: string,
 ): Promise<PageResult<TaskSummary>> {
   const params = new URLSearchParams();
   if (status) params.set('status', status);
+  if (type) params.set('type', type);
   params.set('page', String(page));
   params.set('size', String(size));
   return request(`/api/itineraries/tasks?${params.toString()}`);

@@ -12,11 +12,13 @@ const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
 test("视觉证据接受固定尺寸、完整且不含文本元数据的截图", async () => {
   await withEvidenceRoot(async (root) => {
-    await writeExpectedPair(root);
+    await writeExpectedEvidence(root);
     const result = runCheck(root);
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /2 张确定性截图/);
+    assert.match(result.stdout, /6 张确定性截图/);
     assert.match(result.stdout, /itinerary-mobile-360\.png: 360x820, sha256:/);
+    assert.match(result.stdout, /trip-calendar-desktop\.png: 1280x900, sha256:/);
+    assert.match(result.stdout, /recent-task-filters-desktop\.png: 1280x900, sha256:/);
     assert.equal(runCheck(root, true).status, 0);
   });
 });
@@ -35,7 +37,7 @@ test("视觉证据缺失、尺寸漂移或混入额外文件时失败关闭", as
 
 test("视觉证据拒绝可承载文本的 PNG 元数据块", async () => {
   await withEvidenceRoot(async (root) => {
-    await writeExpectedPair(root, { textMetadata: true });
+    await writeExpectedEvidence(root, { textMetadata: true });
     const result = runCheck(root);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /disallowed-png-chunk/);
@@ -51,10 +53,14 @@ async function withEvidenceRoot(run) {
   }
 }
 
-async function writeExpectedPair(root, options = {}) {
+async function writeExpectedEvidence(root, options = {}) {
   await Promise.all([
     writeFile(path.join(root, "itinerary-mobile-360.png"), createPng(360, 820, options)),
     writeFile(path.join(root, "itinerary-mobile-390.png"), createPng(390, 820, options)),
+    writeFile(path.join(root, "trip-calendar-desktop.png"), createPng(1280, 900, options)),
+    writeFile(path.join(root, "trip-delete-confirm-desktop.png"), createPng(1280, 900, options)),
+    writeFile(path.join(root, "trip-calendar-mobile-390.png"), createPng(390, 844, options)),
+    writeFile(path.join(root, "recent-task-filters-desktop.png"), createPng(1280, 900, options)),
   ]);
 }
 

@@ -257,7 +257,7 @@ jobs:
         env:
           ARTIFACT_URL: ${{ steps.smoke_evidence_upload.outputs.artifact-url }}
         run: >-
-          printf '### PR 视觉验收证据\n\n- [下载 360px / 390px 脱敏截图](%s)\n- 截图来自确定性测试夹具；完整 Frontend smoke 与截图安全检查均已通过。\n'
+          printf '### PR 视觉验收证据\n\n- [下载新功能桌面截图与 360px / 390px 脱敏截图](%s)\n- 包含行程月历、删除确认、最近任务筛选和移动端布局；截图来自确定性测试夹具，完整 Frontend smoke 与截图安全检查均已通过。\n'
           "${ARTIFACT_URL}" >> "${GITHUB_STEP_SUMMARY}"
 
   frontend-full-e2e:

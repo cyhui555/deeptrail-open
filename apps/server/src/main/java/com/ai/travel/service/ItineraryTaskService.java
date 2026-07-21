@@ -183,18 +183,23 @@ public class ItineraryTaskService {
   }
 
   /**
-   * 分页列出任务，可按状态过滤。
+   * 分页列出任务，可按状态和任务类型组合过滤。
    *
    * @param status 可选的状态过滤条件
+   * @param type   可选的任务类型过滤条件
    * @param page   页码（从 1 开始）
    * @param size   每页条数（最大 50）
    * @return 分页任务摘要
    */
-  public PageResult<TaskSummaryResponse> listTasks(TaskStatus status, int page, int size) {
+  public PageResult<TaskSummaryResponse> listTasks(
+      TaskStatus status, TaskType type, int page, int size) {
     LambdaQueryWrapper<ItineraryTask> wrapper = Wrappers.lambdaQuery();
     wrapper.orderByDesc(ItineraryTask::getCreatedAt);
     if (status != null) {
       wrapper.eq(ItineraryTask::getStatus, status);
+    }
+    if (type != null) {
+      wrapper.eq(ItineraryTask::getType, type);
     }
     Long userId = UserContext.getUserId();
     if (userId != null) {

@@ -14,6 +14,10 @@ if (arguments_.length !== 1) {
 const expectedFiles = new Map([
   ["itinerary-mobile-360.png", { width: 360, height: 820 }],
   ["itinerary-mobile-390.png", { width: 390, height: 820 }],
+  ["trip-calendar-desktop.png", { width: 1280, height: 900 }],
+  ["trip-delete-confirm-desktop.png", { width: 1280, height: 900 }],
+  ["trip-calendar-mobile-390.png", { width: 390, height: 844 }],
+  ["recent-task-filters-desktop.png", { width: 1280, height: 900 }],
 ]);
 const allowedAncillaryChunks = new Map([
   ["sRGB", 1],

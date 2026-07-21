@@ -5,7 +5,7 @@
 
 ## In Progress
 
-当前没有活动产品主任务。`TASK-APP-001` 及其真机反馈子项已经人工验收并关闭，产品 WIP 已释放；下一轮候选仍需由工程所有者单独准入。
+当前没有处于实施阶段的产品主任务。
 
 ## Operational Follow-up（不占用产品 WIP）
 
@@ -22,4 +22,4 @@
 
 ## Review Queue
 
-当前没有开放的产品 Review 项；新候选必须由工程所有者重新准入。
+- [`TASK-PRODUCT-002`](task-product-002-trip-planning.md)：行程软删除、月历日期规划和最近任务组合筛选已完成 G3 本地门禁，进入受检 Draft PR 验收阶段。
