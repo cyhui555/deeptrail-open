@@ -215,7 +215,8 @@ class ItineraryTaskServiceTest {
     page.setTotal(1);
     when(taskMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
 
-    PageResult<TaskSummaryResponse> result = taskService.listTasks(TaskStatus.PROCESSING, 1, 10);
+    PageResult<TaskSummaryResponse> result = taskService.listTasks(
+        TaskStatus.PROCESSING, TaskType.OPTIMIZE, 1, 10);
 
     assertThat(result.getRecords()).hasSize(1);
     assertThat(result.getRecords().get(0).getTaskId()).isEqualTo("task-1");
@@ -237,7 +238,7 @@ class ItineraryTaskServiceTest {
     page.setTotal(1);
     when(taskMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
 
-    PageResult<TaskSummaryResponse> result = taskService.listTasks(null, 1, 10);
+    PageResult<TaskSummaryResponse> result = taskService.listTasks(null, null, 1, 10);
 
     assertThat(result.getRecords()).hasSize(1);
     assertThat(result.getRecords().get(0).getSummary()).contains("Beijing").contains("Xi'an");
@@ -625,7 +626,7 @@ class ItineraryTaskServiceTest {
         any(com.baomidou.mybatisplus.extension.plugins.pagination.Page.class),
         any())).thenReturn(page);
 
-    var result = taskService.listTasks(null, 0, 10);
+    var result = taskService.listTasks(null, null, 0, 10);
     assertThat(result).isNotNull();
     assertThat(result.getPage()).isEqualTo(1);
   }
@@ -642,7 +643,7 @@ class ItineraryTaskServiceTest {
         any(com.baomidou.mybatisplus.extension.plugins.pagination.Page.class),
         any(LambdaQueryWrapper.class))).thenReturn(page);
 
-    var result = taskService.listTasks(null, 1, 10);
+    var result = taskService.listTasks(null, null, 1, 10);
     assertThat(result).isNotNull();
   }
 
@@ -666,7 +667,7 @@ class ItineraryTaskServiceTest {
         any(com.baomidou.mybatisplus.extension.plugins.pagination.Page.class),
         any())).thenReturn(page);
 
-    var result = taskService.listTasks(null, 1, 10);
+    var result = taskService.listTasks(null, null, 1, 10);
     assertThat(result.getRecords()).hasSize(1);
     // buildSummary catch branch returns type.name()
     assertThat(result.getRecords().get(0).getSummary()).isEqualTo("GENERATE");
@@ -716,7 +717,7 @@ class ItineraryTaskServiceTest {
         any(com.baomidou.mybatisplus.extension.plugins.pagination.Page.class),
         any())).thenReturn(page);
 
-    var result = taskService.listTasks(null, 1, 100);
+    var result = taskService.listTasks(null, null, 1, 100);
     assertThat(result.getSize()).isEqualTo(50);
   }
 }

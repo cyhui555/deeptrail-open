@@ -58,7 +58,7 @@ class TaskControllerTest {
     response.setStatus(TaskStatus.PENDING);
     response.setSubmittedAt(LocalDateTime.of(2026, 6, 30, 9, 0));
     PageResult<TaskSummaryResponse> pageResult = new PageResult<>(List.of(response), 1, 1, 10, 1);
-    when(taskService.listTasks(isNull(), eq(1), eq(10))).thenReturn(pageResult);
+    when(taskService.listTasks(isNull(), isNull(), eq(1), eq(10))).thenReturn(pageResult);
 
     mockMvc.perform(get("/api/itineraries/tasks"))
         .andExpect(status().isOk())
@@ -66,18 +66,22 @@ class TaskControllerTest {
         .andExpect(jsonPath("$.data.records[0].status").value("PENDING"))
         .andExpect(jsonPath("$.data.total").value(1));
 
-    verify(taskService).listTasks(isNull(), eq(1), eq(10));
+    verify(taskService).listTasks(isNull(), isNull(), eq(1), eq(10));
   }
 
   @Test
-  void listTasksCanFilterByStatus() throws Exception {
+  void listTasksCanFilterByStatusAndType() throws Exception {
     PageResult<TaskSummaryResponse> empty = new PageResult<>(List.of(), 0, 1, 10, 0);
-    when(taskService.listTasks(eq(TaskStatus.PROCESSING), eq(1), eq(10))).thenReturn(empty);
+    when(taskService.listTasks(
+        eq(TaskStatus.PROCESSING), eq(TaskType.OPTIMIZE), eq(1), eq(10))).thenReturn(empty);
 
-    mockMvc.perform(get("/api/itineraries/tasks").param("status", "PROCESSING"))
+    mockMvc.perform(get("/api/itineraries/tasks")
+            .param("status", "PROCESSING")
+            .param("type", "OPTIMIZE"))
         .andExpect(status().isOk());
 
-    verify(taskService).listTasks(eq(TaskStatus.PROCESSING), eq(1), eq(10));
+    verify(taskService).listTasks(
+        eq(TaskStatus.PROCESSING), eq(TaskType.OPTIMIZE), eq(1), eq(10));
   }
 
   @Test

@@ -2,23 +2,40 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { MapPinned, Plus } from 'lucide-react';
-import { createTripPlan, getTripPlans } from '@/lib/api';
+import { CalendarDays, List, MapPinned, Plus } from 'lucide-react';
+import { createTripPlan, deleteTripPlan, getTripPlans } from '@/lib/api';
 import { TripPlanCard } from '@/components/TripPlanCard';
+import { TripCalendar } from '@/components/TripCalendar';
 import { ErrorAlert } from '@/components/ErrorAlert';
-import type { TripPlanSummary } from '@/types';
+import { useAppFeedback } from '@/components/FeedbackProvider';
+import type { PlanStatus, TripPlanSummary } from '@/types';
+
+type ViewMode = 'list' | 'calendar';
+
+const statusFilters: Array<{ value: PlanStatus | ''; label: string }> = [
+  { value: '', label: '全部' },
+  { value: 'PLANNED', label: '计划中' },
+  { value: 'ONGOING', label: '进行中' },
+  { value: 'COMPLETED', label: '已完成' },
+];
 
 /** 行程清单列表页面。 */
 export default function TripsPage() {
   const router = useRouter();
+  const { confirmAction, notify } = useAppFeedback();
   const [plans, setPlans] = useState<TripPlanSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<PlanStatus | ''>('');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [planTotal, setPlanTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [calendarPlans, setCalendarPlans] = useState<TripPlanSummary[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
 
   // 新建空白清单表单
   const [showCreate, setShowCreate] = useState(false);
@@ -41,6 +58,7 @@ export default function TripsPage() {
       });
       setPage(result.page);
       setTotalPages(result.totalPages);
+      setPlanTotal(result.total);
     } catch (e) {
       setError(e instanceof Error ? e.message : '加载失败');
     } finally {
@@ -52,6 +70,34 @@ export default function TripsPage() {
   useEffect(() => {
     void loadPlans(1, false);
   }, [loadPlans]);
+
+  /** 月历需要完整规划集合，按服务端允许的 100 条分页批量读取并按 ID 去重。 */
+  const loadCalendarPlans = useCallback(async () => {
+    setCalendarLoading(true);
+    setCalendarError(null);
+    try {
+      const firstPage = await getTripPlans(statusFilter || undefined, 1, 100);
+      const remainingPages = firstPage.totalPages > 1
+        ? await Promise.all(Array.from(
+          { length: firstPage.totalPages - 1 },
+          (_, index) => getTripPlans(statusFilter || undefined, index + 2, 100),
+        ))
+        : [];
+      const merged = new Map(firstPage.records.map((plan) => [plan.id, plan]));
+      remainingPages.forEach((result) => {
+        result.records.forEach((plan) => merged.set(plan.id, plan));
+      });
+      setCalendarPlans(Array.from(merged.values()));
+    } catch (e) {
+      setCalendarError(e instanceof Error ? e.message : '日期视图加载失败');
+    } finally {
+      setCalendarLoading(false);
+    }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    if (viewMode === 'calendar') void loadCalendarPlans();
+  }, [loadCalendarPlans, viewMode]);
 
   /** 提交新建空白清单（不关联 AI 任务，不自动启动打卡）。 */
   const handleCreatePlan = async (e: React.FormEvent) => {
@@ -72,6 +118,38 @@ export default function TripsPage() {
       setCreateError(err instanceof Error ? err.message : '创建失败');
     } finally {
       setCreating(false);
+    }
+  };
+
+  /** 仅在服务端软删除成功后更新本地集合，失败时保留原行程供用户重试。 */
+  const handleDeletePlan = async (plan: TripPlanSummary) => {
+    if (deletingPlanId) return;
+    const planName = plan.destination || plan.title;
+    const accepted = await confirmAction({
+      title: '删除这个行程？',
+      description: `“${planName}”会从你的行程清单中移除，此操作目前不可撤销。`,
+      confirmLabel: '确认删除',
+      danger: true,
+    });
+    if (!accepted) return;
+
+    setDeletingPlanId(plan.id);
+    try {
+      await deleteTripPlan(plan.id);
+      setPlans((current) => current.filter((item) => item.id !== plan.id));
+      setCalendarPlans((current) => current.filter((item) => item.id !== plan.id));
+      const nextTotal = Math.max(0, planTotal - 1);
+      const nextTotalPages = Math.ceil(nextTotal / 20);
+      const nextPage = Math.min(page, Math.max(nextTotalPages, 1));
+      setPlanTotal(nextTotal);
+      setTotalPages(nextTotalPages);
+      // 删除会让后续分页数据前移，补读当前末页以免列表少展示一条记录。
+      await loadPlans(nextPage, true);
+      notify(`已删除行程“${planName}”`, 'success');
+    } catch (deleteError) {
+      notify(deleteError instanceof Error ? deleteError.message : '删除失败，请稍后重试。', 'error');
+    } finally {
+      setDeletingPlanId(null);
     }
   };
 
@@ -150,59 +228,116 @@ export default function TripsPage() {
         </div>
       )}
 
-      {/* 状态筛选 */}
-      <div className="glass-light flex gap-1 overflow-x-auto rounded-2xl p-1.5 scrollbar-hide" aria-label="按行程状态筛选">
-        {['', 'PLANNED', 'ONGOING', 'COMPLETED'].map((s) => (
-          <button
-            type="button"
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            aria-pressed={statusFilter === s}
-            className={`whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-all ${
-              statusFilter === s
-                ? 'bg-white/90 text-primary-800 shadow-card'
-                : 'text-gray-500 hover:bg-white/50 hover:text-gray-800'
-            }`}
-          >
-            {s === '' ? '全部' : s === 'PLANNED' ? '计划中' : s === 'ONGOING' ? '进行中' : '已完成'}
-          </button>
-        ))}
-      </div>
-
-      {loading && (
-        <div className="space-y-3" aria-label="正在加载行程">
-          {[1, 2].map((item) => (
-            <div key={item} className="glass-light h-32 animate-pulse rounded-2xl" />
+      <div className="glass-light flex flex-col gap-2 rounded-2xl p-1.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 gap-1 overflow-x-auto scrollbar-hide" aria-label="按行程状态筛选">
+          {statusFilters.map((filter) => (
+            <button
+              type="button"
+              key={filter.value}
+              onClick={() => setStatusFilter(filter.value)}
+              aria-pressed={statusFilter === filter.value}
+              className={`whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-all ${
+                statusFilter === filter.value
+                  ? 'bg-white/90 text-primary-800 shadow-card'
+                  : 'text-gray-500 hover:bg-white/50 hover:text-gray-800'
+              }`}
+            >
+              {filter.label}
+            </button>
           ))}
         </div>
-      )}
-      {error && <ErrorAlert message={error} />}
-
-      {!loading && !error && plans.length === 0 && !showCreate && (
-        <div className="glass-light rounded-2xl p-9 text-center">
-          <MapPinned aria-hidden="true" className="mx-auto h-8 w-8 text-primary-600" strokeWidth={1.6} />
-          <p className="mt-4 font-semibold text-gray-800">还没有行程</p>
-          <p className="mt-1 text-sm leading-6 text-gray-500">创建一条空白行程，再把想去的地点慢慢放进去。</p>
+        <div className="grid shrink-0 grid-cols-2 gap-1 rounded-xl bg-white/35 p-1" role="group" aria-label="行程查看方式">
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            aria-pressed={viewMode === 'list'}
+            className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold ${viewMode === 'list' ? 'bg-white text-primary-800 shadow-card' : 'text-gray-500 hover:text-gray-800'}`}
+          >
+            <List aria-hidden="true" className="h-3.5 w-3.5" />
+            列表
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('calendar')}
+            aria-pressed={viewMode === 'calendar'}
+            className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold ${viewMode === 'calendar' ? 'bg-white text-primary-800 shadow-card' : 'text-gray-500 hover:text-gray-800'}`}
+          >
+            <CalendarDays aria-hidden="true" className="h-3.5 w-3.5" />
+            月历
+          </button>
         </div>
-      )}
-
-      <div className="grid gap-3">
-        {plans.map((plan) => (
-          <Link key={plan.id} href={`/trips/${plan.id}`} className="block rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500">
-            <TripPlanCard plan={plan} />
-          </Link>
-        ))}
       </div>
 
-      {!loading && !error && page < totalPages && (
-        <button
-          type="button"
-          onClick={() => void loadPlans(page + 1, true)}
-          disabled={loadingMore}
-          className="button-secondary w-full px-4"
-        >
-          {loadingMore ? '正在加载...' : '加载更多行程'}
-        </button>
+      {viewMode === 'list' ? (
+        <>
+          {loading && (
+            <div className="space-y-3" aria-label="正在加载行程">
+              {[1, 2].map((item) => (
+                <div key={item} className="glass-light h-32 animate-pulse rounded-2xl" />
+              ))}
+            </div>
+          )}
+          {error && <ErrorAlert message={error} />}
+
+          {!loading && !error && plans.length === 0 && !showCreate && (
+            <div className="glass-light rounded-2xl p-9 text-center">
+              <MapPinned aria-hidden="true" className="mx-auto h-8 w-8 text-primary-600" strokeWidth={1.6} />
+              <p className="mt-4 font-semibold text-gray-800">{statusFilter ? '没有符合条件的行程' : '还没有行程'}</p>
+              <p className="mt-1 text-sm leading-6 text-gray-500">
+                {statusFilter ? '切换状态查看其他规划。' : '创建一条空白行程，再把想去的地点慢慢放进去。'}
+              </p>
+            </div>
+          )}
+
+          <div className="grid gap-3">
+            {plans.map((plan) => (
+              <TripPlanCard
+                key={plan.id}
+                plan={plan}
+                deleting={deletingPlanId === plan.id}
+                onDelete={handleDeletePlan}
+              />
+            ))}
+          </div>
+
+          {!loading && !error && page < totalPages && (
+            <button
+              type="button"
+              onClick={() => void loadPlans(page + 1, true)}
+              disabled={loadingMore}
+              className="button-secondary w-full px-4"
+            >
+              {loadingMore ? '正在加载...' : `加载更多行程（已显示 ${plans.length}/${planTotal}）`}
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          {calendarLoading && (
+            <div className="glass-light h-[28rem] animate-pulse rounded-2xl" aria-label="正在加载行程月历" />
+          )}
+          {calendarError && (
+            <div className="space-y-3">
+              <ErrorAlert message={calendarError} />
+              <button type="button" onClick={() => void loadCalendarPlans()} className="button-secondary w-full px-4">
+                重新加载日期视图
+              </button>
+            </div>
+          )}
+          {!calendarLoading && !calendarError && calendarPlans.length === 0 ? (
+            <div className="glass-light rounded-2xl p-9 text-center">
+              <CalendarDays aria-hidden="true" className="mx-auto h-8 w-8 text-primary-600" strokeWidth={1.6} />
+              <p className="mt-4 font-semibold text-gray-800">{statusFilter ? '这个状态下没有行程' : '还没有可安排的行程'}</p>
+              <p className="mt-1 text-sm leading-6 text-gray-500">新建行程并设置日期后，就能在月历中查看规划。</p>
+            </div>
+          ) : !calendarLoading && !calendarError ? (
+            <TripCalendar
+              plans={calendarPlans}
+              deletingPlanId={deletingPlanId}
+              onDelete={handleDeletePlan}
+            />
+          ) : null}
+        </>
       )}
     </div>
   );
