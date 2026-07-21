@@ -10,6 +10,7 @@
 
 ## 最近关闭与暂停
 
+- [Android 基础切片与真机反馈验收](task-app-001-android-acceptance.md)
 - [代码与文档校验归档](task-docs-004-code-doc-validation-archive.md)
 - [小红书链接导入修复](bug-20260720-003-xiaohongshu-url-ingestion.md)
 - [HTTP 405 错误映射](bug-20260719-002-http-method-error-mapping.md)

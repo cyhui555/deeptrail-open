@@ -1,13 +1,11 @@
 # 执行看板
 
-- 最近更新：2026-07-20
+- 最近更新：2026-07-21
 - WIP 上限：1 个产品主任务；会创建源码或 PR 的维护循环默认暂停
 
 ## In Progress
 
-- [`TASK-APP-001`](task-app-001-android-basic.md)：Android 基础 APK 与真机反馈修复已分别由 PR #65/#67 合入；当前只做受控部署与 360px/390px 真机复验。
-- [`BUG-20260720-001`](bug-20260720-001-geocoding-qps-cascade.md)：5 QPS 限流级联修复已随 PR #67 合入，等待脱敏规划任务验证实际坐标补全率；作为 `TASK-APP-001` 子项，不新增并行 WIP。
-- [`BUG-20260720-002`](bug-20260720-002-daily-map-viewport.md)：现场按天切换地图视口修复已由 PR #74 合入，等待受控环境与真机复验；作为 `TASK-APP-001` 真机反馈子项，不新增并行 WIP。
+当前没有活动产品主任务。`TASK-APP-001` 及其真机反馈子项已经人工验收并关闭，产品 WIP 已释放；下一轮候选仍需由工程所有者单独准入。
 
 ## Operational Follow-up（不占用产品 WIP）
 
@@ -15,6 +13,7 @@
 
 ## Paused / Archived
 
+- `TASK-APP-001` 与 `BUG-20260720-001/002` 已完成 Android 功能人工验收并关闭，交付与边界见[Android 基础切片验收摘要](../archive/task-app-001-android-acceptance.md)。
 - React Doctor Daily（`loop-mrqhdf3j-90f66952`）与 Housekeeper Daily（`loop-mrric1do-f5aff447`）已设置 `enabled=false`；历史与恢复条件见 [TASK-LOOP-008](../archive/task-loop-008-react-doctor-daily-trial.md) 和工作区 Loopany 任务文件。
 - `TASK-DOCS-004` 已完成代码/文档校验与历史记录压缩，结论见[归档摘要](../archive/task-docs-004-code-doc-validation-archive.md)。
 - `BUG-20260720-003` 已由 PR #75 受检合入，修复交付结论见[小红书链接导入修复摘要](../archive/bug-20260720-003-xiaohongshu-url-ingestion.md)；部署与历史任务重算不属于该 Bug 的交付范围。
