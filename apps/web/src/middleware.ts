@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/login', '/offline.html', '/.well-known/assetlinks.json'];
+const PUBLIC_PATHS = ['/login', '/globe-demo', '/offline.html', '/.well-known/assetlinks.json'];
 const PUBLIC_PREFIXES = ['/_next', '/icons', '/manifest.json', '/sw.js'];
 
 /**

@@ -50,8 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 最多重试 2 次，总等待约 3 秒，避免白屏过久
     const maxRetries = 2;
 
-    // 匿名登录页已由 Middleware 完成 Cookie 路由判断，无需主动请求 /me 制造预期 401。
-    if (window.location.pathname === '/login') {
+    // 匿名页面已由 Middleware 限定精确路径，无需主动请求 /me 制造预期 401 或后端依赖。
+    if (window.location.pathname === '/login' || window.location.pathname === '/globe-demo') {
       setUser(null);
       setLoading(false);
       return () => { cancelled = true; };
