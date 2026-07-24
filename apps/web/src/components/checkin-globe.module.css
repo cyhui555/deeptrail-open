@@ -1,0 +1,347 @@
+.shell {
+  position: relative;
+  min-height: 28rem;
+  overflow: hidden;
+  border: 1px solid rgb(79 125 148 / 28%);
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 50% 46%, rgb(44 83 101 / 24%), transparent 42%),
+    #061015;
+  box-shadow:
+    inset 0 1px 0 rgb(222 241 248 / 8%),
+    0 22px 60px -44px rgb(37 87 111 / 72%);
+}
+
+.canvasHost,
+.canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.canvasHost {
+  cursor: grab;
+  touch-action: none;
+}
+
+.canvasHost:active {
+  cursor: grabbing;
+}
+
+.canvas > div,
+.canvas canvas {
+  display: block;
+}
+
+.legend {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: flex;
+  max-width: calc(100% - 1.5rem);
+  min-height: 2.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.8rem;
+  border: 1px solid rgb(174 208 222 / 18%);
+  border-radius: 0.75rem;
+  background: rgb(7 23 30 / 84%);
+  padding: 0.55rem 0.75rem;
+  color: #c4d8e0;
+  font-size: 0.7rem;
+  line-height: 1.25;
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.legend i {
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.pendingPoint,
+.checkedPoint {
+  width: 0.48rem;
+  height: 0.48rem;
+  border: 1px solid rgb(255 255 255 / 42%);
+  border-radius: 50%;
+}
+
+.pendingPoint {
+  background: #f28a48;
+}
+
+.checkedPoint {
+  background: #4aa879;
+}
+
+.plannedLine,
+.actualLine,
+.gpsLine {
+  width: 1.1rem;
+  height: 0;
+  border-top-width: 2px;
+}
+
+.plannedLine {
+  border-top-style: dashed;
+  border-color: #78a9c0;
+}
+
+.actualLine {
+  border-top-style: solid;
+  border-color: #4aa879;
+}
+
+.gpsLine {
+  border-top-style: solid;
+  border-color: #ef6b63;
+}
+
+.interactionHint {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid rgb(174 208 222 / 18%);
+  border-radius: 0.75rem;
+  background: rgb(7 23 30 / 84%);
+  padding: 0 0.75rem;
+  color: #b7ccd5;
+  font-size: 0.7rem;
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+}
+
+.interactionHint svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: #9cc8dc;
+}
+
+.stateOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.7rem;
+  background: rgb(6 16 21 / 95%);
+  padding: 1.5rem;
+  color: #a9c0ca;
+  text-align: center;
+}
+
+.stateOverlay > svg {
+  width: 1.6rem;
+  height: 1.6rem;
+  color: #93bfd2;
+}
+
+.stateOverlay strong {
+  color: #e8f3f7;
+  font-size: 0.95rem;
+}
+
+.stateOverlay span {
+  max-width: 30rem;
+  font-size: 0.78rem;
+  line-height: 1.7;
+}
+
+.errorOverlay {
+  z-index: 1;
+}
+
+.errorOverlay button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+  border: 1px solid #8bb7ca;
+  border-radius: 0.75rem;
+  background: #a9cfdf;
+  padding: 0 1rem;
+  color: #10242d;
+  font-size: 0.78rem;
+  font-weight: 750;
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.errorOverlay button:hover {
+  background: #b9dbe8;
+}
+
+.errorOverlay button:active {
+  transform: translateY(1px);
+}
+
+.errorOverlay button svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.loadingGlobe {
+  position: relative;
+  width: 7.5rem;
+  height: 7.5rem;
+  overflow: hidden;
+  border: 1px solid rgb(155 197 221 / 32%);
+  border-radius: 50%;
+  background:
+    linear-gradient(90deg, transparent 47%, rgb(155 197 221 / 14%) 49% 51%, transparent 53%),
+    linear-gradient(0deg, transparent 47%, rgb(155 197 221 / 12%) 49% 51%, transparent 53%),
+    rgb(120 169 196 / 6%);
+  box-shadow: inset -1.25rem -0.5rem 2.5rem rgb(4 11 14 / 52%);
+}
+
+.loadingGlobe span {
+  position: absolute;
+  inset: 14% 28%;
+  border: 1px solid rgb(155 197 221 / 20%);
+  border-radius: 50%;
+}
+
+.loadingGlobe span:nth-child(2) {
+  inset: 28% 8%;
+}
+
+.loadingGlobe span:nth-child(3) {
+  inset: -8% 46%;
+  width: 1rem;
+  border-width: 0 1px;
+  border-radius: 0;
+  animation: loadingSweep 1.8s ease-in-out infinite;
+}
+
+.shell :global(.checkin-globe-tooltip) {
+  display: grid;
+  gap: 0.18rem;
+  max-width: 16rem;
+  border: 1px solid rgb(183 214 226 / 20%);
+  border-radius: 0.65rem;
+  background: rgb(7 22 29 / 94%);
+  padding: 0.55rem 0.7rem;
+  color: #c5d9e1;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 26%);
+}
+
+.shell :global(.checkin-globe-tooltip strong) {
+  color: #f0f8fb;
+  font-size: 0.78rem;
+}
+
+.shell :global(.checkin-globe-tooltip span) {
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.locationMarker {
+  display: inline-flex;
+  min-height: 1.8rem;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgb(180 210 222 / 28%);
+  border-radius: 0.6rem;
+  background: rgb(7 22 29 / 88%);
+  padding: 0.25rem 0.55rem;
+  color: #d6e7ed;
+  font-family: var(--font-app), "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 24%);
+  cursor: pointer;
+  transition:
+    opacity 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.locationMarker:hover,
+.locationMarker:focus-visible {
+  border-color: rgb(189 222 235 / 68%);
+  background: rgb(12 34 43 / 96%);
+  outline: none;
+}
+
+.locationMarkerSelected {
+  border-color: #c8e6f1;
+  background: rgb(16 46 58 / 97%);
+  color: #f4fbfd;
+}
+
+.locationMarkerStatus {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: 0 0 auto;
+  border: 1px solid rgb(255 255 255 / 46%);
+  border-radius: 50%;
+}
+
+.locationMarkerPending .locationMarkerStatus {
+  background: #f28a48;
+}
+
+.locationMarkerChecked .locationMarkerStatus {
+  background: #4aa879;
+}
+
+@keyframes loadingSweep {
+  0%,
+  100% {
+    transform: translateX(-1.5rem);
+    opacity: 0.35;
+  }
+
+  50% {
+    transform: translateX(1.5rem);
+    opacity: 0.9;
+  }
+}
+
+@media (max-width: 640px) {
+  .shell {
+    min-height: 27rem;
+  }
+
+  .legend {
+    right: 0.65rem;
+    left: 0.65rem;
+    max-width: none;
+  }
+
+  .interactionHint {
+    right: 0.65rem;
+    bottom: 0.65rem;
+    left: 0.65rem;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingGlobe span:nth-child(3) {
+    animation: none;
+  }
+
+  .errorOverlay button {
+    transition: none;
+  }
+
+  .locationMarker {
+    transition: none;
+  }
+}

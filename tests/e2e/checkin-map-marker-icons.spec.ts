@@ -27,6 +27,10 @@ function loadAmapMockJs(): string {
 }
 
 const AMAP_MOCK_JS = loadAmapMockJs();
+const GLOBE_TEXTURE_STUB = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  'base64',
+);
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -104,7 +108,14 @@ async function registerAndLogin(
   return { token, username };
 }
 
-function installBaseApiMocks(page: Page) {
+interface MockTrackPoint {
+  id: number;
+  latitude: number;
+  longitude: number;
+  recordedAt: string;
+}
+
+function installBaseApiMocks(page: Page, trackPoints: MockTrackPoint[] = []) {
   page.route('**/api/trips/*/checkin/start', async (route) => {
     if (route.request().method() === 'POST') {
       await route.fulfill({ status: 200, contentType: 'application/json', body: OK_RESP });
@@ -134,12 +145,30 @@ function installBaseApiMocks(page: Page) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, message: 'ok', data: [], errorCode: null }),
+        body: JSON.stringify({
+          success: true,
+          message: 'ok',
+          data: trackPoints,
+          errorCode: null,
+        }),
       });
     } else {
       await route.continue();
     }
   });
+}
+
+function installGlobeAssetMocks(page: Page) {
+  page.route(
+    'https://cdn.jsdelivr.net/npm/three-globe@2.45.2/example/img/**',
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'image/png',
+        body: GLOBE_TEXTURE_STUB,
+      });
+    },
+  );
 }
 
 async function resetAmapSpy(page: Page) {
@@ -443,5 +472,78 @@ test.describe('v0.7.0 打卡地图增强（图标 / 交通工具标注 / 全局�
       return count;
     });
     expect(markerCount).toBe(5);
+  });
+
+  test('全局行程可切换为 3D 地球并与打卡列表共享选择状态', async ({ page }) => {
+    await registerAndLogin(page, `globe_global_${Date.now()}`);
+    installBaseApiMocks(page, [
+      { id: 1, latitude: 30.67, longitude: 104.06, recordedAt: '2026-07-24T08:00:00Z' },
+      { id: 2, latitude: 30.68, longitude: 104.07, recordedAt: '2026-07-24T08:05:00Z' },
+      { id: 3, latitude: 30.69, longitude: 104.08, recordedAt: '2026-07-24T08:10:00Z' },
+    ]);
+    installGlobeAssetMocks(page);
+
+    await page.route('**/api/trips/*/checkin', async (route: Route) => {
+      if (route.request().method() === 'GET') {
+        const globeResponse = buildTwoDayResponse();
+        globeResponse.data[0].items[0].status = 'CHECKED_IN';
+        globeResponse.data[0].items[0].checkedInAt = '2026-07-24T08:00:00Z';
+        globeResponse.data[0].items[1].status = 'CHECKED_IN';
+        globeResponse.data[0].items[1].checkedInAt = '2026-07-24T08:05:00Z';
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(globeResponse),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    await page.goto('/');
+    await page.goto('/trips/mock-plan-id/checkin');
+    await expect(page.getByRole('button', { name: /第\s*1\s*天/ })).toBeVisible({
+      timeout: 10000,
+    });
+
+    const globeButton = page.getByRole('button', { name: '3D 地球' });
+    await globeButton.click();
+    await expect(globeButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: '全局行程' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    const globe = page.getByTestId('checkin-globe');
+    await expect(globe).toHaveAttribute('data-checkin-globe-ready', 'true', {
+      timeout: 30000,
+    });
+    await expect(globe).toHaveAttribute('data-checkin-globe-point-count', '5');
+    await expect(globe).toHaveAttribute('data-checkin-globe-track-point-count', '3');
+    const globeScene = globe.getByRole('group', {
+      name: /可交互 3D 地球，全局行程共 5 个地点/,
+    });
+    await expect(globeScene).toBeVisible();
+    await expect(globe.locator('canvas')).toBeVisible();
+    await page.getByRole('button', { name: '全部显示' }).click();
+    await expect(globe.getByText('实际路线')).toBeVisible();
+    await expect(globe.getByText('GPS 轨迹')).toBeVisible();
+
+    const globeMarker = globe.getByRole('button', {
+      name: '宽窄巷子，已打卡，查看打卡卡片',
+    });
+    await expect(globeMarker).toBeVisible();
+    await globeMarker.focus();
+    await globeMarker.press('Enter');
+
+    const secondItem = page.getByRole('group', { name: '在地图中查看 宽窄巷子' });
+    await expect(secondItem).toHaveClass(/(^|\s)ring-2 ring-primary-500 ring-offset-2/);
+    await expect(globeScene).toHaveAccessibleName(/当前选中宽窄巷子/);
+
+    const flatButton = page.getByRole('button', { name: '平面地图' });
+    await flatButton.click();
+    await expect(flatButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(globe).toHaveCount(0);
+    await expect(page.getByRole('region', { name: '平面打卡地图' })).toBeVisible();
   });
 });

@@ -8,6 +8,8 @@ import {
   CalendarDays,
   Clock3,
   ClipboardList,
+  Globe2,
+  Map as MapIcon,
   MapPinned,
   Plus,
   RefreshCw,
@@ -21,6 +23,7 @@ import { CheckinItemCard } from '@/components/CheckinItemCard';
 import { MediaUploadModal } from '@/components/MediaUploadModal';
 import { AddCustomItemModal } from '@/components/AddCustomItemModal';
 import { EditCustomItemModal } from '@/components/EditCustomItemModal';
+import { CheckinGlobe } from '@/components/CheckinGlobe';
 import { CheckinMap, CheckinMapHandle } from '@/components/CheckinMap';
 import { CoordinateCorrectModal } from '@/components/CoordinateCorrectModal';
 import { getPeriodStyle } from '@/components/ItineraryTimeline';
@@ -85,6 +88,7 @@ export default function CheckinPage() {
   const { lat, lng, accuracy, loading: geoLoading } = useGeolocation({ enableHighAccuracy: true });
   const { isOnline, syncing, lastSyncResult } = useOfflineSync();
   const [viewMode, setViewMode] = useState<'day' | 'global'>('day');
+  const [mapRenderer, setMapRenderer] = useState<'flat' | 'globe'>('flat');
   // 强制刷新坐标中状态
   const [refreshingCoords, setRefreshingCoords] = useState(false);
   const [coordinateBackfillStatus, setCoordinateBackfillStatus] = useState<CoordinateBackfillStatus>('idle');
@@ -511,6 +515,37 @@ export default function CheckinPage() {
                 </button>
               ))}
             </div>
+            <div role="group" aria-label="地图视图" className="grid grid-cols-2 rounded-xl bg-gray-100 p-0.5">
+              <button
+                type="button"
+                onClick={() => setMapRenderer('flat')}
+                aria-pressed={mapRenderer === 'flat'}
+                className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors ${
+                  mapRenderer === 'flat'
+                    ? 'bg-white text-primary-800 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <MapIcon aria-hidden="true" className="h-3.5 w-3.5" />
+                平面地图
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMapRenderer('globe');
+                  setViewMode('global');
+                }}
+                aria-pressed={mapRenderer === 'globe'}
+                className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors ${
+                  mapRenderer === 'globe'
+                    ? 'bg-white text-primary-800 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <Globe2 aria-hidden="true" className="h-3.5 w-3.5" />
+                3D 地球
+              </button>
+            </div>
             {/* 路线切换控件 */}
             <div role="group" aria-label="路线显示" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 sm:mx-0 sm:pb-0">
               {(['planned', 'actual', 'gps', 'all'] as const).map((mode) => (
@@ -556,19 +591,35 @@ export default function CheckinPage() {
               已显示 {visibleMapItemCount}/{expectedMapItemCount} 个地点，其余坐标仍在补全。
             </p>
           )}
-          {/* 地图 */}
-          <CheckinMap
-            ref={mapRef}
-            items={mapItems}
-            trackPoints={displayTrackPoints}
-            routeMode={routeMode}
-            onMarkerDragEnd={handleMarkerDragEnd}
-            onMarkerClick={handleMarkerClick}
-            highlightItemId={selectedItemId}
-            height={viewMode === 'global' ? '55vh' : '45vh'}
-            viewportScopeKey={viewMode === 'day' ? `day:${currentTask.id}` : 'global'}
-            getSegmentColor={viewMode === 'global' ? (from, to) => segmentColorByDay(from) : undefined}
-          />
+          {/* 2D 与 3D 共用地点、路线和选择状态；3D 仅替换渲染器，不复制打卡业务逻辑。 */}
+          {mapRenderer === 'flat' ? (
+            <section aria-label="平面打卡地图">
+              <CheckinMap
+                ref={mapRef}
+                items={mapItems}
+                trackPoints={displayTrackPoints}
+                routeMode={routeMode}
+                onMarkerDragEnd={handleMarkerDragEnd}
+                onMarkerClick={handleMarkerClick}
+                highlightItemId={selectedItemId}
+                height={viewMode === 'global' ? '55vh' : '45vh'}
+                viewportScopeKey={viewMode === 'day' ? `day:${currentTask.id}` : 'global'}
+                getSegmentColor={viewMode === 'global' ? (from) => segmentColorByDay(from) : undefined}
+              />
+            </section>
+          ) : (
+            <CheckinGlobe
+              items={mapItems}
+              trackPoints={displayTrackPoints}
+              routeMode={routeMode}
+              selectedItemId={selectedItemId}
+              height={viewMode === 'global' ? '55vh' : '45vh'}
+              scopeLabel={viewMode === 'global' ? '全局行程' : `第 ${currentTask.dayNumber} 天`}
+              viewportScopeKey={viewMode === 'day' ? `day:${currentTask.id}` : 'global'}
+              onMarkerClick={handleMarkerClick}
+              getSegmentColor={viewMode === 'global' ? (from) => segmentColorByDay(from) : undefined}
+            />
+          )}
       </div>
 
       {/* GPS 状态 */}
